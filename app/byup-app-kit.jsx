@@ -449,6 +449,41 @@ function allergeniDichiarati() {
   } catch (e) { return {}; }
 }
 
+// ─── L'età, e il regime protettivo dei minori (P-187 · PRIV-09) ────────────
+// La data di nascita è obbligatoria in registrazione: sotto i quattordici
+// anni non si entra (art. 2-quinquies del Codice Privacy), e fra i quattordici
+// e i diciotto vale un regime protettivo che governa tre cose — niente alcolici
+// nel menù, niente marketing personalizzato, nessun profilo di
+// raccomandazione.
+// Il regime NON è una bandierina scritta il giorno dell'iscrizione: si calcola
+// dalla data di nascita ogni volta che serve, e così al compimento dei
+// diciotto anni cade da sé, senza che nessuno faccia niente.
+const NASCITA_KEY = 'byup_nascita';
+function scriviNascita(dob) {
+  try { if (dob) localStorage.setItem(NASCITA_KEY, String(dob)); } catch (e) {}
+}
+function leggiNascita() {
+  try { return localStorage.getItem(NASCITA_KEY) || null; } catch (e) { return null; }
+}
+function etaAnni(dob) {
+  const iso = dob || leggiNascita();
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  const oggi = new Date();
+  let a = oggi.getFullYear() - d.getFullYear();
+  const m = oggi.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && oggi.getDate() < d.getDate())) a--;
+  return a;
+}
+// Vero fra i quattordici e i diciotto. Senza data di nascita non si presume
+// nulla: gli account nati prima di questa regola restano maggiorenni finché
+// non dichiarano altro.
+function regimeMinore() {
+  const a = etaAnni();
+  return a !== null && a < 18;
+}
+
 window.ByupKit = {
   ASSETS, PALETTE, THEMES, TYPE, RADII, SPRING, EASE_OUT, DUR,
   useByupTheme, haptic, Atmosphere, GlassPanel, PillButton,
@@ -457,6 +492,7 @@ window.ByupKit = {
   GRAIN_URI,
   ALLERGENI, ALLERGENI_MAP, allergeniDichiarati,
   REGIMI, REGIMI_MAP, richiedeConsensoEsplicito,
+  scriviNascita, leggiNascita, etaAnni, regimeMinore,
 };
 /* sync */
 })();

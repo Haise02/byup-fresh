@@ -471,7 +471,24 @@ function AuthRegister({ onBack, onDone }) {
     return a;
   })();
   const dobOk = age !== null && age >= 14 && age < 120;
+  // Il regime protettivo (P-187 · PRIV-09): fra i quattordici e i diciotto
+  // non si propone la profilazione, e più avanti — nel menù e nei
+  // suggerimenti — l'alcol non compare e le proposte non si costruiscono
+  // sulla storia. Non è un'etichetta che la persona vede addosso: è quello
+  // che il prodotto non fa. Al compimento dei diciotto cade da sé, perché
+  // si ricalcola dalla data di nascita.
+  const minorenne = age !== null && age < 18;
   const pwMatch = pw.length > 0 && pw === pw2;
+
+  // La chiusura della registrazione, una sola volta per due pulsanti: la data
+  // di nascita si scrive (da lì si ricalcola il regime a ogni apertura) e per
+  // un minorenne la profilazione è no, perché non gliel'abbiamo chiesta.
+  const chiudiRegistrazione = (preferenze) => {
+    if (window.ByupKit && window.ByupKit.scriviNascita) window.ByupKit.scriviNascita(dob);
+    ByupConsensi.setMarketingTutti(mkt);
+    ByupConsensi.set('profilazione_marketing', minorenne ? false : profilo);
+    onDone({ nome, cognome, dob, email, prefs: preferenze, terms });
+  };
 
   const stepValid = [
     nome.trim() && cognome.trim() && dobOk,
@@ -670,7 +687,10 @@ function AuthRegister({ onBack, onDone }) {
                 {mkt && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
               </span>
             </button>
-            {/* La profilazione a parte (P-163): una finalità, non un canale. */}
+            {/* La profilazione a parte (P-163): una finalità, non un canale.
+                A un minorenne non si propone affatto (P-187): non c'è una
+                spunta spenta da guardare, non c'è la card. */}
+            {!minorenne && (
             <button onClick={() => setProfilo(p => !p)} aria-label="Consenso profilazione" style={{
               display: 'flex', alignItems: 'center', gap: 12, width: '100%',
               marginTop: 10, padding: '12px 14px', borderRadius: 16, textAlign: 'left',
@@ -690,6 +710,7 @@ function AuthRegister({ onBack, onDone }) {
                 {profilo && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               </span>
             </button>
+            )}
 
             {/* Consenso Termini & Privacy (obbligatorio) — link cliccabili */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 16 }}>
@@ -710,14 +731,14 @@ function AuthRegister({ onBack, onDone }) {
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.setMarketingTutti(mkt), ByupConsensi.set('profilazione_marketing', profilo), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (chiudiRegistrazione(prefs)) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
           transition: 'background .2s',
         }}>{ctaLabel}</button>
         {step === 4 && (
-          <button disabled={!terms} onClick={() => { ByupConsensi.setMarketingTutti(mkt); ByupConsensi.set('profilazione_marketing', profilo); onDone({ nome, cognome, dob, email, prefs: [], terms }); }} style={{
+          <button disabled={!terms} onClick={() => chiudiRegistrazione([])} style={{
             width: '100%', padding: '12px', marginTop: 8, background: 'none', border: 'none',
             color: terms ? A_MUTED : '#C9C2C5', fontSize: 14.5, fontWeight: 600,
             cursor: terms ? 'pointer' : 'default', fontFamily: 'inherit',

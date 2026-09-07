@@ -1234,7 +1234,12 @@ function ConsensiPanel({ onOpenPrivacy }) {
     return `${d.toLocaleDateString('it-IT')}`;
   };
   const mk = ByupConsensi.marketing ? ByupConsensi.marketing() : { qualsiasi: false };
-  const attivi = CONSENSI_DEF.filter(c => { if (c.gruppo) return mk.qualsiasi; const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  // Sotto i diciotto anni la profilazione non si propone: non gliel'abbiamo
+  // chiesta alla registrazione (P-187 · PRIV-09) e non si può accendere da
+  // qui. La riga torna da sé il giorno dei diciotto anni, spenta.
+  const minorenne = !!(window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore());
+  const CONSENSI_VISTI = minorenne ? CONSENSI_DEF.filter(c => c.id !== 'profilazione_marketing') : CONSENSI_DEF;
+  const attivi = CONSENSI_VISTI.filter(c => { if (c.gruppo) return mk.qualsiasi; const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
   // I tre canali del marketing: ognuno si spegne da solo; spenti tutti e tre
   // si spegne anche il padre; il padre acceso li accende tutti.
   const CANALI = [
@@ -1263,7 +1268,7 @@ function ConsensiPanel({ onOpenPrivacy }) {
           </svg>
         </button>
 
-        {aperto && CONSENSI_DEF.map((c, i) => {
+        {aperto && CONSENSI_VISTI.map((c, i) => {
           if (c.gruppo) return (
             <div key={c.id} style={{ ...sep }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>

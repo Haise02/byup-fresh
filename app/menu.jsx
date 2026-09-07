@@ -244,7 +244,7 @@ function DishPhoto({ tone = 'a', bestSeller, label, kind, hideBadge = false }) {
 }
 
 // ─── Dish data (module-level so DishDetail can read it too) ────────
-const DISHES_BY_CAT = {
+const DISHES_SEME = {
   'Antipasti': [
     { id: 'a1', name: "Fritto all'Italiana", price: 20, kind: 'fritto', photo: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&q=70&auto=format&fit=crop',
       desc: 'Fritto misto all italiana che include suppli, fiore di zucca fritto e olive all ascolana',
@@ -438,14 +438,15 @@ const DISHES_BY_CAT = {
       desc: 'Acqua minerale naturale, bottiglia di vetro.',
       longDesc: 'Acqua oligominerale naturale in bottiglia di vetro da 75cl.',
       prep: 1, allergens: [], tone: 'a', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, cucinaChiusaOk: true, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
+    // alcol: il segno che governa il divieto ai minori (P-187 · PRIV-09).
+    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, alcol: true, cucinaChiusaOk: true, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
       desc: 'Rosso o bianco. Selezione del sommelier.',
       longDesc: 'Caraffa da 0.5L di vino della casa, selezionato dal nostro sommelier. Rosso corposo del Lazio o bianco fresco dei Castelli Romani.',
       prep: 2, allergens: [], tone: 'b', ingredients: [],
       extras: [],
       variants: [{ id: 'tipo', label: 'Tipo di vino', options: ['Rosso', 'Bianco'] }],
       cal: 320, macros: { carbo: 12, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
+    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, alcol: true, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
       desc: 'Selezione di birre artigianali laziali. Chiedi al cameriere.',
       longDesc: 'Selezione rotante di birre artigianali del Lazio e dintorni. IPA, Lager, Ambrata o Weiss. Il cameriere ti illustrerà le birre disponibili del giorno.',
       prep: 2, allergens: ['glutine'], tone: 'c', ingredients: [], extras: [],
@@ -471,7 +472,30 @@ const DISHES_BY_CAT = {
       prep: 1, allergens: [], tone: 'c', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
   ],
 };
+// Il listino del locale è questo, per intero: una riga d'ordine di ieri deve
+// ritrovare il suo piatto anche se oggi chi guarda non può vederlo.
+const DISHES_BY_CAT = DISHES_SEME;
 const ALL_DISHES = Object.values(DISHES_BY_CAT).flat();
+
+// Il regime protettivo dei minori (P-187 · PRIV-09) agisce QUI, dove il
+// catalogo che la persona sfoglia si COSTRUISCE: i piatti con alcol non
+// entrano nell'elenco, non vengono nascosti dopo — non compaiono nelle
+// categorie, nella ricerca, nei «più ordinati» né fra i suggerimenti, e la
+// categoria che resta vuota sparisce con loro. Il segno `alcol` sta sul
+// piatto, come `hasAlcohol` nel gestionale.
+// Nessuna etichetta addosso alla persona: il regime si ricalcola dalla data
+// di nascita a ogni apertura, e il giorno dei diciotto anni il catalogo torna
+// intero da sé, senza che nessuno faccia niente.
+function catalogoVisibile() {
+  const minore = !!(window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore());
+  if (!minore) return DISHES_BY_CAT;
+  const out = {};
+  Object.keys(DISHES_BY_CAT).forEach(cat => {
+    const senzaAlcol = DISHES_BY_CAT[cat].filter(d => !d.alcol);
+    if (senzaAlcol.length) out[cat] = senzaAlcol;
+  });
+  return out;
+}
 
 // ─── Le versioni del piatto e il filtro degli allergeni (P-183 · D-136) ────
 // Gli allergeni non hanno un terzo stato: il piatto porta quelli che il
@@ -586,13 +610,18 @@ function compatibileConRegimi(d, regimi) {
   });
 }
 function byupSuggerimentiPerTe() {
-  const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
+  // Al minorenne non si costruisce alcun profilo di raccomandazione
+  // (P-187 · PRIV-09): le proposte non si fanno sulla sua storia, e la
+  // sezione «In base ai tuoi gusti» non compare affatto.
+  if (window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore()) return [];
+  const visibili = Object.values(catalogoVisibile()).flat();
+  const top4 = new Set(visibili.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
   const gusti = (window.ByupGusti && window.ByupGusti.leggi()) || [];
   const storico = ((window.ByupStoricoOrdini && window.ByupStoricoOrdini()) || []).map(n => n.toLowerCase());
   const ordinato = (d) => { const n = d.name.toLowerCase(); return storico.some(s => n.includes(s) || s.includes(n)); };
   const dietaOk = !!(window.ByupConsensi && window.ByupConsensi.attivo('dietary_suggestions'));
   const esigenze = dietaOk ? esigenzeDichiarate() : { allergeni: {}, regimi: [] };
-  const candidati = ALL_DISHES.filter(d => {
+  const candidati = visibili.filter(d => {
     if (top4.has(d.id)) return false;
     // Solo a consenso acceso: fuori i piatti con un allergene dichiarato.
     if (dietaOk && d.allergens.some(a => esigenze.allergeni[a])) return false;
@@ -931,7 +960,8 @@ function MenuScreen({ state, setState, goTo }) {
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
 
-  const dishes = DISHES_BY_CAT;
+  // Quello che si sfoglia: senza alcolici sotto i diciotto anni (P-187).
+  const dishes = catalogoVisibile();
 
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
   const allDishesFlat = Object.values(dishes).flat();
@@ -1334,7 +1364,7 @@ function MenuScreen({ state, setState, goTo }) {
 
         {/* I più ordinati — sempre visibile se non c'è ricerca attiva */}
         {!searchQ && (() => {
-          const tops = ALL_DISHES.filter(d => d.bestSeller).slice(0, 4);
+          const tops = allDishesFlat.filter(d => d.bestSeller).slice(0, 4);
           if (!tops.length) return null;
           return (
             <div ref={el => sectionRefs.current['Byup'] = el} data-cat="Byup" style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
@@ -1390,7 +1420,7 @@ function MenuScreen({ state, setState, goTo }) {
             Con l'interruttore di P-26 spento la sezione resta ma è generica: i
             più ordinati, e la riga che dice come riaccendere. */}
         {!searchQ && !suggerimentiAttivi && (() => {
-          const picks = ALL_DISHES.filter(d => d.bestSeller).slice(0, 6);
+          const picks = allDishesFlat.filter(d => d.bestSeller).slice(0, 6);
           if (picks.length < 2) return null;
           return (
             <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
@@ -1480,7 +1510,7 @@ function MenuScreen({ state, setState, goTo }) {
         {/* Tutte le categorie in sequenza */}
         </div>{/* end padding wrapper */}
         {tabs.map((catName, catIdx) => {
-          const catDishes = (DISHES_BY_CAT[catName] || []).filter(d => {
+          const catDishes = (dishes[catName] || []).filter(d => {
             if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase()) && !d.desc.toLowerCase().includes(searchQ.toLowerCase())) return false;
             return true;
           // Il piatto che porta un allergene filtrato esce dall'elenco, a meno
