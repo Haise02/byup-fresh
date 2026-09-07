@@ -253,22 +253,28 @@ const STAT_CLIENTI = {
 // e le voci sotto la soglia minima non escono (sotto i 5 clienti un dato non è
 // una tendenza, è una persona riconoscibile).
 const STAT_FUORI = {
-  sogliaMinima: 5,
+  // La soglia (P-190 · D-134): una cella esce solo se dietro ci sono almeno
+  // VENTI consumatori distinti e OTTO locali distinti. Sotto, il dato non è
+  // una tendenza ma una persona riconoscibile, e la cella non compare. La
+  // soglia era dichiarata a cinque e non veniva usata da nessuna parte.
+  // Nessun testo a schermo la spiega: la regola sta nei documenti.
+  sogliaConsumatori: 20,
+  sogliaLocali: 8,          // e almeno otto locali distinti dietro la riga
   clientiTracciati: 486,      // tuoi clienti che ordinano anche in altri locali
   quotaSulTotale: 39,         // % sui clienti unici del periodo
   localiZona: 14,             // locali byup entro 3 km che concorrono al dato
   raggioKm: 3,
   prodotti: [
-    { nome:'Tagliere di salumi e formaggi', cat:'Antipasti',     clienti: 96, ordini: 143, prezzo: 14.00, tuo: false },
-    { nome:'Tartare di manzo',              cat:'Antipasti',     clienti: 71, ordini:  88, prezzo: 16.00, tuo: false },
-    { nome:'Cacio e pepe',                  cat:'Primi piatti',  clienti: 68, ordini: 121, prezzo: 12.00, tuo: true  },
-    { nome:'Pizza margherita',              cat:'Pizze',         clienti: 64, ordini: 190, prezzo:  8.50, tuo: true  },
-    { nome:'Poke bowl',                     cat:'Piatti unici',  clienti: 58, ordini:  96, prezzo: 13.50, tuo: false },
-    { nome:'Hamburger di chianina',         cat:'Secondi piatti',clienti: 52, ordini:  74, prezzo: 15.00, tuo: false },
-    { nome:'Spritz',                        cat:'Bar',           clienti: 49, ordini: 168, prezzo:  6.50, tuo: true  },
-    { nome:'Tiramisù',                      cat:'Dolci',         clienti: 41, ordini:  59, prezzo:  6.00, tuo: true  },
-    { nome:'Carbonara di mare',             cat:'Primi piatti',  clienti: 33, ordini:  44, prezzo: 16.00, tuo: false },
-    { nome:'Birra artigianale alla spina',  cat:'Bar',           clienti: 29, ordini:  91, prezzo:  6.00, tuo: false },
+    { nome:'Tagliere di salumi e formaggi', cat:'Antipasti',     clienti: 96, localiDistinti: 14, ordini: 143, prezzo: 14.00, tuo: false },
+    { nome:'Tartare di manzo',              cat:'Antipasti',     clienti: 71, localiDistinti: 14, ordini:  88, prezzo: 16.00, tuo: false },
+    { nome:'Cacio e pepe',                  cat:'Primi piatti',  clienti: 68, localiDistinti: 14, ordini: 121, prezzo: 12.00, tuo: true  },
+    { nome:'Pizza margherita',              cat:'Pizze',         clienti: 64, localiDistinti: 14, ordini: 190, prezzo:  8.50, tuo: true  },
+    { nome:'Poke bowl',                     cat:'Piatti unici',  clienti: 58, localiDistinti: 14, ordini:  96, prezzo: 13.50, tuo: false },
+    { nome:'Hamburger di chianina',         cat:'Secondi piatti',clienti: 52, localiDistinti: 12, ordini:  74, prezzo: 15.00, tuo: false },
+    { nome:'Spritz',                        cat:'Bar',           clienti: 49, localiDistinti: 12, ordini: 168, prezzo:  6.50, tuo: true  },
+    { nome:'Tiramisù',                      cat:'Dolci',         clienti: 41, localiDistinti: 10, ordini:  59, prezzo:  6.00, tuo: true  },
+    { nome:'Carbonara di mare',             cat:'Primi piatti',  clienti: 18, localiDistinti: 9, ordini:  44, prezzo: 16.00, tuo: false },
+    { nome:'Birra artigianale alla spina',  cat:'Bar',           clienti: 29, localiDistinti: 6, ordini:  91, prezzo:  6.00, tuo: false },
   ],
 };
 

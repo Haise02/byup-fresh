@@ -35,12 +35,19 @@ function admRestrizioneAttiva(utenteId, tipo) {
   return RESTRIZIONI.find(r => r.utenteId === utenteId && admRestrizioneViva(r) && (!tipo || r.tipo === tipo)) || null;
 }
 
-// Il testo che la persona riceve, una volta sola, quando la sospensione parte:
-// cosa, fino a quando, perché, cosa succede alle recensioni già scritte, come
-// contestare. È derivato dal record, non scritto a mano.
+// Il testo che la persona riceve, una volta sola, quando la misura parte:
+// cosa, fino a quando, perché, cosa succede a quello che aveva già fatto,
+// come contestare. È derivato dal record, non scritto a mano.
+// VALE ANCHE PER IL BAN (P-190 · rilievo H1-15): prima un controllo scritto a
+// mano escludeva ogni tipo diverso dalla sospensione delle recensioni, e la
+// misura più severa restava muta — chi veniva bannato non riceveva nulla.
 function admTestoComunicazione(rec, utente) {
-  if (rec.tipo !== 'review_suspension') return null;
   const nome = utente && utente.nome ? utente.nome.split(' ')[0] : '';
+  if (rec.tipo === 'ban') {
+    const fino = rec.fine ? `fino al ${fmtDate(rec.fine)}` : 'a tempo indeterminato';
+    return `Ciao ${nome}, dal ${fmtDate(rec.data)} il tuo account Byup è sospeso ${fino}. Motivo: ${rec.motivo}. Non puoi accedere all'app né ordinare; i documenti dei tuoi ordini restano disponibili come prevede la legge. Se pensi che la decisione sia sbagliata puoi contestarla rispondendo a questa comunicazione, e la riesaminiamo.`;
+  }
+  if (rec.tipo !== 'review_suspension') return null;
   const esistenti = rec.esistenti === 'rimosse'
     ? `Le recensioni che avevi già pubblicato sono state rimosse: ${rec.motivoRimozione || rec.motivo}.`
     : 'Le recensioni che avevi già pubblicato restano visibili.';

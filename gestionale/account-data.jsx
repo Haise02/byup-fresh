@@ -33,8 +33,9 @@ const ACC_PIANI = [
     ordineExtra: 0.45,
     menu: '1 menu digitale',
     staff: '1 membro dello staff',
-    supporto: 'Chat, tutorial, ticket email',
+    supporto: 'Tutorial e ticket email',
     menuShort: '1', staffShort: '1',
+    supChat: false,
     supPhone: false, supCallback: false, supPriority: false,
     // Byup AI — l'assistente che risponde in italiano e agisce sul gestionale
     // (Byuppino in Panoramica, il pulsante in ogni schermata): sta su Plus e
@@ -43,7 +44,7 @@ const ACC_PIANI = [
     feat: [
       '1 menu digitale',
       '1 membro dello staff',
-      'Supporto: chat, tutorial, ticket email',
+      'Supporto: tutorial e ticket email',
     ],
   },
   {
@@ -54,6 +55,7 @@ const ACC_PIANI = [
     staff: 'Fino a 3 membri dello staff',
     supporto: 'Chat, tutorial, ticket email',
     menuShort: 'Fino a 3', staffShort: 'Fino a 3',
+    supChat: true,
     supPhone: false, supCallback: false, supPriority: false,
     ai: false,
     feat: [
@@ -73,6 +75,7 @@ const ACC_PIANI = [
     menuShort: 'Illimitati', staffShort: 'Illimitati',
     // Orario e tempo di richiamata sono la differenza vera fra Plus e
     // Business: nella tabella di confronto vanno scritti, non spuntati.
+    supChat: true,
     supPhone: true, supCallback: true, supPriority: false,
     supOrariShort: 'Lun–Ven 12–16 / 18–22', supSlaShort: 'entro 2 ore',
     ai: true,
@@ -91,6 +94,7 @@ const ACC_PIANI = [
     staff: 'Staff illimitato',
     supporto: 'Telefono H24, 7 giorni su 7 · richiamata entro 1 ora · canale prioritario',
     menuShort: 'Illimitati', staffShort: 'Illimitati',
+    supChat: true,
     supPhone: true, supCallback: true, supPriority: true,
     supOrariShort: 'H24 · 7 su 7', supSlaShort: 'entro 1 ora',
     ai: true,
@@ -156,6 +160,10 @@ function accCodiceInvito(nome) {
 
 window.ACC_DATI = ACC_DATI;
 window.ACC_PIANI = ACC_PIANI;
+// Il piano del locale, quello marcato `current` nel listino: lo leggono il
+// Supporto (quali canali mostrare, P-190 · rilievo G3-07) e chiunque debba
+// dire che cosa il piano comprende, senza ricopiarne le regole.
+window.accPianoCorrente = () => ACC_PIANI.find(p => p.current) || ACC_PIANI[0];
 window.ACC_PACCHETTI = ACC_PACCHETTI;
 window.ACC_FATTURE = ACC_FATTURE;
 window.ACC_SESSIONI = ACC_SESSIONI;

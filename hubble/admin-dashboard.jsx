@@ -2666,6 +2666,12 @@ const scalaUtenti = UTENTI_BASE / UTENTI.length;
 
 function DashUtentiApp() {
   const totUtenti = UTENTI_BASE;
+  // La popolazione su cui si calcolano le preferenze alimentari: chi ha
+  // prestato il consenso a quel trattamento, non tutti (P-190 · D-134). La
+  // quota è quella del seme dei consensi; la soglia è la stessa degli insight.
+  const DIET_QUOTA = 0.68;
+  const DIET_SOGLIA = 20;
+  const dietBase = Math.round(totUtenti * DIET_QUOTA);
   const stickiness = Math.round(APP_METRICS.dau/APP_METRICS.mau*100);
   // Benchmark di settore food/lifestyle apps · DAU/MAU 20% = ottimo, 10-20% = buono, <10% = basso
   const stickinessTone = stickiness >= 20 ? 'OK' : stickiness >= 10 ? 'WARN' : 'DANGER';
@@ -3266,7 +3272,11 @@ function DashUtentiApp() {
           </div>
         </AdmCard>
 
-        {/* Preferenze alimentari — distribuzione sul totale utenti */}
+        {/* Preferenze alimentari — sulla popolazione CONSENZIENTE (P-190 ·
+            D-134): il denominatore non è il totale degli utenti ma chi ha
+            prestato il consenso a quel trattamento, e le voci sotto soglia non
+            escono. Nessuna spiegazione a schermo: cambia il denominatore e
+            basta, la regola sta nei documenti. */}
         <AdmCard padding={20}>
           <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT}}>Preferenze alimentari</div>
           <div style={{fontSize:13, color:ADM.MUTED, marginTop:2, marginBottom:14}}>Dichiarate dagli utenti nel profilo app</div>
@@ -3278,11 +3288,11 @@ function DashUtentiApp() {
               { label:'Senza lattosio',     pct:8 },
               { label:'Vegano',             pct:6 },
               { label:'Pescetariano',       pct:3 },
-            ].map((f, i) => (
+            ].filter(f => Math.round(dietBase * (f.pct / 100)) >= DIET_SOGLIA).map((f, i) => (
               <div key={i}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
                   <span style={{fontSize:14, color:ADM.TEXT}}>{f.label}</span>
-                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(totUtenti*(f.pct/100)))} · {f.pct}%</span>
+                  <span style={{fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{fmtNum(Math.round(dietBase*(f.pct/100)))} · {f.pct}%</span>
                 </div>
                 <div style={{height:6, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                   <div style={{width:`${Math.max(f.pct, 1.5)}%`, height:'100%', background:ADM.INK, opacity: i === 0 ? 0.45 : 0.85, borderRadius:99}}/>

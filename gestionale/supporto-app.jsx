@@ -46,7 +46,7 @@ function SupportoApp() {
           onEmail={() => setEmailOpen(true)} onCall={() => setCallOpen(true)}/>
 
         {/* FAB bottom-right per riaprire la chat */}
-        {!chatOpen && (
+        {!chatOpen && (!window.accPianoCorrente || window.accPianoCorrente().supChat !== false) && (
           <button onClick={() => setChatOpen(true)} title="Apri assistente"
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.18)'; e.currentTarget.style.boxShadow = '0 14px 36px rgba(233, 30, 99, 0.50)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 24px rgba(233, 30, 99, 0.36)'; }}

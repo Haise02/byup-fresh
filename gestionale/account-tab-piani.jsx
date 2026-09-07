@@ -1509,7 +1509,10 @@ function ConfrontoTable() {
     // Byup AI: la riga sta sopra il supporto perché è una funzione del
     // prodotto, non un livello di assistenza.
     ['Byup AI',                                ...ACC_PIANI.map(p => p.ai ? '✓' : '—')],
-    ['Assistenza via chat, tutorial e ticket', ...ACC_PIANI.map(() => '✓')],
+    // Il Gratuito non ha la chat (P-190 · rilievo G3-07): la tabella non la
+    // promette più a tutti, e il Supporto mostra i canali del piano.
+    ['Tutorial e ticket',                      ...ACC_PIANI.map(() => '✓')],
+    ['Assistenza via chat',                    ...ACC_PIANI.map(p => p.supChat ? '✓' : '—')],
     ['Supporto telefonico',                    ...ACC_PIANI.map(p => p.supPhone ? p.supOrariShort : '—')],
     ['Richiamata garantita',                   ...ACC_PIANI.map(p => p.supCallback ? p.supSlaShort : '—')],
     ['Canale riservato prioritario',           ...ACC_PIANI.map(p => p.supPriority ? '✓' : '—')],

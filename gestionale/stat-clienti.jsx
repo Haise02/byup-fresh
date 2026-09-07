@@ -914,7 +914,13 @@ function StatFuori() {
 
   // La classifica è sugli ordini, quindi l'ordine delle righe pure: una lista
   // ordinata su un numero che non si vede si legge come un errore.
-  const righe = [...d.prodotti].sort((a, b) => b.ordini - a.ordini);
+  // La soglia (P-190 · D-134): esce solo ciò che sta dietro ad almeno venti
+  // consumatori distinti e otto locali distinti; il resto non compare, e non
+  // si spiega a schermo — la regola sta nei documenti.
+  const righe = [...d.prodotti]
+    .filter(p => (p.clienti || 0) >= (d.sogliaConsumatori || 20) && (p.localiDistinti || 0) >= (d.sogliaLocali || 8))
+    .sort((a, b) => b.ordini - a.ordini);
+  if (!righe.length) return null;
 
   return (
     <StatCard

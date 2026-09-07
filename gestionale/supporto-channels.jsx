@@ -1,8 +1,17 @@
-// 3 card canale + search
+// Le card dei canali, secondo il piano (P-190 · rilievo G3-07). Chat e
+// chiamata non sono di tutti: il Gratuito ha tutorial e ticket, la chat parte
+// da Starter, la chiamata dai piani che la comprendono. Un canale che il
+// piano non dà non si mostra spento con la scritta «passa a Plus»: non si
+// mostra, e il ticket resta la strada per tutti.
 
 function SupChannelCards({ onChat, onEmail, onCall }) {
+  const piano = window.accPianoCorrente ? window.accPianoCorrente() : { supChat: true, supPhone: true };
+  const conChat = piano.supChat !== false;
+  const conChiamata = !!piano.supPhone || !!piano.supCallback;
+  const quante = 1 + (conChat ? 1 : 0) + (conChiamata ? 1 : 0);
   return (
-    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16}}>
+    <div style={{display: 'grid', gridTemplateColumns: `repeat(${quante}, 1fr)`, gap: 16}}>
+      {conChat && (
       <SupCard
         icon={<PnI.Chat size={20}/>}
         iconBg="#dcfce7" iconColor="#15803d"
@@ -12,6 +21,7 @@ function SupChannelCards({ onChat, onEmail, onCall }) {
         cta="Avvia la chat"
         onClick={onChat}
       />
+      )}
       <SupCard
         icon={<PnI.FileText size={20}/>}
         iconBg="#dbeafe" iconColor="#1d4ed8"
@@ -21,6 +31,7 @@ function SupChannelCards({ onChat, onEmail, onCall }) {
         cta="Apri un ticket"
         onClick={onEmail}
       />
+      {conChiamata && (
       <SupCard
         primary
         icon={<PnI.Phone size={20}/>}
@@ -30,6 +41,7 @@ function SupChannelCards({ onChat, onEmail, onCall }) {
         cta="Prenota una chiamata"
         onClick={onCall}
       />
+      )}
     </div>
   );
 }
