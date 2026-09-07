@@ -289,6 +289,9 @@ const DISHES_BY_CAT = {
       longDesc: 'Bruschette di pane casereccio tostato a legna, strofinato con aglio, condite con pomodoro fresco di stagione, basilico, olio extravergine di oliva e sale grosso.',
       prep: 6, allergens: ['glutine'], bestSeller: true, tone: 'c',
       ingredients: ['Pane casereccio', 'Pomodoro', 'Aglio', 'Basilico', 'Olio EVO'],
+      // Le VERSIONI del piatto (P-183 · D-136): l'etichetta col sovrapprezzo
+      // è una versione vera, col suo prezzo e i suoi allergeni.
+      versioni: [{ etichetta: 'Senza glutine', sovrapprezzo: 1.5, senza: ['glutine'] }],
       extras: [], variants: [], cal: 220, macros: { carbo: 32, grassi: 8, prot: 6, fibre: 3 } },
   ],
   'Primi piatti': [
@@ -298,6 +301,7 @@ const DISHES_BY_CAT = {
       longDesc: 'Tonnarelli freschi fatti in casa, mantecati con pecorino romano DOP stagionato 12 mesi e pepe nero del Sarawak macinato al momento. Una delle 4 paste classiche romane.',
       prep: 14, allergens: ['glutine','lattosio','uova'], bestSeller: true, tone: 'a',
       ingredients: ['Pecorino romano', 'Pepe nero', 'Tonnarelli'],
+      versioni: [{ etichetta: 'Senza glutine', sovrapprezzo: 2, senza: ['glutine'] }],
       extras: [{ id: 'e1', name: 'Pepe extra', price: 0 }, { id: 'e2', name: 'Pecorino in più', price: 2 }, { id: 'e3', name: 'Tartufo nero', price: 8 }],
       variants: [{ id: 'cottura', label: 'Cottura pasta', options: ['Al dente', 'Al punto', 'Ben cotta'] }],
       cal: 650, macros: { carbo: 78, grassi: 22, prot: 24, fibre: 4 } },
@@ -305,6 +309,7 @@ const DISHES_BY_CAT = {
       desc: 'Spaghettoni, guanciale, pecorino, uovo. La ricetta originale.',
       longDesc: "Spaghettoni di Gragnano IGP, guanciale di Amatrice croccante, tuorlo d'uovo fresco, pecorino romano DOP, pepe nero. Mantecata al momento, senza panna.",
       prep: 15, allergens: ['glutine','uova','lattosio'], tone: 'b',
+      versioni: [{ etichetta: 'Senza glutine', sovrapprezzo: 2, senza: ['glutine'] }],
       ingredients: ['Guanciale', 'Pecorino', 'Uovo', 'Pepe', 'Spaghettoni'],
       extras: [{ id: 'e1', name: 'Guanciale extra', price: 3 }, { id: 'e2', name: 'Pecorino extra', price: 2 }],
       variants: [{ id: 'cottura', label: 'Cottura pasta', options: ['Al dente', 'Al punto'] }],
@@ -322,7 +327,10 @@ const DISHES_BY_CAT = {
       longDesc: 'Risotto mantecato con riso Carnaroli Riserva San Massimo, tartufo nero pregiato di Norcia, parmigiano reggiano 36 mesi e burro di malga. Finito con lamelle di tartufo fresco.',
       prep: 20, allergens: ['lattosio'], bestSeller: true, tone: 'b',
       ingredients: ['Riso Carnaroli', 'Tartufo nero', 'Parmigiano', 'Burro di malga'],
-      extras: [{ id: 'e1', name: 'Tartufo extra', price: 6 }],
+      versioni: [{ etichetta: 'Senza lattosio', sovrapprezzo: 0, senza: ['lattosio'] }],
+      // L'aggiunta dichiara che cosa introduce (P-183 · D-136): la crema di
+      // nocciole porta la frutta a guscio, che il risotto non ha.
+      extras: [{ id: 'e1', name: 'Tartufo extra', price: 6 }, { id: 'e2', name: 'Granella di nocciole', price: 2, addsAllergens: ['fruttaguscio'] }],
       variants: [], cal: 580, macros: { carbo: 68, grassi: 24, prot: 16, fibre: 2 } },
     { id: 'p5', name: 'Gricia', price: 14, kind: 'pasta', photo: 'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&q=70&auto=format&fit=crop',
       desc: 'Rigatoni, guanciale, pecorino romano. La cacio e pepe con guanciale.',
@@ -464,6 +472,49 @@ const DISHES_BY_CAT = {
   ],
 };
 const ALL_DISHES = Object.values(DISHES_BY_CAT).flat();
+
+// ─── Le versioni del piatto e il filtro degli allergeni (P-183 · D-136) ────
+// Gli allergeni non hanno un terzo stato: il piatto porta quelli che il
+// ristoratore ha indicato, e chi filtra un allergene non vede i piatti che lo
+// portano. Se il ristoratore non ha indicato nulla il piatto compare lo
+// stesso, anche a chi filtra: è un errore suo, e le condizioni d'uso dicono
+// che le informazioni sugli alimenti — allergeni compresi — sono del locale.
+// Il prototipo non inventa un «non dichiarato» che il menù non ha.
+//
+// Quello che invece esiste è la VERSIONE: un'etichetta col sovrapprezzo è una
+// versione del piatto, col suo prezzo e i suoi allergeni. Chi filtra il
+// glutine vede la carbonara nella versione senza glutine, al prezzo di quella
+// versione e con l'etichetta che lo dice; se quella versione non c'è, il
+// piatto non compare. E la versione scelta viaggia sulla riga d'ordine fino
+// alla cucina: senza, si mostrerebbe al celiaco un piatto che poi arriva
+// normale.
+function versionePerFiltri(d, filtri) {
+  const attivi = Object.keys(filtri || {}).filter(k => filtri[k]);
+  const dentro = attivi.filter(a => (d.allergens || []).includes(a));
+  if (!dentro.length) return d;
+  const v = (d.versioni || []).find(x => dentro.every(a => (x.senza || []).includes(a)));
+  if (!v) return null;
+  return {
+    ...d,
+    price: Math.round((d.price + (v.sovrapprezzo || 0)) * 100) / 100,
+    allergens: (d.allergens || []).filter(a => !(v.senza || []).includes(a)),
+    versione: v.etichetta,
+  };
+}
+// Il piatto come lo si è scelto: se la riga porta una versione, il prezzo e
+// gli allergeni sono quelli della versione.
+function dishConVersione(d, etichetta) {
+  if (!d || !etichetta) return d;
+  const v = (d.versioni || []).find(x => x.etichetta === etichetta);
+  if (!v) return d;
+  return {
+    ...d,
+    price: Math.round((d.price + (v.sovrapprezzo || 0)) * 100) / 100,
+    allergens: (d.allergens || []).filter(a => !(v.senza || []).includes(a)),
+    versione: v.etichetta,
+  };
+}
+window.byupDishConVersione = dishConVersione;
 
 // ─── Il motore di «In base ai tuoi gusti» (P-123 · D-03, D-28, LIA §4) ─────
 // Legge SOLO i gusti dichiarati (ByupGusti, P-27) e la storia degli ordini —
@@ -895,7 +946,7 @@ function MenuScreen({ state, setState, goTo }) {
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => {
-    const d = allDishesFlat.find(x => x.id === i.dishId);
+    const d = dishConVersione(allDishesFlat.find(x => x.id === i.dishId), i.versione);
     if (!d) return s;
     const extTotal = Object.entries(i.extras || {}).reduce((es, [eid, eq]) => {
       const ex = d.extras?.find(e => e.id === eid);
@@ -905,19 +956,23 @@ function MenuScreen({ state, setState, goTo }) {
   }, 0);
 
   // Remove one unit from card: prefer plain line, fallback to last line
-  const removeDishFromCard = (dishId) => setState(s => {
-    const plainLine = s.cart.find(i => i.dishId === dishId && !Object.keys(i.variants||{}).length && !Object.keys(i.extras||{}).length && !Object.keys(i.removed||{}).length);
-    const target = plainLine || [...s.cart].reverse().find(i => i.dishId === dishId);
+  const removeDishFromCard = (dishId, versione) => setState(s => {
+    const stessa = i => (i.versione || null) === (versione || null);
+    const plainLine = s.cart.find(i => i.dishId === dishId && stessa(i) && !Object.keys(i.variants||{}).length && !Object.keys(i.extras||{}).length && !Object.keys(i.removed||{}).length);
+    const target = plainLine || [...s.cart].reverse().find(i => i.dishId === dishId && stessa(i));
     if (!target) return s;
     if (target.qty <= 1) return { ...s, cart: s.cart.filter(i => i.lineId !== target.lineId) };
     return { ...s, cart: s.cart.map(i => i.lineId === target.lineId ? { ...i, qty: i.qty - 1 } : i) };
   });
 
   // Quick add (no customization): merge with existing plain line, or create new
-  const addDish = (id) => { setState(s => {
-    const existing = s.cart.find(i => i.dishId === id && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
+  // La VERSIONE viaggia sulla riga (P-183 · D-136) e fa riga a sé: la
+  // carbonara senza glutine non si somma alla carbonara normale, o la cucina
+  // ne farebbe due uguali.
+  const addDish = (id, versione) => { setState(s => {
+    const existing = s.cart.find(i => i.dishId === id && (i.versione || null) === (versione || null) && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
     if (existing) return { ...s, cart: s.cart.map(i => i.lineId === existing.lineId ? { ...i, qty: i.qty + 1 } : i) };
-    return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, variants: {}, extras: {}, removed: {} }] };
+    return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, versione: versione || null, variants: {}, extras: {}, removed: {} }] };
   }); };
   // Le divisioni sono per unità (`lineId-0`, `lineId-1`, …): calando la
   // quantità le chiavi delle unità sparite vanno buttate, o resterebbero
@@ -974,10 +1029,15 @@ function MenuScreen({ state, setState, goTo }) {
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
-          const d = Object.values(dishes).flat().find(x => x.id === li.dishId);
+          // La versione arriva in cucina e sullo scontrino: nel nome, perché
+          // si legga, e in un campo suo, perché il sistema la sappia
+          // (order_items.item_variant_id — P-183 · D-136).
+          const d = dishConVersione(Object.values(dishes).flat().find(x => x.id === li.dishId), li.versione);
           return {
             lineId: 'me-' + li.lineId,
-            id: li.dishId, name: d?.name, price: d?.price, qty: li.qty, ownerId: 'me',
+            id: li.dishId, name: d ? d.name + (li.versione ? ` · ${li.versione.toLowerCase()}` : '') : undefined,
+            price: d?.price, qty: li.qty, ownerId: 'me',
+            versione: li.versione || null,
             variants: li.variants, extras: li.extras, removed: li.removed,
           };
         });
@@ -1422,11 +1482,11 @@ function MenuScreen({ state, setState, goTo }) {
         {tabs.map((catName, catIdx) => {
           const catDishes = (DISHES_BY_CAT[catName] || []).filter(d => {
             if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase()) && !d.desc.toLowerCase().includes(searchQ.toLowerCase())) return false;
-            for (const id of Object.keys(allergenFilters)) {
-              if (allergenFilters[id] && d.allergens.includes(id)) return false;
-            }
             return true;
-          });
+          // Il piatto che porta un allergene filtrato esce dall'elenco, a meno
+          // che non ne esista una versione senza: allora entra QUELLA, col suo
+          // prezzo e la sua etichetta (P-183 · D-136).
+          }).map(d => versionePerFiltri(d, allergenFilters)).filter(Boolean);
           const dietMatch = (d) => {
             if (!dietFilter) return false;
             if (dietFilter === 'veg') return !d.allergens.includes('pesce');
@@ -1446,7 +1506,9 @@ function MenuScreen({ state, setState, goTo }) {
                   const isFirst = idx === 0;
                   const prevMatch = idx > 0 && dietMatch(sorted[idx - 1]);
                   const showDivider = dietFilter && !dietMatch(d) && prevMatch;
-                  const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
+                  // La riga con un'altra versione è un'altra riga: il conto
+                  // sulla card è di questa (P-183 · D-136).
+                  const qty = cart.filter(i => i.dishId === d.id && (i.versione || null) === (d.versione || null)).reduce((s, i) => s + i.qty, 0);
                   return (
                     <React.Fragment key={d.id}>
                       {showDivider && (
@@ -1456,7 +1518,7 @@ function MenuScreen({ state, setState, goTo }) {
                           <div style={{ flex: 1, height: 1, background: TINT }}/>
                         </div>
                       )}
-                    <div onClick={() => goTo('dish', { dishId: d.id })} data-dish={d.name} style={{
+                    <div onClick={() => goTo('dish', { dishId: d.id, versione: d.versione })} data-dish={d.name} style={{
                       background: SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
                       display: 'flex', gap: 14, cursor: 'pointer',
                       transition: 'box-shadow 0.4s ease, border-color 0.2s',
@@ -1486,6 +1548,14 @@ function MenuScreen({ state, setState, goTo }) {
                       {/* Testo + pulsante a destra */}
                       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ fontSize: 16, fontWeight: 700, color: TEXT, lineHeight: 1.25, letterSpacing: -0.2, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                        {/* La versione si legge sul piatto, non solo nel
+                            filtro: è quella che arriverà in cucina. */}
+                        {d.versione && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 6,
+                            background: '#e8f5ec', color: '#1a7a3c', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                            versione {d.versione.toLowerCase()}
+                          </div>
+                        )}
                         <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10 }}>
                           {d.desc}
                         </div>
@@ -1498,7 +1568,7 @@ function MenuScreen({ state, setState, goTo }) {
                           <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, flexShrink: 0 }}>{d.price}€</div>
                           <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
                             {qty === 0 ? (
-                              <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{
+                              <button onClick={(e) => { e.stopPropagation(); addDish(d.id, d.versione); }} style={{
                                 width: 32, height: 32, borderRadius: 999,
                                 background: WINE, border: 'none', cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1508,9 +1578,9 @@ function MenuScreen({ state, setState, goTo }) {
                               </button>
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: WINE, borderRadius: 999, padding: '3px 4px', boxShadow: '0 2px 8px rgba(90,26,46,0.25)' }}>
-                                <button onClick={(e) => { e.stopPropagation(); removeDishFromCard(d.id); }} style={{ width: 24, height: 24, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.Minus color="#fff" size={12}/></button>
+                                <button onClick={(e) => { e.stopPropagation(); removeDishFromCard(d.id, d.versione); }} style={{ width: 24, height: 24, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.Minus color="#fff" size={12}/></button>
                                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center' }}>{qty}</span>
-                                <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{ width: 24, height: 24, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.Plus color="#fff" size={12}/></button>
+                                <button onClick={(e) => { e.stopPropagation(); addDish(d.id, d.versione); }} style={{ width: 24, height: 24, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><I.Plus color="#fff" size={12}/></button>
                               </div>
                             )}
                           </div>
@@ -2034,13 +2104,16 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
   });
 
   const cartItems = state.cart.map(li => {
-    const d = allDishes.find(x => x.id === li.dishId);
+    // La versione della riga cambia prezzo e allergeni del piatto che si
+    // mostra qui (P-183 · D-136).
+    const d = dishConVersione(allDishes.find(x => x.id === li.dishId), li.versione);
     if (!d) return null;
     const extTotal = Object.entries(li.extras || {}).reduce((s, [eid, eq]) => {
       const ex = d.extras?.find(e => e.id === eid);
       return s + (ex ? ex.price * eq : 0);
     }, 0);
     const summary = [
+      ...(li.versione ? [li.versione.toLowerCase()] : []),
       ...Object.entries(li.variants || {}).map(([, v]) => v),
       ...Object.entries(li.extras || {}).filter(([, q]) => q > 0).map(([eid, q]) => {
         const ex = d.extras?.find(e => e.id === eid);
@@ -2746,10 +2819,14 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
 
 // ─── ROOT (router) ─────────────────────────────────────────
 function DishDetailScreen({ state, setState, ctx, goBack }) {
-  const dish = findDish(ctx?.dishId);
   // Se arrivo dal carrello con un lineId, sto MODIFICANDO quella riga
   // (precompilo e aggiorno in place), non aggiungendone una nuova.
   const editLine = ctx?.lineId ? (state.cart || []).find(i => i.lineId === ctx.lineId) : null;
+  // La VERSIONE con cui il piatto è stato aperto — dal menù filtrato o dalla
+  // riga che sto modificando: prezzo e allergeni sono quelli della versione,
+  // e la riga se la porta dietro fino alla cucina (P-183 · D-136).
+  const versione = (editLine && editLine.versione) || ctx?.versione || null;
+  const dish = dishConVersione(findDish(ctx?.dishId), versione);
   const isEdit = !!editLine;
   const [expanded, setExpanded] = useState(false);
   const [extras, setExtras] = useState(editLine?.extras || {});
@@ -2805,18 +2882,19 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           let cart = s.cart.map(i => i.lineId === editLine.lineId ? { ...i, qty: n - m } : i);
           const same = (i) =>
             i.dishId === dish.id &&
+            (i.versione || null) === versione &&
             JSON.stringify(i.variants || {}) === JSON.stringify(variants) &&
             JSON.stringify(i.extras || {}) === JSON.stringify(extras) &&
             JSON.stringify(i.removed || {}) === JSON.stringify(removed);
           const idx = cart.findIndex(same); // include la riga ridotta → "nessun cambio" si rifonde (no-op)
           if (idx >= 0) cart = cart.map((i, k) => k === idx ? { ...i, qty: i.qty + m } : i);
-          else cart = [...cart, { lineId: dish.id + '-' + Date.now(), dishId: dish.id, qty: m, variants, extras, removed }];
+          else cart = [...cart, { lineId: dish.id + '-' + Date.now(), dishId: dish.id, qty: m, versione, variants, extras, removed }];
           return { ...s, cart };
         });
       }
     } else {
       const lineId = dish.id + '-' + Date.now();
-      setState(s => ({ ...s, cart: [...s.cart, { lineId, dishId: dish.id, qty, variants, extras, removed }] }));
+      setState(s => ({ ...s, cart: [...s.cart, { lineId, dishId: dish.id, qty, versione, variants, extras, removed }] }));
     }
     goBack();
   };
@@ -2900,6 +2978,14 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               flexShrink: 0,
             }}>{dish.price}€</div>
           </div>
+          {/* Quale versione si sta ordinando, col prezzo che è già quello
+              della versione (P-183 · D-136). */}
+          {versione && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', marginTop: 8,
+              background: '#e8f5ec', color: '#1a7a3c', borderRadius: 999, padding: '4px 11px', fontSize: 12, fontWeight: 700 }}>
+              versione {versione.toLowerCase()}
+            </div>
+          )}
           {/* Il contrassegno della descrizione generata (P-40 · D-32, art. 50
               Reg. UE 2024/1689): stessa pillola e stessa «i» dei valori
               nutrizionali, solo qui nel foglio e non nelle card di lista. Vale
@@ -3012,6 +3098,23 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT }}>{ex.name}</div>
                       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{ex.price === 0 ? 'gratis' : `+${ex.price}€`}</div>
+                      {/* L'aggiunta che introduce un allergene che il piatto
+                          non ha lo dice qui, e se è uno di quelli dichiarati
+                          lo dice in rosso: entra nel filtro come gli
+                          allergeni del piatto (P-183 · D-136). */}
+                      {(ex.addsAllergens || []).length > 0 && (() => {
+                        const evitati = (window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati()) || {};
+                        const nuovi = ex.addsAllergens.filter(a => !(dish.allergens || []).includes(a));
+                        if (!nuovi.length) return null;
+                        const scontro = nuovi.some(a => evitati[a]);
+                        const nomi = nuovi.map(a => (ALLERGENS[a] ? ALLERGENS[a].label : a).toLowerCase()).join(', ');
+                        return (
+                          <div style={{ fontSize: 12, marginTop: 3, fontWeight: scontro ? 700 : 500,
+                            color: scontro ? '#b3261e' : MUTED }}>
+                            {scontro ? `⚠ aggiunge ${nomi}` : `aggiunge ${nomi}`}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {q === 0 ? (
                       <button onClick={() => setExtra(ex.id, 1)} style={{

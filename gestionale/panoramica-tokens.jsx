@@ -391,6 +391,45 @@ window.PN_ALLERGENI_MAP = PN_ALLERGENI.reduce((m, a) => { m[a.id] = a; (a.alias 
 window.pnAllergene = (x) => window.PN_ALLERGENI_MAP[x] || null;
 window.pnAllergeneLabel = (x) => { const a = window.pnAllergene(x); return a ? a.label : String(x || ''); };
 
+// ─── Etichette dietetiche (P-183 · D-136) ──────────────────────────────────
+// Quindici voci, una sola volta: il dettaglio del piatto e la finestra di
+// modifica leggono da qui, e chi ne aggiunge una la aggiunge in un posto solo.
+// L'etichetta si legge come «disponibile anche in versione», e una versione
+// può costare di più: il sovrapprezzo è suo.
+// `senza` è la parte seria: dice quali allergeni QUELLA versione non porta —
+// la versione senza glutine non porta il glutine. Il menù del cliente lo usa
+// per mostrare il piatto nella versione che gli va bene invece di nasconderlo,
+// e la versione scelta viaggia sulla riga d'ordine fino alla cucina. Le voci
+// che non tolgono niente (Bio, Piccante, Halal…) dicono com'è fatto il piatto,
+// non che cosa non contiene.
+const PN_ETICHETTE_DIETETICHE = [
+  { name: 'Vegana',          glyph: '🌱',  senza: ['milk', 'eggs', 'fish', 'crustaceans', 'molluscs'] },
+  { name: 'Senza glutine',   glyph: '🌾',  senza: ['gluten'] },
+  { name: 'Vegetariana',     glyph: '🥬',  senza: ['fish', 'crustaceans', 'molluscs'] },
+  { name: 'Senza lattosio',  glyph: '🥛',  senza: ['milk'] },
+  { name: 'Crudo',           glyph: '🍣',  senza: [] },
+  { name: 'Bio',             glyph: 'BIO', senza: [] },
+  { name: 'Halal',           glyph: '☪️',  senza: [] },
+  { name: 'Kosher',          glyph: '✡️',  senza: [] },
+  { name: 'Parve',           glyph: 'Ⓟ',   senza: ['milk'] },
+  { name: 'Piccante',        glyph: '🌶',  senza: [] },
+  { name: 'Fatto in casa',   glyph: '🏠',  senza: [] },
+  { name: 'Chilometro zero', glyph: '📍',  senza: [] },
+  { name: 'Pescetariano',    glyph: '🐟',  senza: [] },
+  { name: 'Astemio',         glyph: '🚫',  senza: [] },
+  { name: 'Proteico',        glyph: '💪',  senza: [] },
+];
+window.PN_ETICHETTE_DIETETICHE = PN_ETICHETTE_DIETETICHE;
+window.pnEtichettaDietetica = (nome) => PN_ETICHETTE_DIETETICHE.find(e => e.name === nome) || null;
+// Che cosa toglie l'etichetta, letta anche dai dati scritti prima (che
+// portavano solo il nome e il sovrapprezzo).
+window.pnEtichettaSenza = (t) => {
+  if (!t) return [];
+  if (Array.isArray(t.senza)) return t.senza;
+  const e = window.pnEtichettaDietetica(typeof t === 'string' ? t : t.name);
+  return e ? e.senza : [];
+};
+
 // ─── Tipologia dell'articolo (P-108 · D-105, che rivede D-16) ──────────────
 // Chi batte un articolo fuori menù, e chi compila un piatto del menù, non
 // sceglie un'aliquota né un profilo IVA: dichiara CHE COSA vende, fra cinque

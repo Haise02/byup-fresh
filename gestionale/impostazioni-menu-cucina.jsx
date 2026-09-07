@@ -3781,7 +3781,11 @@ function MCDettagliPiatto({
     if (ingredientAllergens.has(id) && !allergens.includes(id)) return;
     setAllergens(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   };
-  const toggleTag = (t) => setDietaryTags(s => s.some(x => x.name === t) ? s.filter(x => x.name !== t) : [...s, {name: t, surcharge: ''}]);
+  // L'etichetta con sovrapprezzo è una VERSIONE del piatto (P-183 · D-136):
+  // porta il suo prezzo e i suoi allergeni, cioè quelli che non ha. Il menù
+  // del cliente ci si appoggia per mostrare al celiaco la versione senza
+  // glutine invece di nascondere il piatto.
+  const toggleTag = (t) => setDietaryTags(s => s.some(x => x.name === t) ? s.filter(x => x.name !== t) : [...s, {name: t, surcharge: '', senza: window.pnEtichettaSenza ? window.pnEtichettaSenza(t) : []}]);
   const setTagSurcharge = (t, v) => setDietaryTags(s => s.map(x => x.name === t ? {...x, surcharge: v} : x));
 
   const scriviConAi = () => {
@@ -4055,11 +4059,7 @@ function MCDettagliPiatto({
 
             <MCSezione title="Disponibile anche in versione">
               <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: dietaryTags.length ? 10 : 0}}>
-                {[
-                  {name: 'Vegana', glyph: '🌱'}, {name: 'Senza glutine', glyph: '🌾'}, {name: 'Vegetariana', glyph: '🥬'},
-                  {name: 'Senza lattosio', glyph: '🥛'}, {name: 'Crudo', glyph: '🍣'}, {name: 'Bio', glyph: 'BIO'},
-                  {name: 'Halal', glyph: '☪️'}, {name: 'Kosher', glyph: '✡️'}, {name: 'Parve', glyph: 'Ⓟ'},
-                ].map(({name: t, glyph}) => {
+                {(window.PN_ETICHETTE_DIETETICHE || []).map(({name: t, glyph}) => {
                   const on = dietaryTags.some(x => x.name === t);
                   return (
                     <label key={t} style={{
@@ -4082,7 +4082,16 @@ function MCDettagliPiatto({
                   <div style={{display: 'flex', flexDirection: 'column', gap: 5}}>
                     {dietaryTags.map(t => (
                       <div key={t.name} style={{display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#fff', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 7}}>
-                        <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.TEXT, fontWeight: 600}}>{t.name}</span>
+                        <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.TEXT, fontWeight: 600}}>
+                          {t.name}
+                          {/* Che cosa NON porta questa versione: è la parte che
+                              il menù del cliente usa per il filtro. */}
+                          {(window.pnEtichettaSenza ? window.pnEtichettaSenza(t) : []).length > 0 && (
+                            <span style={{display: 'block', fontSize: 12, color: PN.MUTED, fontWeight: 500, marginTop: 1}}>
+                              senza {window.pnEtichettaSenza(t).map(x => window.pnAllergeneLabel(x).toLowerCase()).join(', ')}
+                            </span>
+                          )}
+                        </span>
                         <span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600}}>+€</span>
                         <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="0,00"
                           style={{width: 56, padding: '4px 7px', border: `1px solid ${PN.BORDER}`, borderRadius: 6, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', outline: 'none'}}/>
@@ -5487,7 +5496,7 @@ function ExtrasList({ extras, setExtras }) {
   const [max, setMax] = React.useState('3');
   const add = () => {
     if (!name.trim()) return;
-    setExtras(arr => [...arr, { name: name.trim(), price: parseFloat(price) || 0, max: parseExtraMax(max) }]);
+    setExtras(arr => [...arr, { name: name.trim(), price: parseFloat(price) || 0, max: parseExtraMax(max), addsAllergens: [] }]);
     setName(''); setPrice(''); setMax('3');
   };
   const setExtraMax = (i, v) => setExtras(arr => arr.map((ex, idx) =>
@@ -5512,6 +5521,32 @@ function ExtrasList({ extras, setExtras }) {
             onMouseEnter={e => e.currentTarget.style.borderColor = PN.BORDER}
             onMouseLeave={e => e.currentTarget.style.borderColor = PN.BORDER_SOFT}
             >
+              {/* P-183 · D-136: l'aggiunta dichiara se introduce un allergene
+                  che il piatto non ha — il tartufo non ne porta, la doppia
+                  mozzarella sì. Quello che dichiara entra nel filtro del
+                  cliente come gli allergeni del piatto. */}
+              <div style={{gridColumn:'1 / -1', display:'flex', alignItems:'center', gap:6, flexWrap:'wrap',
+                marginTop:2, paddingTop:8, borderTop:`1px solid ${PN.BORDER_SOFT}`, order: 9}}>
+                <span style={{fontSize:13, color:PN.MUTED, fontWeight:600, marginRight:2}}>Aggiunge</span>
+                {ALLERGENS.map(a => {
+                  const on = (ex.addsAllergens || []).includes(a.id);
+                  return (
+                    <button key={a.id} type="button" title={a.name}
+                      onClick={() => setExtras(arr => arr.map((x, idx) => idx === i
+                        ? { ...x, addsAllergens: on ? (x.addsAllergens || []).filter(y => y !== a.id) : [...(x.addsAllergens || []), a.id] }
+                        : x))}
+                      style={{
+                        display:'inline-flex', alignItems:'center', gap:4,
+                        padding:'3px 8px', borderRadius:999, cursor:'pointer', fontFamily:'inherit',
+                        border: on ? `1.5px solid ${a.color}` : `1px solid ${PN.BORDER_SOFT}`,
+                        background: on ? '#FFF7ED' : PN.WHITE,
+                        color: on ? PN.TEXT : PN.MUTED, fontSize:12.5, fontWeight: on ? 700 : 500,
+                      }}>
+                      <span style={{fontSize:12}}>{a.icon}</span>{a.name}
+                    </button>
+                  );
+                })}
+              </div>
               <span style={{fontSize:16, color: PN.TEXT, fontWeight:600}}>{ex.name}</span>
               <span style={{
                 fontSize:15, fontWeight:700, color: PN.PINK_DARK,
@@ -5835,10 +5870,11 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
     if (ingredientAllergens.has(id) && !allergens.includes(id)) return;
     setAllergens(s => s.includes(id) ? s.filter(x=>x!==id) : [...s, id]);
   };
+  // Vedi sopra: la versione porta prezzo e allergeni suoi (P-183 · D-136).
   const toggleTag = t => setDietaryTags(s => {
     const idx = s.findIndex(x => x.name === t);
     if (idx >= 0) return s.filter(x => x.name !== t);
-    return [...s, { name: t, surcharge: '' }];
+    return [...s, { name: t, surcharge: '', senza: window.pnEtichettaSenza ? window.pnEtichettaSenza(t) : [] }];
   });
   const setTagSurcharge = (t, val) => setDietaryTags(s => s.map(x => x.name === t ? { ...x, surcharge: val } : x));
 
@@ -6207,11 +6243,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                 <DishBlock>
                   <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:10}}>Disponibile anche in versione</div>
                   <div style={{display:'flex', gap:8, flexWrap:'wrap', marginBottom: dietaryTags.length > 0 ? 10 : 0}}>
-                    {[
-                      {name:'Vegana', glyph:'🌱'}, {name:'Senza glutine', glyph:'🌾'}, {name:'Vegetariana', glyph:'🥬'},
-                      {name:'Senza lattosio', glyph:'🥛'}, {name:'Crudo', glyph:'🍣'}, {name:'Bio', glyph:'BIO'},
-                      {name:'Halal', glyph:'☪️'}, {name:'Kosher', glyph:'✡️'}, {name:'Parve', glyph:'Ⓟ'},
-                    ].map(({name: t, glyph}) => {
+                    {(window.PN_ETICHETTE_DIETETICHE || []).map(({name: t, glyph}) => {
                       const on = dietaryTags.some(x => x.name === t);
                       return (
                         <label key={t} style={{
@@ -6236,7 +6268,14 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                       <div style={{display:'flex', flexDirection:'column', gap:6}}>
                         {dietaryTags.map(t => (
                           <div key={t.name} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center', padding:'6px 10px', background:'#fff', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:8}}>
-                            <span style={{fontSize:14.5, color:PN.TEXT, fontWeight:600}}>{t.name}</span>
+                            <span style={{fontSize:14.5, color:PN.TEXT, fontWeight:600}}>
+                              {t.name}
+                              {(window.pnEtichettaSenza ? window.pnEtichettaSenza(t) : []).length > 0 && (
+                                <span style={{display:'block', fontSize:13, color:PN.MUTED, fontWeight:500, marginTop:1}}>
+                                  senza {window.pnEtichettaSenza(t).map(x => window.pnAllergeneLabel(x).toLowerCase()).join(', ')}
+                                </span>
+                              )}
+                            </span>
                             <div style={{display:'flex', alignItems:'center', gap:5}}>
                               <span style={{fontSize:14, color:PN.MUTED, fontWeight:600}}>+€</span>
                               <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g,''))} placeholder="0,00"
