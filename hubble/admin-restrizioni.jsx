@@ -84,7 +84,13 @@ function admAggiungiRestrizione(utente, tipo, extra = {}) {
     revocataIl: null,
     revocataDa: null,
   };
-  if (sosp) rec.comunicazione = { quando: data, testo: admTestoComunicazione(rec, utente), contestazione: true };
+  // La comunicazione parte per OGNI misura che ne ha una (P-191): la
+  // condizione sta sul testo, non sul tipo. Prima guardava la sola
+  // sospensione delle recensioni, e il ban — la misura più severa — restava
+  // muto anche dopo che il testo era stato scritto per lui. La via di
+  // contestazione vale per entrambe, e per il ban a maggior ragione.
+  const testo = admTestoComunicazione(rec, utente);
+  if (testo) rec.comunicazione = { quando: data, testo, contestazione: true };
   RESTRIZIONI.unshift(rec);
   return rec;
 }
@@ -162,7 +168,9 @@ function admRevocaPerUtente(utenteId, tipo, chi) {
       revocataIl: s.revocataIl || null,
       revocataDa: s.revocataDa || null,
     };
-    if (sosp) rec.comunicazione = { quando: data, testo: admTestoComunicazione(rec, u), contestazione: true };
+    // Come sopra (P-191): i due ban del seme portano la loro comunicazione.
+    const testo = admTestoComunicazione(rec, u);
+    if (testo) rec.comunicazione = { quando: data, testo, contestazione: true };
     return rec;
   };
 

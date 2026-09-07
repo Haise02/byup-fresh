@@ -1224,7 +1224,7 @@ function HubPostaComposer({ onChiudi }) {
   const cambiaCorsia = (c) => { setCorsia(c); setGenere(c === 'servizio' ? 'novita' : 'promozione'); };
   const bozza = { corsia, dove, pubblico: elencoId, filtri };
   const righe = postaRighe(bozza);
-  const q = hubInterrogaPosta(righe, corsia, genere, m.filtri);
+  const q = hubInterrogaPosta(righe, corsia, genere, filtri);
   // Il blocco «cambia corsia»: le informative viaggiano su canale dedicato,
   // mai promiscuo. Una promozione scritta in corsia di servizio non parte.
   const promoInServizio = corsia === 'servizio' && hubSembraPromo(titolo + ' ' + anteprima + ' ' + corpo);

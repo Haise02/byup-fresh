@@ -3286,7 +3286,9 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 
         {/* Spesso ordinato con */}
         {(() => {
-          const others = ALL_DISHES.filter(d => d.id !== dish.id).slice(0, 4);
+          // Dal catalogo VISIBILE, non dal listino intero (P-191): a un
+          // minorenne «spesso ordinato con» non propone un alcolico.
+          const others = Object.values(catalogoVisibile()).flat().filter(d => d.id !== dish.id).slice(0, 4);
           if (!others.length) return null;
           return (
             <div style={{ padding: '28px 0 0' }}>

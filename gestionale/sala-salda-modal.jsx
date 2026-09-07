@@ -1678,14 +1678,22 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 seconda cornice. Si torna indietro con la selezione e il metodo
                 dov'erano. */}
             {window.SvFatturaModal && (
+              /* Lo sconto arriva anche da qui, con lo stesso segno di Vendita
+                 diretta (P-191): senza, per questa via la somma delle righe
+                 non tornava col totale del documento — il difetto che P-189
+                 doveva chiudere. E ogni riga porta la sua aliquota congelata,
+                 quella scritta quando è nata. */
               <SvFatturaModal
                 open={fatturaOpen}
                 dentro
+                sconto={-adjustDelta}
                 lines={selectedOrdini.map(o => ({
                   displayName: o.nome,
-                  piatto: { name: o.nome },
+                  piatto: { name: o.nome, tipologia: o.tipologia },
                   qty: selectedItems.get(o.id) || o.qty,
                   lineTotal: o.prezzo,
+                  aliquota: o.iva != null ? Number(o.iva) : null,
+                  tipologia: o.tipologia,
                 }))}
                 takeaway={false}
                 cliente={fattura}

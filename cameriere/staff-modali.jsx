@@ -512,6 +512,27 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
     const [tipologia, setTipologia] = useStateMo(window.PN_TIPOLOGIA_DEFAULT);
     const voci = window.PN_TIPOLOGIE_ARTICOLO || [];
     const voce = window.pnTipologia ? window.pnTipologia(tipologia) : null;
+    // La riga entra nel carrello come quella del piatto normale (P-191):
+    // prima il pulsante diceva solo «fatto» e non aggiungeva niente, così la
+    // tipologia e l'aliquota si vedevano e non arrivavano da nessuna parte.
+    // L'ordine è del tavolo, quindi somministrazione: l'aliquota si risolve
+    // qui e resta scritta sulla riga.
+    const prezzoNum = parseFloat(String(prezzo).replace(',', '.'));
+    const valido = nome.trim().length > 0 && !isNaN(prezzoNum) && prezzoNum > 0;
+    const aggiungi = () => {
+      if (!valido) return;
+      const profilo = voce && window.pnTipologiaProfilo ? window.pnTipologiaProfilo(voce.id, false) : null;
+      if (modal.onAdd) modal.onAdd({
+        piattoId: 'custom_' + Date.now(), nome: nome.trim(), prezzo: prezzoNum, qty: 1,
+        extras: [], note: note.trim(), custom: true,
+        tipologia: voce ? voce.id : null,
+        iva: profilo ? profilo.aliquota : null,
+        ivaProfilo: profilo ? profilo.profilo : null,
+        ivaModo: false,
+      });
+      closeModal();
+      openModal({ kind: 'success', text: 'Piatto custom aggiunto' });
+    };
     return (
       <ModalShell onClose={closeModal} sheet>
         <SheetHandle/>
@@ -550,7 +571,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <Btn variant="secondary" full onClick={closeModal}>Annulla</Btn>
-            <Btn variant="primary" full onClick={() => { closeModal(); openModal({ kind: 'success', text: 'Piatto custom aggiunto' }); }}>Aggiungi</Btn>
+            <Btn variant="primary" full disabled={!valido} onClick={aggiungi}>Aggiungi</Btn>
           </div>
         </div>
       </ModalShell>

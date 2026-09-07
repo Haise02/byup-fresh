@@ -250,8 +250,9 @@ const STAT_CLIENTI = {
 // riga dice se quel prodotto è nel tuo menù o no.
 //
 // Aggregato e anonimo per costruzione: si contano le persone, non si nominano,
-// e le voci sotto la soglia minima non escono (sotto i 5 clienti un dato non è
-// una tendenza, è una persona riconoscibile).
+// e le voci sotto la soglia minima non escono — la soglia è quella qui sotto
+// (venti consumatori distinti e otto locali distinti), non più i cinque
+// clienti di prima.
 const STAT_FUORI = {
   // La soglia (P-190 · D-134): una cella esce solo se dietro ci sono almeno
   // VENTI consumatori distinti e OTTO locali distinti. Sotto, il dato non è

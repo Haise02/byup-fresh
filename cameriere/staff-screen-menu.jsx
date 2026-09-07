@@ -153,7 +153,7 @@ function ScreenMenu({ nav, openModal, tavoloId, cart, setCart }) {
         {/* Crea personalizzato — ultimo elemento della categoria (come nel gestionale):
             un piatto non a menu, con prezzo e note. */}
         {!q && (
-          <button onClick={() => openModal({ kind: 'piatto-custom', tavoloId })} style={{
+          <button onClick={() => openModal({ kind: 'piatto-custom', tavoloId, onAdd: (line) => setCart(prev => [...prev, line]) })} style={{
             display: 'flex', alignItems: 'center', gap: 12,
             background: 'transparent', borderRadius: ST.R_MD, padding: '8px 10px',
             border: `1px dashed ${ST.BORDER}`,
