@@ -540,7 +540,7 @@ function MbBarraTesto() {
         // La riscrittura si dichiara dove si mette il link: è il primo dei
         // due perché del sottodominio di tracciamento (P-57).
         <div style={{ fontSize: 11.6, color: ADM.MUTED, marginTop: 6, lineHeight: 1.45 }}>
-          All'invio il link viene riscritto su <span style={{ fontFamily: 'ui-monospace, monospace' }}>{(window.HUB_TRACCIAMENTO || {}).dominio || 'il sottodominio di tracciamento'}</span> per contare i clic: è quello che il destinatario vede sotto il pulsante (Impostazioni → Domini e mittenti).
+          All'invio il link viene riscritto su <span style={{ fontFamily: 'ui-monospace, monospace' }}>{(window.HUB_TRACCIAMENTO || {}).dominio || 'il sottodominio di tracciamento'}</span> per contare i clic: è quello che il destinatario vede sotto il pulsante (Impostazioni → Recapiti e domini di invio).
         </div>
       )}
 

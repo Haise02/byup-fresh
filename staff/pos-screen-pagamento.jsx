@@ -27,6 +27,15 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
     ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
     return () => ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
   }, []);
+  // P-176 · D-128: il regime forfettario ferma l'emissione come le credenziali
+  // scadute, e questo è uno dei quattro punti in cui il documento nasce.
+  const [regimeBlocco, setRegimeBlocco] = useStateP(() => (window.byupRegimeBlocco ? window.byupRegimeBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setRegimeBlocco(window.byupRegimeBlocco ? window.byupRegimeBlocco() : null);
+    ['byup-regime-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-regime-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
+  const emissioneFerma = credBlocco || regimeBlocco;
   useEffectP(() => {
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
     return () => clearInterval(id);
@@ -43,7 +52,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
   // Simula la carta che si avvicina al dispositivo — mai dentro la finestra
   // di divieto: il testo di stato spiega perché non succede niente.
-  const presentaCarta = () => { if (step === 'waiting' && !notte.dentro && !credBlocco) setStep('reading'); };
+  const presentaCarta = () => { if (step === 'waiting' && !notte.dentro && !emissioneFerma) setStep('reading'); };
 
   // PIN completo → fase di elaborazione
   useEffectP(() => {
@@ -133,7 +142,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
         {/* Status text */}
         <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.7, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-          {step === 'waiting' && (credBlocco || notte.dentro ? 'Incasso sospeso' : 'In attesa carta')}
+          {step === 'waiting' && (emissioneFerma || notte.dentro ? 'Incasso sospeso' : 'In attesa carta')}
           {step === 'reading' && 'Lettura in corso'}
           {step === 'pin' && 'Inserisci PIN'}
           {isProc && 'Elaborazione'}
@@ -141,8 +150,8 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Pagamento rifiutato'}
         </div>
         <div style={{ fontSize: 16, fontWeight: 500, opacity: 0.9, lineHeight: 1.4, marginBottom: 18 }}>
-          {step === 'waiting' && (credBlocco
-            ? `${credBlocco.titolo}: ${credBlocco.testo}`
+          {step === 'waiting' && (emissioneFerma
+            ? `${emissioneFerma.titolo}: ${emissioneFerma.testo}`
             : notte.dentro
             ? `Lo scontrino partirebbe con la data di domani: attendi mezzanotte. Riprende tra ${window.byupNotteConta(notte.mancano)}`
             : 'Avvicina carta o telefono al dispositivo')}
@@ -153,7 +162,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Carta rifiutata dall’emittente'}
         </div>
 
-        {step === 'waiting' && !notte.dentro && !credBlocco && (
+        {step === 'waiting' && !notte.dentro && !emissioneFerma && (
           <div style={{ fontSize: 12, opacity: 0.55, marginTop: -10, marginBottom: 16 }}>
             Demo · tocca il cerchio per simulare la carta
           </div>

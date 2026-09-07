@@ -903,6 +903,48 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   // oltre al totale (P-157): contanti, carta e digitale, da piattaforma — la
   // loro somma dà il totale, verificabile a colpo d'occhio.
   const cols = '107px 135px 90px 122px 112px 100px 160px';
+  // Il regime si cambia in Dati fiscali, anche da un'altra scheda: la Cassa
+  // già aperta deve accorgersene (P-178), come fa per le credenziali.
+  const [, setRegimeTick] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => setRegimeTick(t => t + 1);
+    ['byup-regime-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-regime-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
+
+  // La guardia del forfettario (P-176 · D-128): la fascia SOSTITUISCE i
+  // documenti, non li accompagna. Senza emissione non ci sono chiusure,
+  // riepiloghi né documenti da mostrare: mostrarli vuoti racconterebbe una
+  // cassa che non esiste (P-178). Resta la stanza, con la spiegazione e la
+  // via per cambiare regime.
+  if (window.byupForfettario && window.byupForfettario()) {
+    return (
+      <div style={{display:'flex', flexDirection:'column', gap: 16}}>
+        <div data-forfettario style={{
+          display:'flex', alignItems:'flex-start', gap: 12, marginBottom: 14,
+          padding:'14px 18px', borderRadius: C.R_MD,
+          background:'#FFFBEB', border:'1px solid #FCD34D',
+        }}>
+          <span style={{width:10, height:10, borderRadius:'50%', background: PN.AMBER, boxShadow:'0 0 0 4px #FCD34D55', marginTop: 5, flexShrink: 0}}/>
+          <div style={{flex:1, minWidth: 220}}>
+            <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#92400E'}}>Cassa fiscale non disponibile: regime forfettario</div>
+            <div style={{fontSize: C.T_XS, color:'#B45309', marginTop: 3, lineHeight: 1.5}}>
+              {window.PN_FORFETTARIO_TESTO} Il menù, gli ordini e i conti funzionano; i documenti no.
+            </div>
+          </div>
+          <a href="byup Impostazioni.html?page=fiscali" style={{
+            padding:'8px 14px', borderRadius: C.R_PILL, background: PN.WHITE, color:'#92400E',
+            border:'1px solid #FCD34D', fontSize: C.T_SM, fontWeight: 700, textDecoration:'none', flexShrink: 0,
+          }}>Vai a Dati fiscali</a>
+        </div>
+        <div style={{padding:'26px 20px', textAlign:'center', color: PN.MUTED, fontSize: C.T_SM, lineHeight: 1.6,
+          background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD}}>
+          Qui compaiono le chiusure di giornata, la quadratura del fondo e i documenti emessi.<br/>
+          Con il regime forfettario non ce ne sono: nessun documento parte.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -979,29 +1021,6 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             padding:'8px 14px', borderRadius: C.R_PILL, background: PN.WHITE, color:'#92400E', border:'1px solid #FCD34D',
             fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', flexShrink: 0,
           }}>Vedi in Conti</button>
-        </div>
-      )}
-
-      {/* La guardia del forfettario (P-176 · D-128): al posto dei documenti,
-          una fascia che dice perché e dove si cambia. Sta in cima, prima del
-          banner della cassa: senza documenti, il resto non ha un lavoro. */}
-      {window.byupForfettario && window.byupForfettario() && (
-        <div data-forfettario style={{
-          display:'flex', alignItems:'flex-start', gap: 12, marginBottom: 14,
-          padding:'14px 18px', borderRadius: C.R_MD,
-          background:'#FFFBEB', border:'1px solid #FCD34D',
-        }}>
-          <span style={{width:10, height:10, borderRadius:'50%', background: PN.AMBER, boxShadow:'0 0 0 4px #FCD34D55', marginTop: 5, flexShrink: 0}}/>
-          <div style={{flex:1, minWidth: 220}}>
-            <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#92400E'}}>Cassa fiscale non disponibile: regime forfettario</div>
-            <div style={{fontSize: C.T_XS, color:'#B45309', marginTop: 3, lineHeight: 1.5}}>
-              {window.PN_FORFETTARIO_TESTO} Il menù, gli ordini e i conti funzionano; i documenti no.
-            </div>
-          </div>
-          <a href="byup Impostazioni.html?page=fiscali" style={{
-            padding:'8px 14px', borderRadius: C.R_PILL, background: PN.WHITE, color:'#92400E',
-            border:'1px solid #FCD34D', fontSize: C.T_SM, fontWeight: 700, textDecoration:'none', flexShrink: 0,
-          }}>Vai a Dati fiscali</a>
         </div>
       )}
 

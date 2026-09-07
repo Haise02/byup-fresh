@@ -133,12 +133,22 @@ function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast 
   // dell'Agenzia scaduta l'emissione si ferma anche qui: il documento nasce
   // da questa schermata quanto dalla cassa, e incassare senza poter emettere
   // non è ammesso. Il messaggio nomina chi deve rinnovare.
-  const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  const [credBloccoRaw, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
   React.useEffect(() => {
     const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
     ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
     return () => ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
   }, []);
+  // P-176 · D-128: anche il regime forfettario ferma l'emissione, con la
+  // stessa fascia e le stesse parole — è il quarto punto in cui nasce un
+  // documento, e la guardia deve coprirlo (P-178).
+  const [regimeBlocco, setRegimeBlocco] = React.useState(() => (window.byupRegimeBlocco ? window.byupRegimeBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setRegimeBlocco(window.byupRegimeBlocco ? window.byupRegimeBlocco() : null);
+    ['byup-regime-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-regime-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
+  const credBlocco = credBloccoRaw || regimeBlocco;
   React.useEffect(() => {
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
     return () => clearInterval(id);

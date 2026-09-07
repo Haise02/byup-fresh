@@ -3061,7 +3061,12 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
   // Il regime forfettario ferma l'emissione come le credenziali scadute
   // (P-176 · D-128): stessa fascia, stesse parole, stesso pulsante spento.
-  const regimeBlocco = window.byupRegimeBlocco ? window.byupRegimeBlocco() : null;
+  const [regimeBlocco, setRegimeBlocco] = React.useState(() => (window.byupRegimeBlocco ? window.byupRegimeBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setRegimeBlocco(window.byupRegimeBlocco ? window.byupRegimeBlocco() : null);
+    ['byup-regime-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-regime-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
   React.useEffect(() => {
     const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
     ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));

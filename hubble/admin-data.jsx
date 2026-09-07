@@ -456,6 +456,12 @@ const locPagante      = (l) => locLive(l) && l.piano !== 'free';
 // l'imbuto di P-45 conta come «quanti l'hanno saltata»; la scheda del locale
 // lo mostra come contrassegno e la rubrica lo offre come filtro. Un locale
 // attivo con il contrassegno resta attivo.
+// Il regime fiscale sta nel SEME dei locali (P-176 · D-128, corretto da
+// P-178): prima nasceva aprendo la scheda fiscale, quindi su una rubrica
+// appena caricata era vuoto per tutti e il filtro non trovava nessuno. Stessa
+// distribuzione di allora, calcolata dall'indice del locale.
+const LOC_REGIMI = ['Ordinario', 'Ordinario', 'Ordinario', 'Forfettario', 'Agricolo / Speciale'];
+LOCALI.forEach((l, i) => { if (l.regime === undefined) l.regime = LOC_REGIMI[i % 5]; });
 const locConfigSaltata = (l) => locLive(l) && !ONB_CONFIG.some(s => (l.completedSteps || []).includes(s.id));
 
 const LOC = (() => {

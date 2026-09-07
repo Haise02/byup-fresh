@@ -714,7 +714,6 @@ function DrwFiscali({ locale: l }) {
   // I campi che il mock del locale non porta si derivano stabili dall'id,
   // ricalcando i default del gestionale.
   const s = hubSeme('fis-' + l.id);
-  if (l.regime === undefined) l.regime = ['Ordinario', 'Ordinario', 'Ordinario', 'Forfettario', 'Agricolo / Speciale'][s % 5];
   if (l.ateco === undefined) l.ateco = '56.10.' + String(11 + (s % 9)).padStart(2, '0');
   if (l.pec === undefined) l.pec = 'fatture@pec.' + (l.email || 'locale@x.it').split('@')[1];
   if (l.rea === undefined) l.rea = (l.citta || 'RM').slice(0, 2).toUpperCase() + '-' + (1000000 + s % 900000);
@@ -2354,11 +2353,10 @@ window.ctrImpronta = ctrImpronta;
 window.ctrVersioneAllaData = ctrVersioneAllaData;
 
 // Il rimando alla versione archiviata: si legge quale versione, e si apre
-// quella. Le accettazioni portano anche l'impronta, che è la parte che le
-// rende opponibili; le informative no — si ricevono, non si firmano.
-// L'impronta si mostra per TUTTI i documenti versionati (P-177 · D-129):
-// anche un'informativa ha un testo che si è ricevuto, e la copia archiviata
-// ha comunque la sua. Il parametro `impronta` resta per chi passa false.
+// quella. Le impronte sono DUE e valgono per TUTTI i documenti versionati,
+// informative comprese (P-177 · D-129, corretto da P-178): quella del testo
+// prova che il testo è questo, quella della copia che la copia è nata alla
+// pubblicazione.
 function CtrLinkVersione({ codice, v, impronta = true, testo }) {
   const [fatto, setFatto] = React.useState(false);
   if (!codice || !v) return <span style={{fontSize:12.4, color:ADM.MUTED}}>{testo || `v${v || '—'}`}</span>;
@@ -2571,7 +2569,7 @@ function CtrRigaDoc({ sog, codice }) {
             {doc.nome}{' '}
             {fotoPiano
               ? <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>{(PIANI.find(x => x.id === a.v) || {label:a.v}).label}</span>
-              : <CtrLinkVersione codice={doc.codice} v={a.v} impronta={!doc.informativa} testo={`v${a.v} · apri la copia archiviata`}/>}
+              : <CtrLinkVersione codice={doc.codice} v={a.v}  testo={`v${a.v} · apri la copia archiviata`}/>}
           </span>
           <span style={{fontSize:12.4, color:ADM.MUTED, flexShrink:0}}>
             {a.tipo === 'presa-visione' ? 'presa visione' : 'accettata'} {fmtDate(a.quando)}

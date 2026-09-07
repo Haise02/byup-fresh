@@ -55,7 +55,7 @@ utenti sopravvivono solo per i **dataset** e le **schede**.
 
 Nel **menu del profilo** (card in fondo alla barra) le voci sono due: **Il mio
 profilo** e **Impostazioni** — la governance in una voce sola, distinta
-internamente in Sicurezza e sistemi, Proprietà, Domini e mittenti e
+internamente in Sicurezza e sistemi, Proprietà, Recapiti e domini di invio e
 **Piattaforma**, che è visibile al solo Super Admin. Le rotte storiche
 (`sicurezza`, `proprieta`, `domini`, `team`) si traducono sulla parte interna
 giusta.
@@ -160,7 +160,7 @@ canale.
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
 | `hub-agent-ambiente.jsx` | L'Ambiente: catene, lavagna, coda, registro, guardie |
-| `hub-impostazioni.jsx` | Domini e mittenti (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
+| `hub-impostazioni.jsx` | Recapiti e domini di invio (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |
 | `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |
 | `admin-camerieri.jsx` | Dataset `STAFF` + scheda staff (nessuna pagina di sezione) |

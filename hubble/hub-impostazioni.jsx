@@ -62,6 +62,7 @@ function HubDominiPage() {
   const [mittenti, setMittenti] = useStateIm(HUB_MITTENTI);
   const [numeri, setNumeri] = useStateIm(HUB_NUMERI);
   const [nuovo, setNuovo] = useStateIm(null);       // { locale, dominio, nome, scopo, rispostaA, opposizione }
+  const [nuovoSms, setNuovoSms] = useStateIm(null); // { etichetta, tipo, paesi, scopo, opposizione }
   const [modifica, setModifica] = useStateIm(null); // id del mittente con lo scopo aperto
   const verificati = domini.filter(d => d.stato === 'verificato');
   const scopi = Object.keys(HUB_SCOPI_MITTENTE);
@@ -81,6 +82,24 @@ function HubDominiPage() {
   // Si disattiva, non si cancella: le campagne già spedite lo nominano.
   const disattiva = (id) => setMittenti(prev => prev.map(m => m.id === id ? { ...m, stato: m.stato === 'disattivato' ? 'verificato' : 'disattivato' } : m));
   const cambiaScopoSms = (id, scopo) => { setNumeri(prev => prev.map(n => n.id === id ? { ...n, scopo } : n)); setModifica(null); };
+  // I modi di opporsi a un SMS. Una sigla alfanumerica non riceve risposte:
+  // per le promozioni valgono solo il collegamento e il rimando all'app.
+  const SMS_OPPOSIZIONI = {
+    link:     { label: 'Collegamento in coda al messaggio', ok: true },
+    app:      { label: 'Dalle impostazioni dell\'app', ok: true },
+    risposta: { label: 'Rispondendo STOP a questo numero', ok: false },
+    nessuna:  { label: 'Non opponibile: codici di accesso', ok: false },
+  };
+  const smsMale = (n) => n.scopo === 'promozioni' && n.tipo === 'Mittente alfanumerico' && !(SMS_OPPOSIZIONI[n.opposizione] || {}).ok;
+  const apriNuovoSms = () => setNuovoSms({ etichetta: '', tipo: 'Mittente alfanumerico', paesi: 'Italia', scopo: 'servizio', opposizione: 'link' });
+  const nuovoSmsValido = !!nuovoSms && nuovoSms.etichetta.trim().length > 2;
+  const aggiungiSms = () => {
+    if (!nuovoSmsValido) return;
+    setNumeri(prev => [...prev, { id: 'NM-' + (prev.length + 1), etichetta: nuovoSms.etichetta.trim(), tipo: nuovoSms.tipo, paesi: nuovoSms.paesi,
+      stato: 'in attesa', usato: 0, scopo: nuovoSms.scopo, identita: 'byup', opposizione: nuovoSms.opposizione,
+      opposizioneTesto: SMS_OPPOSIZIONI[nuovoSms.opposizione].label }]);
+    setNuovoSms(null);
+  };
   const disattivaSms = (id) => setNumeri(prev => prev.map(n => n.id === id ? { ...n, stato: n.stato === 'attivo' ? 'disattivato' : 'attivo' } : n));
 
   const IM_STATI_MITT = { verificato: { label: 'Verificato', color: 'OK' }, 'in attesa': { label: 'In attesa', color: 'WARN' }, disattivato: { label: 'Disattivato', color: 'PLAN_FREE' } };
@@ -220,7 +239,8 @@ function HubDominiPage() {
               <div style={{ flex: 1, minWidth: 260, fontSize: 12.9, color: ADM.MUTED, lineHeight: 1.55 }}>
                 Gli indirizzi da cui partono le email, su un dominio verificato. Lo scopo tiene separato quello che deve restare separato: chi si oppone alle promozioni continua a ricevere il servizio.
               </div>
-              <HubStrumento forte icona="plus" onClick={apriNuovo} title={verificati.length ? undefined : 'Serve almeno un dominio verificato: si configura presso il fornitore'}>Aggiungi mittente</HubStrumento>
+              <HubStrumento forte icona="plus" onClick={apriNuovo} spento={!verificati.length}
+                title={verificati.length ? undefined : 'Serve almeno un dominio verificato: si configura presso il fornitore di invio'}>Aggiungi mittente</HubStrumento>
             </div>
             {!verificati.length && (
               <div style={{ padding: '10px 12px', borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B' }}>
@@ -262,11 +282,14 @@ function HubDominiPage() {
 
         {tab === 'numeri' && (
           <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 12.9, color: ADM.MUTED, lineHeight: 1.55 }}>
-              Con che nome arrivano gli SMS, per quale scopo, e come ci si oppone. Una sigla alfanumerica non riceve risposte: per le promozioni l'opposizione dev'essere un collegamento o il rimando all'app, mai «rispondi STOP».
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 260, fontSize: 12.9, color: ADM.MUTED, lineHeight: 1.55 }}>
+                Con che nome arrivano gli SMS, per quale scopo, e come ci si oppone. Una sigla alfanumerica non riceve risposte: per le promozioni l'opposizione dev'essere un collegamento o il rimando all'app, mai «rispondi STOP».
+              </div>
+              <HubStrumento forte icona="plus" onClick={apriNuovoSms}>Aggiungi mittente SMS</HubStrumento>
             </div>
             {numeri.map(n => {
-              const male = n.scopo === 'promozioni' && n.tipo === 'Mittente alfanumerico' && n.opposizione === 'risposta';
+              const male = smsMale(n);
               return (
                 <div key={n.id} data-sms={n.id} style={{ border: `1px solid ${male ? '#F0DCB4' : ADM.BORDER}`, borderRadius: 13, padding: 15, background: male ? '#FFFCF5' : (n.stato === 'disattivato' ? ADM.PANEL_SOFT : '#fff'), opacity: n.stato === 'disattivato' ? 0.75 : 1 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
@@ -286,7 +309,7 @@ function HubDominiPage() {
                         <div><b style={{ color: ADM.TEXT }}>Ci si oppone</b><br/>{n.opposizioneTesto || '—'}</div>
                       </div>
                       {male && (
-                        <div style={{ marginTop: 9, padding: '9px 11px', borderRadius: 9, background: '#fff', border: '1px solid #F0DCB4', fontSize: 12.4, color: '#7A4A0B', lineHeight: 1.5 }}>
+                        <div data-sms-male style={{ marginTop: 9, padding: '9px 11px', borderRadius: 9, background: '#fff', border: '1px solid #F0DCB4', fontSize: 12.4, color: '#7A4A0B', lineHeight: 1.5 }}>
                           Una sigla alfanumerica non riceve risposte: con lo scopo promozionale l'opposizione dev'essere un collegamento o il rimando all'app.
                         </div>
                       )}
@@ -301,13 +324,63 @@ function HubDominiPage() {
         )}
       </AdmCard>
 
+      <HubModale open={!!nuovoSms} onClose={() => setNuovoSms(null)} larghezza={560}
+        titolo="Aggiungi un mittente SMS" sotto="La sigla alfanumerica va registrata presso l'operatore prima di poter partire: nasce in attesa."
+        footer={
+          <React.Fragment>
+            <div style={{ flex: 1 }}/>
+            <HubStrumento onClick={() => setNuovoSms(null)}>Annulla</HubStrumento>
+            <HubStrumento forte icona="check" onClick={aggiungiSms} spento={!nuovoSmsValido}>Aggiungi</HubStrumento>
+          </React.Fragment>
+        }>
+        {nuovoSms && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <HubCampo label="Mittente" nota="La sigla che il destinatario legge, o il numero da cui parte l'SMS.">
+              <HubInput valore={nuovoSms.etichetta} onCambia={v => setNuovoSms(n => ({ ...n, etichetta: v }))} placeholder="byup"/>
+            </HubCampo>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr)', gap: 12 }}>
+              <HubCampo label="Tipo">
+                <select value={nuovoSms.tipo} onChange={e => setNuovoSms(n => ({ ...n, tipo: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 11px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`, fontFamily: 'inherit', fontSize: 13.5, color: ADM.TEXT, background: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  <option>Mittente alfanumerico</option><option>Numero con risposta</option>
+                </select>
+              </HubCampo>
+              <HubCampo label="Paesi">
+                <HubInput valore={nuovoSms.paesi} onCambia={v => setNuovoSms(n => ({ ...n, paesi: v }))} placeholder="Italia"/>
+              </HubCampo>
+            </div>
+            <HubCampo label="Scopo">
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {scopi.map(s => (
+                  <button key={s} onClick={() => setNuovoSms(n => ({ ...n, scopo: s }))} style={{
+                    padding: '7px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                    border: `1px solid ${nuovoSms.scopo === s ? ADM.TEXT : ADM.BORDER}`, background: nuovoSms.scopo === s ? ADM.TEXT : '#fff', color: nuovoSms.scopo === s ? '#fff' : ADM.TEXT,
+                  }}>{HUB_SCOPI_MITTENTE[s].label}</button>
+                ))}
+              </div>
+            </HubCampo>
+            <HubCampo label="Ci si oppone" nota="Con lo scopo promozionale e una sigla alfanumerica valgono solo il collegamento e il rimando all'app: una sigla non riceve risposte.">
+              <select value={nuovoSms.opposizione} onChange={e => setNuovoSms(n => ({ ...n, opposizione: e.target.value }))}
+                style={{ width: '100%', padding: '9px 11px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`, fontFamily: 'inherit', fontSize: 13.5, color: ADM.TEXT, background: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}>
+                {Object.keys(SMS_OPPOSIZIONI).map(k => <option key={k} value={k}>{SMS_OPPOSIZIONI[k].label}</option>)}
+              </select>
+            </HubCampo>
+            {smsMale(nuovoSms) && (
+              <div style={{ padding: '9px 11px', borderRadius: 9, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.6, color: '#7A4A0B', lineHeight: 1.5 }}>
+                Una sigla alfanumerica non riceve risposte: con lo scopo promozionale scegli il collegamento o il rimando all'app.
+              </div>
+            )}
+          </div>
+        )}
+      </HubModale>
+
       <HubModale open={!!nuovo} onClose={() => setNuovo(null)} larghezza={560}
         titolo="Aggiungi un indirizzo mittente" sotto="Su un dominio già verificato: i domini si configurano presso il fornitore di invio."
         footer={
           <React.Fragment>
             <div style={{ flex: 1 }}/>
             <HubStrumento onClick={() => setNuovo(null)}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={aggiungiMittente}>Aggiungi</HubStrumento>
+            <HubStrumento forte icona="check" onClick={aggiungiMittente} spento={!nuovoValido}>Aggiungi</HubStrumento>
           </React.Fragment>
         }>
         {nuovo && (

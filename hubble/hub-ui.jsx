@@ -95,15 +95,18 @@ function HubStato({ stato, mappa }) {
 // Il pulsante-strumento della barra: bianco a riposo, si scurisce sotto il
 // mouse, veste il rosa da acceso. Il feedback vive in JS perché il fondo è uno
 // stile inline e una classe :hover non lo batterebbe.
-function HubStrumento({ icona, acceso, badge, onClick, children, forte, title }) {
+// `spento`: il pulsante c'è ma non si preme, e si vede — il colore, il
+// cursore, l'ombra che sparisce. Serve dove l'azione non è ancora possibile
+// e il perché è scritto accanto (P-178).
+function HubStrumento({ icona, acceso, badge, onClick, children, forte, title, spento }) {
   const [sopra, setSopra] = useStateHub(false);
   const [premuto, setPremuto] = useStateHub(false);
   const Icona = icona ? BuIcons[icona] : null;
   return (
-    <button type="button" onClick={onClick} title={title}
-      onMouseEnter={() => setSopra(true)}
+    <button type="button" onClick={spento ? undefined : onClick} title={title} disabled={!!spento}
+      onMouseEnter={() => { if (!spento) setSopra(true); }}
       onMouseLeave={() => { setSopra(false); setPremuto(false); }}
-      onMouseDown={() => setPremuto(true)} onMouseUp={() => setPremuto(false)}
+      onMouseDown={() => { if (!spento) setPremuto(true); }} onMouseUp={() => setPremuto(false)}
       style={{
         position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 7,
         padding: '8px 13px', borderRadius: 8,
@@ -117,8 +120,9 @@ function HubStrumento({ icona, acceso, badge, onClick, children, forte, title })
           : forte ? '0 4px 14px -5px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.22) inset'
           : sopra ? '0 2px 8px rgba(15,17,21,0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
         transform: premuto ? 'translateY(1px)' : 'none',
-        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+        cursor: spento ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
         transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease',
+        ...(spento ? { opacity: 0.5, boxShadow: 'none', transform: 'none' } : {}),
       }}>
       {Icona && <Icona size={15} color={forte ? '#fff' : acceso ? ADM.PINK : sopra ? ADM.TEXT : ADM.MUTED}/>}
       {children}
