@@ -277,13 +277,44 @@ function CucinaApp() {
             </div>
           </div>
         ) : (
-          <div className="pn-scroll" style={{
-            flex: 1, overflow: 'auto',
-            padding: focus ? 0 : '22px 32px 32px',
-            background: PN.BG,
+          /* Visualizzazione RISTORANTE — la board per TAVOLO.
+             Prende il posto dei ticket a colonne: stessa cornice bianca della
+             vista Pub, stessa aria intorno, cambia la board dentro.
+             La barra la fornisce la pagina (selettore di monitor e schermo
+             intero); l'orologio no, perche' dentro il gestionale l'ora ce
+             l'ha gia' il computer — lo mostra solo la route di anteprima,
+             dove la board e' un dispositivo a se'. */
+          <div style={{
+            flex: 1, minWidth: 0, minHeight: 0, display: 'flex',
+            padding: focus ? 0 : '22px 32px 32px', background: PN.BG,
           }}>
-            <CucinaInSala focus={focus} selettoreMonitor={selettore()}
-              onToggleFocus={() => setFocus(f => !f)}/>
+            <div style={window.CUC_CARD ? window.CUC_CARD(focus) : {flex: 1, minWidth: 0}}>
+              {/* L'ora della board e' quella SIMULATA del servizio (14:55 di
+                  `cucina-data.jsx`), non quella del computer: i ticket finti
+                  sono delle 14:40 e col tempo vero i cronometri segnavano
+                  quattrocento minuti. */}
+              <KdsTavoliBoard
+                oraZero={(() => { const d = new Date();
+                  d.setHours(0, window.CUC_NOW_MIN || 0, 0, 0); return d.getTime(); })()}
+                comande={window.kdsComandeDelServizio ? window.kdsComandeDelServizio() : []}
+                barra={() => (
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end',
+                               gap:12, padding:'0 0 14px'}}>
+                    {selettore()}
+                    <button type="button" onClick={() => setFocus(f => !f)}
+                      title={focus ? 'Esci da schermo intero' : 'Schermo intero'}
+                      aria-label={focus ? 'Esci da schermo intero' : 'Schermo intero'}
+                      style={{ width:44, height:44, display:'grid', placeItems:'center',
+                               background:'transparent', border:'none', cursor:'pointer' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED}
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 3H5.5A2.5 2.5 0 0 0 3 5.5V8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
+                        <path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><path d="M16 21h2.5a2.5 2.5 0 0 0 2.5-2.5V16"/>
+                      </svg>
+                    </button>
+                  </div>
+                )}/>
+            </div>
           </div>
         )}
       </main>
