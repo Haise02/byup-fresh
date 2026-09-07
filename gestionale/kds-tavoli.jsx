@@ -207,9 +207,14 @@ function Cta({ ink, children, onClick, icona, stretto, pieno }) {
       flex: stretto ? '0 0 56px' : (pieno ? '1 1 auto' : '0 0 186px'), height: 52,
       padding: stretto ? 0 : '0 14px', maxWidth:'100%',
       display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10,
-      borderRadius: 10, border: '1px solid ' + PN.BORDER,
-      background: PN.BTN_NEUTRAL, boxShadow: PN.INSET_HIGHLIGHT,
-      color: UI.testo, fontFamily:'inherit', fontSize: 16, fontWeight: 600,
+      // Piu' staccata dal fondo: la card e' bianca e la banda calda e' quasi
+      // bianca, quindi un bottone bianco con un filo chiaro ci spariva dentro.
+      // Ora ha un fondo grigio pieno, un bordo piu' deciso e una sua ombra —
+      // resta neutro di colore, ma smette di essere trasparente.
+      borderRadius: 10, border: '1px solid ' + PN.BORDER_MED,
+      background: 'linear-gradient(180deg, #FFFFFF 0%, #EFECEC 100%)',
+      boxShadow: PN.INSET_HIGHLIGHT + ', 0 1px 2px rgba(16,18,22,0.10)',
+      color: UI.testo, fontFamily:'inherit', fontSize: 16, fontWeight: 700,
       letterSpacing:'0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
     }}>
       {icona}{children}
@@ -229,7 +234,8 @@ const IcoMarcia = ({ c }) => (
  *  che non chiede niente, da accesa si riempie. E' un comodo, non un comando
  *  di servizio — non deve mai competere con lo stato dei piatti. */
 const IcoPin = ({ c, pieno }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill={pieno ? c : 'none'} stroke={c}
+  <svg width={pieno ? 22.5 : 22} height={pieno ? 22.5 : 22} viewBox="0 0 24 24"
+    fill={pieno ? c : 'none'} stroke={c}
     strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 17.5V22"/><path d="M8.5 10.6V3.5h7v7.1l2.2 3.4H6.3z"/></svg>
 );
@@ -529,15 +535,16 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
   return (
     <div style={{
       background: UI.card, borderRadius: 14,
-      border: '1px solid ' + (fissato ? PN.PINK_SOFT : UI.bordo),
-      // La card fissata SI SOLLEVA. Non cambia colore e non prende un bordo
-      // acceso: l'ombra e' l'unico canale che dice «questa sta sopra le altre»
-      // senza rubare niente ai colori degli stati, che qui sono l'informazione.
-      // E' anche l'unica metafora onesta — fissata vuol dire tenuta a galla
-      // mentre il resto scorre, e un oggetto tenuto a galla fa piu' ombra.
+      // Il bordo della fissata vira al corallo del marchio, appena.
+      border: '1px solid ' + (fissato ? 'rgba(255,90,95,0.42)' : UI.bordo),
+      // TUTTE le card hanno un'ombra: staccate dal fondo si leggono come
+      // oggetti, non come riquadri disegnati sulla pagina.
+      // La fissata la tiene piu' alta E rosata — il corallo del marchio a bassa
+      // opacita' — cosi' il fatto che stia sopra le altre lo dice la luce, non
+      // un colore in piu' che competerebbe con quelli degli stati.
       boxShadow: fissato
-        ? '0 6px 18px rgba(16,18,22,0.11), 0 2px 5px rgba(16,18,22,0.06)'
-        : '0 1px 2px rgba(16,18,22,0.04)',
+        ? '0 10px 26px rgba(255,90,95,0.20), 0 3px 8px rgba(255,90,95,0.12)'
+        : '0 2px 6px rgba(16,18,22,0.07), 0 1px 2px rgba(16,18,22,0.04)',
       display:'flex', flexDirection:'column', overflow:'hidden',
       opacity: finito(t) ? 0.7 : 1,
     }}>
@@ -590,14 +597,13 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
           style={{
             width: 48, height: 48, flexShrink:0, marginLeft:2,
             display:'grid', placeItems:'center', background:'transparent', border:'none',
-            cursor:'pointer', opacity: fissato ? 1 : 0.32,
+            cursor:'pointer', opacity: fissato ? 1 : 0.55,
           }}>
-          {/* Accesa prende il corallo del marchio. Da spenta resta il grigio
-              al 32%: il colore e' il premio del gesto compiuto, non un invito
-              perpetuo — se la puntina fosse corallo anche da spenta, sette
-              card farebbero sette richiami per un comando che serve una volta
-              a servizio. */}
-          <IcoPin c={fissato ? PN.PINK : UI.muto} pieno={fissato}/>
+          {/* Accesa prende il corallo del marchio e cresce di un soffio. Da
+              spenta resta grigia — il colore e' il premio del gesto compiuto,
+              non un invito perpetuo — ma piu' scura di prima: al 32% era cosi'
+              sbiadita che non si capiva che ci fosse un comando. */}
+          <IcoPin c={fissato ? PN.PINK : UI.tempo} pieno={fissato}/>
         </button>
       </div>
       {blocchi}
@@ -721,9 +727,55 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   // baratto sbagliato: quello che conta non e' quanti tavoli entrano, e'
   // quanto in fretta ne leggi uno.
   const colonne = Math.min(3, Math.max(1, Math.floor((larghezza - 24 + 12) / 372)));
+  // Aria fra le card: il 2% della larghezza dello schermo, con una briglia —
+  // sotto i 12px le card si toccano, sopra i 40 la board si sfilaccia.
+  const aria = Math.max(12, Math.min(40, Math.round(larghezza * 0.02)));
 
   const [fissati, setFissati] = React.useState([]);
-  const fissa = id => setFissati(f => f.indexOf(id) >= 0 ? f.filter(x => x !== id) : [id].concat(f));
+
+  // ── L'ANIMAZIONE DEL FISSAGGIO (tecnica FLIP) ───────────────────────────
+  // Fissare una card la porta in cima, e senza animazione quel salto e' muto:
+  // vedi la board diversa e non sai cosa e' successo. Qui si misura DOVE STAVA
+  // ogni card prima del riordino, dopo il riordino la si rimette li' con una
+  // trasformazione, e la si lascia scivolare al posto nuovo. Il movimento e'
+  // quello vero — nessuna card viene animata «finta» — e si vede la propria
+  // card salire in alto a sinistra scavalcando le altre, che si spostano di
+  // conseguenza.
+  // Chi ha chiesto meno animazioni al sistema non ne vede nessuna.
+  const nodi = React.useRef({});
+  const prima = React.useRef(null);
+
+  const fissa = id => {
+    const m = {};
+    Object.keys(nodi.current).forEach(k => {
+      const el = nodi.current[k];
+      if (el) m[k] = el.getBoundingClientRect();
+    });
+    prima.current = m;
+    setFissati(f => (f.indexOf(id) >= 0 ? f.filter(x => x !== id) : [id].concat(f)));
+  };
+
+  React.useLayoutEffect(() => {
+    const vecchie = prima.current;
+    prima.current = null;
+    if (!vecchie) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    Object.keys(nodi.current).forEach(k => {
+      const el = nodi.current[k], v = vecchie[k];
+      if (!el || !v) return;
+      const o = el.getBoundingClientRect();
+      const dx = v.left - o.left, dy = v.top - o.top;
+      if (!dx && !dy) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      el.style.zIndex = '2';
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 420ms cubic-bezier(.2,.8,.25,1)';
+        el.style.transform = '';
+        setTimeout(() => { el.style.transition = ''; el.style.zIndex = ''; }, 460);
+      });
+    });
+  }, [fissati]);
   // L'ordinamento e' stabile: i fissati salgono, tutto il resto mantiene
   // l'ordine d'arrivo. Nessuna card si sposta se non gliel'hai chiesto tu.
   const inOrdine = visibili.slice().sort((a, b) =>
@@ -837,14 +889,16 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           // un gesto solo, uguale sul monitor e sul tablet, e niente puo'
           // finire fuori portata.
           overflowY:'auto', overflowX:'hidden', WebkitOverflowScrolling:'touch',
-          display:'flex', gap:12, alignItems:'flex-start',
+          display:'flex', gap:aria, alignItems:'flex-start',
         }}>
         {colonneCard.map((col, i) => (
-          <div key={i} style={{ flex:'1 1 0', minWidth:0, display:'flex', flexDirection:'column', gap:12 }}>
+          <div key={i} style={{ flex:'1 1 0', minWidth:0, display:'flex', flexDirection:'column', gap:aria }}>
             {col.map(t => (
-              <Card key={t.id} t={t} ora={ora} sel={sel}
-                fissato={fissati.indexOf(t.id) >= 0} onFissa={() => fissa(t.id)}
-                onScegli={scegli} onAvanti={avanti} onIndietro={indietro}/>
+              <div key={t.id} ref={el => { if (el) nodi.current[t.id] = el; else delete nodi.current[t.id]; }}>
+                <Card t={t} ora={ora} sel={sel}
+                  fissato={fissati.indexOf(t.id) >= 0} onFissa={() => fissa(t.id)}
+                  onScegli={scegli} onAvanti={avanti} onIndietro={indietro}/>
+              </div>
             ))}
           </div>
         ))}
