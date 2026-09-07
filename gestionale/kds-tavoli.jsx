@@ -482,7 +482,7 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
 }
 
 // ─── Card tavolo ──────────────────────────────────────────────────────────
-function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa }) {
+function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa, consegnati }) {
   const [tog, setTog] = React.useState({});
   const on   = (k, def) => (tog[k] === undefined ? def : tog[k]);
   const flip = (k, def) => setTog(o => Object.assign({}, o, { [k]: !on(k, def) }));
@@ -515,7 +515,7 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
     <Sezione {...comuni} key="attesa" chiave="attesa" stato="attesa" piatti={resto}
       apertoDef={false} tempoDi={() => minuti(ora - t.arrivo)}/>
   );
-  if (f.length) blocchi.push(
+  if (f.length && consegnati !== false) blocchi.push(
     /* Sui pronti il tempo diventa l'ORA D'OROLOGIO invece dei minuti che
        scorrono. Stava sulla categoria, e togliendo la categoria sarebbe
        sparito — ma e' il numero giusto per una cosa chiusa: alla domanda «gli
@@ -624,6 +624,42 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   const vel = orologio || 1;
   const [tavoli, setTavoli] = React.useState(comande || []);
   const [ora, setOra] = React.useState(ORA0);
+
+  // ── I FILTRI DELLA TESTATA ──────────────────────────────────────────────
+  // Sono gli stessi della board Pub, con lo stesso contratto, perche' la barra
+  // della Cucina e' una sola e la monta la pagina: due cucine dello stesso
+  // gestionale non possono avere due grammatiche.
+  //   Canali     su cosa si sta lavorando — sala, asporto, delivery, banco
+  //   Categorie  la stazione del piatto (Pizza, Primi, Secondi)
+  //   Consegnati se mostrare anche quello che e' gia' uscito
+  const TUTTI_C = 'Tutti i canali', TUTTE_CAT = 'Tutte le categorie';
+  const [canale, setCanale] = React.useState(TUTTI_C);
+  const [categoria, setCategoria] = React.useState(TUTTE_CAT);
+  const [consegnati, setConsegnati] = React.useState(true);
+
+  const ETICHETTA_CANALE = c => (c.tipo ? TIPO[c.tipo] : 'Sala');
+  const canali = [TUTTI_C].concat(
+    tavoli.map(ETICHETTA_CANALE).filter((v, i, a) => v && a.indexOf(v) === i));
+  const categorie = [TUTTE_CAT].concat(
+    tavoli.reduce((a, c) => a.concat(c.piatti.map(x => x.cat)), [])
+      .filter((v, i, a) => v && a.indexOf(v) === i));
+
+  // Il filtro per categoria toglie i PIATTI, non le comande: un tavolo che ha
+  // anche altro resta, alleggerito. Se pero' di quel tavolo non resta niente,
+  // la card sparisce — una card vuota non dice niente a nessuno.
+  const visibili = tavoli
+    .filter(c => canale === TUTTI_C || ETICHETTA_CANALE(c) === canale)
+    .map(c => {
+      if (categoria === TUTTE_CAT) return c;
+      const piatti = c.piatti.filter(x => x.cat === categoria);
+      const tengo = {}; piatti.forEach(x => { tengo[x.id] = true; });
+      return Object.assign({}, c, {
+        piatti,
+        uscite: c.uscite.map(u => Object.assign({}, u, { ids: u.ids.filter(i => tengo[i]) }))
+                        .filter(u => u.ids.length),
+      });
+    })
+    .filter(c => c.piatti.length);
   // Le comande arrivano dall'esterno e possono cambiare (il servizio va
   // avanti). Quelle che il monitor ha gia' in mano NON si sovrascrivono: le
   // uscite che ha aperto lui sono sue, e ricalcolarle da fuori vorrebbe dire
@@ -680,7 +716,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   const fissa = id => setFissati(f => f.indexOf(id) >= 0 ? f.filter(x => x !== id) : [id].concat(f));
   // L'ordinamento e' stabile: i fissati salgono, tutto il resto mantiene
   // l'ordine d'arrivo. Nessuna card si sposta se non gliel'hai chiesto tu.
-  const inOrdine = tavoli.slice().sort((a, b) =>
+  const inOrdine = visibili.slice().sort((a, b) =>
     (fissati.indexOf(b.id) >= 0 ? 1 : 0) - (fissati.indexOf(a.id) >= 0 ? 1 : 0));
 
   // ── LE CARD SI IMPACCHETTANO, NON SI ALLINEANO ──────────────────────────
@@ -766,7 +802,9 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           Via il titolo «Kitchen Monitor»: su un dispositivo che fa una cosa
           sola, dire come si chiama e' l'unica informazione di cui nessuno ha
           bisogno. */}
-      {barra ? barra({ ora }) : (
+      {barra ? barra({ ora, canale, onCanale: setCanale, canali,
+                       categoria, onCategoria: setCategoria, categorie,
+                       consegnati, onConsegnati: setConsegnati }) : (
         <div style={{ height:72, flexShrink:0, display:'flex', alignItems:'center', gap:18,
                       padding:'0 14px 0 22px', background: PN.WHITE, borderBottom:'1px solid ' + UI.bordo }}>
           <span style={{ fontSize:30, fontWeight:800, letterSpacing:'-0.02em', color: UI.testo,
@@ -795,7 +833,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
         {colonneCard.map((col, i) => (
           <div key={i} style={{ flex:'1 1 0', minWidth:0, display:'flex', flexDirection:'column', gap:12 }}>
             {col.map(t => (
-              <Card key={t.id} t={t} ora={ora} sel={sel}
+              <Card key={t.id} t={t} ora={ora} sel={sel} consegnati={consegnati}
                 fissato={fissati.indexOf(t.id) >= 0} onFissa={() => fissa(t.id)}
                 onScegli={scegli} onAvanti={avanti} onIndietro={indietro}/>
             ))}

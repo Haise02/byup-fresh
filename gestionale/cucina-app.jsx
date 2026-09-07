@@ -297,23 +297,11 @@ function CucinaApp() {
                 oraZero={(() => { const d = new Date();
                   d.setHours(0, window.CUC_NOW_MIN || 0, 0, 0); return d.getTime(); })()}
                 comande={window.kdsComandeDelServizio ? window.kdsComandeDelServizio() : []}
-                barra={() => (
-                  <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end',
-                               gap:12, padding:'0 0 14px'}}>
-                    {selettore()}
-                    <button type="button" onClick={() => setFocus(f => !f)}
-                      title={focus ? 'Esci da schermo intero' : 'Schermo intero'}
-                      aria-label={focus ? 'Esci da schermo intero' : 'Schermo intero'}
-                      style={{ width:44, height:44, display:'grid', placeItems:'center',
-                               background:'transparent', border:'none', cursor:'pointer' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED}
-                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8 3H5.5A2.5 2.5 0 0 0 3 5.5V8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
-                        <path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><path d="M16 21h2.5a2.5 2.5 0 0 0 2.5-2.5V16"/>
-                      </svg>
-                    </button>
-                  </div>
-                )}/>
+                /* La stessa barra della board Pub: stessi chip, stesso
+                   selettore, stesso tasto schermo intero, nelle stesse
+                   posizioni. La board la riempie di valori veri — i canali
+                   sono sala/asporto/delivery, le categorie le stazioni. */
+                barra={barraCucina}/>
             </div>
           </div>
         )}
