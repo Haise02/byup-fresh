@@ -42,9 +42,9 @@ function _kds2Sorgente(t) {
 
 // La nota del ticket è testo libero: «senza basilico», «extra mozzarella»,
 // «cottura al sangue». Le prime due sono una rimozione e un'aggiunta e vanno
-// lette come tali — rosso e verde, che in cucina si distinguono di sfuggita —
-// la terza è un'istruzione e resta neutra. Chi scrive la nota non sa niente di
-// questa distinzione: la si riconosce da come parla.
+// lette come tali — il «+» e il «−» dentro il pallino della board — la terza è
+// un'istruzione e resta neutra. Chi scrive la nota non sa niente di questa
+// distinzione: la si riconosce da come parla.
 const _KDS2_TOGLIE  = /^(senza|no)\s+/i;
 const _KDS2_AGGIUNGE = /^(extra|aggiungi|con|più|piu)\s+/i;
 function _kds2Modificatori(nota) {

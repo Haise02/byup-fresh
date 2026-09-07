@@ -38,8 +38,8 @@
 //
 //  3. IL COLORE NON È MAI L'UNICO CANALE. La priorità la porta la POSIZIONE:
 //     la riga più vecchia è in cima, punto. Ambra e verde stanno sopra a un
-//     numero che si legge comunque; l'allergene ha bordo, barra doppia, icona
-//     ed etichetta, cioè quattro canali di cui uno solo è tinta.
+//     numero che si legge comunque; l'allergene ha bordo, barra doppia, punto
+//     esclamativo ed etichetta, cioè quattro canali di cui uno solo è tinta.
 //
 //     Il filtro per sorgente VINCE sul rosso. Una riga allergene che non
 //     appartiene al tavolo evidenziato si smorza come tutte le altre: il rosso
@@ -101,7 +101,7 @@ const K = {
   // Corallo e rosso d'allergene distano poco in tinta, ed è una tensione vera —
   // per questo non si distinguono MAI per la sola tinta: il corallo è sempre un
   // bordo con velatura chiarissima sotto, il rosso è sempre una pastiglia
-  // PIENA con testo bianco e un triangolo accanto. Forma e riempimento
+  // PIENA con testo bianco e un punto esclamativo dentro. Forma e riempimento
   // separano i due segnali anche a due metri e anche in dicromia.
   BRAND:      '#FF5A5F',   // = PN.PINK — bordo della sorgente selezionata
   BRAND_BG:   '#FFF1EF',   // = PN.PINK_BG_SOFT — velatura sotto la selezione
@@ -189,8 +189,8 @@ const CATEGORIA_ALTRO = { viva: '#64748B', smorta: '#CBD0D7', tinta: '#F2F4F6' }
 // Il colore dei tre gradini d'attesa, in un posto solo: lo usano il numero in
 // fondo alla riga, la barra a sinistra e il tempo dentro le chip, e se vivesse
 // in tre punti in due settimane sarebbero tre scale.
-// Il rosso qui NON è quello dell'allergene: quello è una pastiglia PIENA con il
-// triangolo accanto, questo è inchiostro e una barra da 6 px. Forma e
+// Il rosso qui NON è quello dell'allergene: quello è una pastiglia PIENA col
+// punto esclamativo dentro, questo è inchiostro e una barra da 6 px. Forma e
 // riempimento li tengono distinti anche a due metri.
 const kds2ColoreTono = t => t === 'critica' ? K.ROSSO : t === 'attesa' ? K.AMBRA : K.VERDE;
 const kds2Categoria = nome => CATEGORIE[nome] || CATEGORIA_ALTRO;
@@ -202,10 +202,12 @@ const KDS2_MOTO_RIDOTTO = typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ─── Icone ────────────────────────────────────────────────────────────────
-// Le stesse già in uso nel gestionale: `BagIcon` e `ScooterIcon` del KDS attuale
-// (cucina-tab-insala.jsx) e il triangolo della vista Banco. Tratto aperto a 2px,
-// non le sagome piene della libreria SF — una borsa piena, a taglia piccola e a
-// distanza, si chiude e si legge come un lucchetto.
+// Le stesse già in uso nel gestionale: `BagIcon` e `ScooterIcon` del KDS
+// attuale (cucina-tab-insala.jsx). Tratto aperto a 2px, non le sagome piene
+// della libreria SF — una borsa piena, a taglia piccola e a distanza, si
+// chiude e si legge come un lucchetto.
+// Il triangolo dell'allergene non è più qui: è diventato il punto esclamativo
+// dentro la sua pastiglia, che è testo e non un disegno.
 function Kds2Bag({ size = 22 }) {
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
 }
@@ -256,9 +258,6 @@ function Kds2Partner({ id, size = 24, tono = 'normale' }) {
     }}>{p.sigla}</span>
   );
 }
-function Kds2Alert({ size = 26 }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
-}
 // verso: 1 → destra, -1 → sinistra, 0 → in giù (tendine)
 function Kds2Chevron({ size = 24, verso = 1 }) {
   const giro = verso === 0 ? 'rotate(90deg)' : verso < 0 ? 'scaleX(-1)' : 'none';
@@ -281,10 +280,17 @@ function Kds2Dito({ size = 24 }) {
 }
 
 // ─── L'istruzione ─────────────────────────────────────────────────────────
-// Da quando ogni piatto ha il suo pulsante, il gesto ha un bersaglio
-// disegnato e l'istruzione non deve più difendere un tocco invisibile: è un
-// promemoria, e sta nella banda in alto — il posto del cromo, non del lavoro
-// — invece di rubare una riga fra i filtri e la prima card.
+// Da quando ogni piatto ha il suo pulsante, il gesto ha un bersaglio disegnato
+// e l'istruzione non deve più difendere un tocco invisibile: è un promemoria.
+//
+// STA FRA LA RAIL E LA PRIMA CARTA, su una riga sua. Nella banda in alto era
+// finita in mezzo alle tendine dei filtri e al tasto dello schermo intero:
+// cromo fra il cromo, che a due metri si legge come un'altra etichetta di
+// comando invece che come una frase da leggere. Qui sotto è nel punto esatto in
+// cui l'occhio scende dal filtro al lavoro, ed è l'ultima cosa che incontra
+// prima del primo piatto da toccare — con lo stacco che le serve sopra e
+// sotto, perché una riga di testo schiacciata fra due file di pastiglie non la
+// legge nessuno.
 function Kds2Istruzione({ compatta }) {
   return (
     <span style={{
@@ -479,62 +485,67 @@ function Kds2Chip({
 // ─── Modificatori ─────────────────────────────────────────────────────────
 // Nessuna etichetta «standard» sulle righe senza modificatori: l'assenza è già
 // l'informazione, e una riga su due che dice «standard» insegna a non leggere.
-// Togliere e aggiungere si distinguono per segno e peso, non per tinta: una
-// preferenza di gusto non entra nel canale della sicurezza alimentare.
-// ─── Modificatori ─────────────────────────────────────────────────────────
+//
 // «Aggiungi» e «togli» è la distinzione più costosa da sbagliare dopo gli
 // allergeni: bacon in più e bacon in meno sono lo stesso piatto rifatto due
-// volte. Prima il segno era un carattere di punteggiatura alto come la parola —
-// a due metri, un trattino di due pixel. Ora è un OPERATORE: riquadro proprio,
-// glifo pesante, dimensione maggiore del testo che governa.
+// volte. Il segno non è punteggiatura ma un OPERATORE — pastiglia propria,
+// glifo pesante, corpo maggiore del testo che governa.
 //
-// Rosso per «togli», verde per «metti»: è la convenzione che chiunque legge
-// senza impararla, ed è una scelta esplicita del committente.
+// UN SOLO OGGETTO, ED È IL PALLINO DI NOTIFICA DEL GESTIONALE: tondo, corallo
+// pieno, con l'alone chiaro attorno — lo stesso `ImpPallinoNotifica` che in
+// Impostazioni segna la scheda da guardare (impostazioni-shared.jsx). Là dice
+// «qui c'è una cosa da sistemare», qui dice la stessa cosa su un piatto: questo
+// non è il piatto del listino, ha una deroga addosso.
 //
-// Il rosso però su questa schermata era già impegnato: significa allergene. Per
-// non annacquare l'allarme, i due rossi non si somigliano MAI per forma —
-// l'allergene è pastiglia larga, piena, con triangolo e parola dentro, più
-// bordo e barra sulla riga; il modificatore è un quadratino da 24 px con un
-// segno. Stessa tinta, due oggetti che non si confondono.
+// Prima erano due tinte, rosso per «togli» e verde per «metti». Era il canale
+// peggiore per portare quella distinzione — rosso contro verde è la coppia che
+// circa un uomo su dodici in cucina non separa — e per di più chiamava in causa
+// il rosso, che su questa schermata significa allergene. Ora LA TINTA NON PORTA
+// PIÙ NIENTE: a distinguere è il glifo, «+» contro «−», bianco su corallo
+// pieno, che si legge uguale in dicromia e a due metri.
 //
-// Il colore resta comunque il canale in PIÙ, non l'unico: il glifo (+ contro −)
-// e il riquadro pieno restano lì sotto intatti. Serve, perché rosso e verde è
-// la coppia peggiore per chi ha un deficit sul rosso-verde — circa un uomo su
-// dodici in cucina — e qui «aggiungi bacon» contro «togli bacon» è lo stesso
-// piatto rifatto due volte. In dicromia il segno bianco su fondo saturo si
-// legge uguale.
+// Il corallo non si confonde con il rosso dell'allergene perché i due non si
+// somigliano MAI per forma: l'allergene è una pastiglia larga, piena, col punto
+// esclamativo e la parola dentro, più bordo e barra sulla riga; il modificatore
+// è un pallino da 26 px con un segno.
 function Kds2Modificatori({ modifiers, spenta }) {
   if (!modifiers || modifiers.length === 0) return null;
   return (
-    <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 7}}>
+    <div style={{display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 7}}>
       {modifiers.map((m, i) => {
         const togli = m.type === 'remove';
         const metti = m.type === 'add';
         // Terzo caso: la nota che non aggiunge e non toglie — «ben cotta»,
-        // «al sangue», «salsa a parte». Nel mock non esisteva, negli ordini
-        // veri sì, e darle un «+» verde direbbe una cosa falsa. Segno neutro,
-        // stesso peso: in cucina è un'istruzione come le altre.
-        const tinta = spenta ? K.TESTO_OFF : (togli ? K.ROSSO : metti ? K.VERDE : K.TESTO_2);
+        // «al sangue», «salsa a parte». Nel mock non esiste, negli ordini veri
+        // sì, e darle un «+» direbbe una cosa falsa. Segno neutro, stesso
+        // pallino: in cucina è un'istruzione come le altre.
+        const segno = togli ? '−' : metti ? '+' : '·';
+        const tinta = spenta ? K.TESTO_OFF : K.BRAND;
         return (
-          <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+          <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 11}}>
             {/* Nascosto agli assistivi: il nome accessibile della riga dice già
                 «senza cipolla» / «con bacon» a parole, che è più chiaro di un
                 segno letto ad alta voce. */}
-            {/* Smorzato il riquadro si SVUOTA invece di restare pieno: bianco
-                su grigio quiete starebbe a 2,7:1, illeggibile. Vuoto, il segno
-                rientra nella stessa famiglia grigia di tutto il resto della
-                riga spenta, che è la convenzione già in uso qui. */}
+            {/* Smorzato il pallino si SVUOTA invece di restare pieno: bianco su
+                grigio quiete starebbe a 2,7:1, illeggibile. Vuoto se ne va anche
+                l'alone — un alone attorno a niente è sporco — e il segno rientra
+                nella famiglia grigia di tutta la riga spenta. */}
             <span aria-hidden="true" style={{
-              width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
               display: 'grid', placeItems: 'center',
               background: spenta ? 'transparent' : tinta,
               border: spenta ? '2px solid ' + tinta : 'none',
+              boxShadow: spenta ? 'none' : '0 0 0 3px rgba(255, 90, 95, 0.16)',
               color: spenta ? tinta : K.RIGA,
-              fontSize: 18, fontWeight: 900, lineHeight: 1,
-            }}>{togli ? '−' : metti ? '+' : '·'}</span>
+              fontSize: 19, fontWeight: 900, lineHeight: 1,
+            }}>{segno}</span>
+            {/* Il testo non prende il corallo pieno del pallino: su bianco si
+                ferma a 3,2:1. Prende l'inchiostro della stessa famiglia
+                (K.BRAND_INK, 5,9:1), così la coppia resta una cosa sola e si
+                legge da lontano. */}
             <span style={{
               fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
-              color: tinta,
+              color: spenta ? K.TESTO_OFF : K.BRAND_INK,
             }}>{m.label}</span>
           </span>
         );
@@ -614,7 +625,11 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         // sparisce quando la riga è premuta o smorzata — in entrambi i casi la
         // riga scende al livello della pagina, e un'ombra sotto qualcosa che
         // non è sollevato è la contraddizione che rende finto tutto il resto.
-        borderRadius: 16, overflow: 'hidden', marginBottom: 10,
+        // 13 px e non più 10: il passo verticale di una carta — la sua altezza
+        // più lo stacco — cresce di circa il 3%, che è quanto basta perché due
+        // carte identiche una sotto l'altra si contino a colpo d'occhio senza
+        // che la lista perda righe utili.
+        borderRadius: 16, overflow: 'hidden', marginBottom: 13,
         boxShadow: spenta ? 'none' : PN.CARD_SHADOW,
         // Smorzata, la riga «sprofonda» al livello della pagina: perdere la
         // superficie bianca la toglie dal piano delle card senza toccare il
@@ -655,14 +670,11 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
           <div style={{flexShrink: 0, minWidth: 0}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-              {allergene && (
-                // L'icona resta anche filtrata fuori — è il canale non-tinta
-                // dell'allergene, e non deve sparire insieme al rosso — ma si
-                // smorza con lo stesso grigio di tutto il resto della riga.
-                <span style={{color: allergeneVisibile ? K.ROSSO : K.TESTO_OFF, display: 'flex', flexShrink: 0}}>
-                  <Kds2Alert size={26}/>
-                </span>
-              )}
+              {/* Il nome del piatto sta da solo: il triangolo che lo precedeva
+                  è sceso dentro la pastiglia dell'allergene, qui sotto. Il
+                  segnale non si è indebolito, si è raccolto — bordo, barra e
+                  pastiglia dicono la stessa cosa in un punto solo dello
+                  schermo, invece di due che si rincorrono su due righe. */}
               <span style={Object.assign({}, TY.piatto, {
                 fontSize: nomeSize, color: colNome, whiteSpace: 'nowrap',
               })}>{nome}</span>
@@ -678,14 +690,26 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
               // (cucina-tab-insala.jsx). Filtrata fuori, la pastiglia perde il
               // fondo e diventa testo grigio: la stessa sorte di un modificatore
               // su una riga smorzata, non un trattamento speciale.
+              //
+              // IL PUNTO ESCLAMATIVO è quel che resta del triangolo, ed è il
+              // canale non-tinta dell'allergene: un glifo di punteggiatura che
+              // a due metri si legge quando il rosso non basta — o non c'è,
+              // perché un filtro ha smorzato la riga. Sta attaccato alla parola
+              // che qualifica, non a sei centimetri di distanza su un'altra
+              // riga: «! senza glutine» si legge in un colpo d'occhio solo.
               <span style={{
-                display: 'inline-flex', alignItems: 'center', marginTop: 8,
-                height: allergeneVisibile ? 36 : 'auto', padding: allergeneVisibile ? '0 14px' : 0,
+                display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 8,
+                height: allergeneVisibile ? 36 : 'auto', padding: allergeneVisibile ? '0 15px' : 0,
                 borderRadius: 8,
                 background: allergeneVisibile ? K.ROSSO : 'transparent',
                 color: allergeneVisibile ? K.RIGA : K.TESTO_OFF,
                 fontSize: 20, fontWeight: allergeneVisibile ? 800 : 700, letterSpacing: '-0.01em',
-              }}>{riga.allergen.label}</span>
+              }}>
+                <span aria-hidden="true" style={{
+                  fontSize: 27, fontWeight: 900, lineHeight: 1, flexShrink: 0,
+                }}>!</span>
+                {riga.allergen.label}
+              </span>
             ) : (
               <Kds2Modificatori modifiers={riga.modifiers} spenta={quieta}/>
             )}
@@ -708,23 +732,18 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
           {/* Attesa della riga: quella della sua porzione più vecchia. È l'età
               della produzione, sempre in minuti — l'orario di ritiro è una
               proprietà del destinatario e vive nella sua chip.
-              «di attesa» sotto: il numero da solo, in fondo a una riga dove ci
-              sono già altri numeri, si può leggere come un prezzo o una
-              quantità. Due parole grigie tolgono l'equivoco per sempre. */}
+              CIFRA E OROLOGIO, niente altro. Sotto c'erano due parole, «di
+              attesa», a difendere il numero dall'equivoco col prezzo o con una
+              quantità: ma l'apice dei minuti e il quadrante accanto dicono già
+              che quello è un tempo, e ripeterlo a parole su ogni singola carta
+              — trentotto volte a schermo — è la definizione di rumore. */}
           <div style={{
-            flexShrink: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'flex-end', gap: 1,
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7,
           }}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 7}}>
-              <span style={Object.assign({}, TY.attesa, {color: colTempo})}>{attesaMin}′</span>
-              <span style={{color: colTempo, display: 'flex', flexShrink: 0}}>
-                <Kds2Orologio size={21}/>
-              </span>
-            </div>
-            <span style={{
-              fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em',
-              color: colTempo, whiteSpace: 'nowrap',
-            }}>di attesa</span>
+            <span style={Object.assign({}, TY.attesa, {color: colTempo})}>{attesaMin}′</span>
+            <span style={{color: colTempo, display: 'flex', flexShrink: 0}}>
+              <Kds2Orologio size={21}/>
+            </span>
           </div>
         </div>
       </div>
@@ -1053,9 +1072,6 @@ function Kds2Header({
         <Kds2Filtro etichetta="Canali" valore={canale} opzioni={canali} onScegli={onCanale}/>
         <Kds2Filtro etichetta="Categorie" valore={categoria} opzioni={categorie} onScegli={onCategoria}/>
 
-        <span style={{width: 6}}/>
-        <Kds2Istruzione/>
-
         <span style={{flex: 1}}/>
 
         <button type="button" data-kds2-interattivo="" onClick={onConsegnati}
@@ -1087,6 +1103,7 @@ function Kds2Header({
           Nessun ordine aperto
         </span>
       ) : (
+        <>
         <Kds2Rail>
           <Kds2Tutti selezionata={selezione == null} totale={totale} onTap={() => onSeleziona(null)}/>
           {sorgenti.map(s => {
@@ -1110,6 +1127,18 @@ function Kds2Header({
             );
           })}
         </Kds2Rail>
+        {/* Lo stacco è asimmetrico di proposito: 24 sopra e 22 sotto — contando
+            i 12 di fondo che la banda ha già quando la board sta per conto suo —
+            danno la stessa aria da entrambi i lati sia qui dentro sia dentro la
+            card della Cucina, dove la banda arriva da fuori e non ha padding.
+            È più aria di quanta ne serva a una riga di testo, ed è voluto: la
+            frase deve staccarsi dalla fila di pastiglie sopra e dalla prima
+            carta sotto, o torna a essere una terza fila di cose da scorrere.
+            Compatta nel gestionale, dove tutto il cromo intorno è più piccolo. */}
+        <div style={{paddingTop: 24, paddingBottom: barra ? 22 : 10}}>
+          <Kds2Istruzione compatta={!!barra}/>
+        </div>
+        </>
       )}
     </div>
   );
