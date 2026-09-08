@@ -570,7 +570,7 @@ function ImpSalaTavoli() {
     {/* Su quale sede si sta lavorando: un promemoria, non un selettore. La
         sede si sceglie prima, dal profilo o dall'onboarding (P-186 · D-139). */}
     <div data-sede-sala style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 12, fontSize: 13.5, color: PN.MUTED}}>
-      <PnI.Store size={14}/>
+      <BuIcons.storefront size={14}/>
       <span>Sale e tavoli di <b style={{color: PN.TEXT}}>{sede.nome}</b> · la sede si cambia dal profilo</span>
     </div>
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
