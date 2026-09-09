@@ -226,7 +226,7 @@ function ScreenLocali({ nav, entraIn }) {
 
       {gruppi.map(g => (
         <div key={g.id} style={{ marginBottom: 18 }}>
-          {!sede && g.voci.length > 1 && (
+          {g.voci.length > 1 && (
             <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>{g.nome}</div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

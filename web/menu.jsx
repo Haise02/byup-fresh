@@ -386,7 +386,12 @@ function AppOnlyHost() {
 }
 
 // ─── MENU SCREEN ───────────────────────────────────────────
-function MenuScreen({ state, setState, goTo, takeaway = false }) {
+function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }) {
+  // Al banco, come all'asporto, non c'è un tavolo: niente coperti, niente
+  // commensali. A differenza dell'asporto non c'è nemmeno una fascia di
+  // ritiro — si aspetta lì che sia pronto.
+  const banco = modo === 'banco';
+  const senzaTavolo = takeaway || banco;
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   const CAT_ICONS = { 'Antipasti': '🥖', 'Primi piatti': '🍝', 'Secondi piatti': '🥩', 'Dolci': '🍰', 'Bevande': '🍷' };
   const [tab, setTab] = useState('Antipasti');
@@ -462,15 +467,22 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
   const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
+  // Chi ha ordinato al banco e poi si siede: scansionando il QR del tavolo gli
+  // si chiede se portarcelo (P-192 · D-146). Si chiede una volta sola: se dice
+  // di no, l'ordine resta al banco e nessuno glielo richiede.
+  const [bancoDaPortare, setBancoDaPortare] = useState(() => (modo === 'tavolo' ? byupBancoLeggi() : null));
+  const portaBancoAlTavolo = () => { byupBancoPulisci(); setBancoDaPortare(null); };
   useEffect(() => {
     // All'asporto non c'è un tavolo: niente prompt dei coperti (D-14).
     // A locale chiuso il QR non apre alcuna sessione (P-169): niente coperti.
     const localeChiuso = !!(window.byupLocaleChiusoMessaggio && window.byupLocaleChiusoMessaggio());
-    if (!fromVenue && !takeaway && !state.copertiSelected && !localeChiuso) {
+    if (!fromVenue && !senzaTavolo && !state.copertiSelected && !localeChiuso && !bancoDaPortare) {
       const t = setTimeout(() => setCopertiSheetOpen(true), 600);
       return () => clearTimeout(t);
     }
-  }, []);
+    // Risposta la domanda dell'ordine al banco, i coperti tornano a chiedersi:
+    // sono due fogli e uno solo per volta sta sopra il menù.
+  }, [bancoDaPortare]);
   const confirmCoperti = (n) => {
     setState(s => ({ ...s, coperti: n, copertiSelected: true }));
     setCopertiSheetOpen(false);
@@ -529,6 +541,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
 
   const handleSubmit = (ritiro) => {
     if (takeaway) { submitTakeawayOrder(ritiro); return; }
+    if (banco) { submitBancoOrder(); return; }
     // Al tavolo l'ordine va sempre in cucina.
     // Outbound verso il backend (oggi mock): invio dei piatti alla sessione tavolo.
     window.ByupAPI && window.ByupAPI.addItems({
@@ -572,6 +585,35 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
           ritiro, pickupAt, scade: new Date(pickupAt.getTime() + ASPORTO_TOLLERANZA_MIN * 60000),
         };
         byupAsportoScrivi(ordine);
+        return { ...s, cart: [], activeOrder: ordine };
+      });
+      setConfirm(false);
+      goTo('home');
+    }, 1500);
+  };
+
+  // Il banco (D-146): chi entra dal QR del banco compone lì e aspetta che sia
+  // pronto. Non ha tavolo — quindi niente coperti e niente commensali — e non
+  // ha fascia di ritiro: il codice si detta alla cassa e si aspetta. Se poi si
+  // siede, il QR del tavolo gli chiederà di portarcelo (P-192): è l'unico
+  // travaso previsto, e va in una direzione sola.
+  const submitBancoOrder = () => {
+    setConfirm(true);
+    setTimeout(() => {
+      setState(s => {
+        const items = s.cart.map(li => {
+          const d = Object.values(dishes).flat().find(x => x.id === li.dishId);
+          return { lineId: 'me-' + li.lineId, id: li.dishId, name: d?.name, price: d?.price, qty: li.qty, ownerId: 'me',
+            variants: li.variants, extras: li.extras, removed: li.removed };
+        });
+        const ordine = {
+          id: genOrderId(),
+          codiceRitiro: nuovoCodiceRitiro(),
+          delivery_mode: 'banco', status: 'pending_payment', // i nomi del modello (D-14, P-161)
+          venue: 'Ristorante Maria Grazia',
+          items, total: cartTotal, startedAt: new Date(),
+        };
+        byupBancoScrivi(ordine);
         return { ...s, cart: [], activeOrder: ordine };
       });
       setConfirm(false);
@@ -762,7 +804,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
                       riepilogo lo ripete prima di confermare: così lo si legge
                       due volte, come sul menù di carta dove sta in fondo alla
                       pagina (art. 180 R.D. 635/1940). Nulla si registra. */}
-                  {!takeaway && (() => { const r = byupCopertoRiga(0, 1); return r.attiva ? (
+                  {!senzaTavolo && (() => { const r = byupCopertoRiga(0, 1); return r.attiva ? (
                     <div data-coperto-testa style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>
                       {r.nome} {r.forma === 'fissa' ? `${r.importo.toFixed(2).replace('.', ',')} € a persona` : `${r.aliquota}% sul totale`}
                     </div>
@@ -918,6 +960,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
         goTo={goTo}
         onPickSplit={setSplitPickItem}
         takeaway={takeaway}
+        banco={banco}
       />
 
       {/* Popup "con chi dividi?" — aperto dallo swipe ← su un piatto del carrello */}
@@ -971,15 +1014,52 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
               <I.Check size={32} color="#fff"/>
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: TEXT, marginTop: 4 }}>
-              {takeaway ? 'Ordine composto!' : 'Ordine inviato!'}
+              {senzaTavolo ? 'Ordine composto!' : 'Ordine inviato!'}
             </div>
             <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 220 }}>
-              {takeaway ? 'Ecco il tuo codice di ritiro e come saldare.' : 'Lo trovi sulla home, è stato inviato al locale.'}
+              {senzaTavolo ? 'Ecco il tuo codice di ritiro e come saldare.' : 'Lo trovi sulla home, è stato inviato al locale.'}
             </div>
           </div>
         </div>
       )}
 
+
+      {/* L'ordine fatto al banco, quando ci si siede (P-192) */}
+      {bancoDaPortare && (
+        <div onClick={portaBancoAlTavolo} style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 46,
+          display: 'flex', alignItems: 'flex-end',
+          animation: 'fade 0.22s ease',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            padding: '10px 22px 32px',
+            animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+          }}>
+            <div style={{ width: 38, height: 4, background: '#e0d8db', borderRadius: 999, margin: '4px auto 18px' }}/>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 6 }}>
+                Porti qui l'ordine del banco?
+              </div>
+              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.45 }}>
+                Hai ordinato al banco {bancoDaPortare.n} {bancoDaPortare.n === 1 ? 'cosa' : 'cose'} per {Number(bancoDaPortare.total || 0).toFixed(2).replace('.', ',')} €.
+                Portandolo al tavolo lo trovi in un conto solo con quello che ordini adesso.
+              </div>
+            </div>
+            <button onClick={portaBancoAlTavolo} style={{
+              width: '100%', height: 50, borderRadius: 999, border: 'none',
+              background: WINE, color: '#fff', fontSize: 15, fontWeight: 700,
+              fontFamily: 'inherit', cursor: 'pointer',
+            }}>Sì, portalo al tavolo</button>
+            <button onClick={() => setBancoDaPortare(null)} style={{
+              width: '100%', padding: '12px', background: 'none', border: 'none',
+              cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13.5, color: MUTED, fontWeight: 500, marginTop: 4,
+            }}>No, lo ritiro al banco</button>
+          </div>
+        </div>
+      )}
 
       {/* Coperti prompt sheet — elegante, una sola volta */}
       {copertiSheetOpen && (
@@ -1322,7 +1402,7 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
   );
 }
 
-function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit, takeaway = false }) {
+function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit, takeaway = false, banco = false }) {
   // All'asporto si sceglie l'orario di ritiro PRIMA di ordinare (P-154): senza,
   // la cucina non sa per quando preparare e il cliente non sa quando passare.
   // Le fasce sono le stesse del gestionale per gli ordini al banco: quarti
@@ -1520,7 +1600,16 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                 </div>
               ) : null;
             })()}
-            {takeaway && cartCount > 0 && (
+            {/* Cucina chiusa: nessuna fascia da proporre (P-192). Si dice, e
+                non si lascia un pulsante spento senza spiegazione. */}
+            {takeaway && cartCount > 0 && fasce.length === 0 && (
+              <div data-ritiro-chiuso style={{ padding: '0 2px 12px', fontSize: 13, color: MUTED, lineHeight: 1.45 }}>
+                {cucina && cucina.ultimaComanda
+                  ? <>La cucina ha smesso di prendere ordini alle <b style={{ color: TEXT }}>{cucina.ultimaComanda}</b>: l'asporto riprende alla prossima apertura.</>
+                  : <>Il locale è chiuso: l'asporto riprende alla prossima apertura.</>}
+              </div>
+            )}
+            {takeaway && cartCount > 0 && fasce.length > 0 && (
               <div data-ritiro-fascia style={{ padding: '0 2px 12px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>A che ora passi a ritirare?</div>
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
@@ -1552,7 +1641,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
               background: spento ? '#d8c0c8' : WINE, color: '#fff',
               fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
               cursor: spento ? 'not-allowed' : 'pointer',
-            }}>{takeaway ? (ritiro ? `Ordina d'asporto · ritiro ${ritiro}` : 'Scegli l\'orario di ritiro') : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
+            }}>{takeaway ? (ritiro ? `Ordina d'asporto · ritiro ${ritiro}` : 'Scegli l\'orario di ritiro') : banco ? 'Ordina al banco' : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
             </>); })()}
           </div>
         </>
@@ -2758,12 +2847,23 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 // scaricare l'app: superato.
 const DOWNLOAD_URL = 'https://byup.app/download';
 
-function isTakeawayEntry() {
+// La porta da cui il cliente entra È il modo di consegna (D-146): non si
+// deduce da nient'altro e non si sceglie a metà ordine. Il QR del tavolo apre
+// un ordine al tavolo, quello del banco un ordine al banco, quello
+// dell'asporto un asporto. Il menù è lo stesso per tutte e tre le porte: a
+// cambiare è solo da dove si è entrati (D-149).
+function ingressoModo() {
   try {
-    if (new URLSearchParams(window.location.search).get('takeaway') === '1') return true;
-    if (sessionStorage.getItem('byup_menu_mode') === 'asporto') return true;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('takeaway') === '1') return 'asporto';
+    if (sp.get('banco') === '1') return 'banco';
+    const m = sessionStorage.getItem('byup_menu_mode');
+    if (m === 'asporto' || m === 'banco') return m;
   } catch {}
-  return false;
+  return 'tavolo';
+}
+function isTakeawayEntry() {
+  return ingressoModo() === 'asporto';
 }
 // Il codice di ritiro dell'ordine da webapp è UNO ed è a sei cifre (P-154 su
 // D-42/D-102): si detta al banco a coppie («48 39 12») ed è lo stesso con cui
@@ -2784,6 +2884,11 @@ function asportoFasce() {
   const info = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
   const toMin = (t) => { const [h, m] = String(t || '').split(':').map(n => parseInt(n, 10) || 0); return h * 60 + m; };
   const adesso = info && info.ora ? toMin(info.ora) : (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  // Due orari, non uno (P-192 · D-146): si ORDINA finché la cucina prende
+  // comande, si RITIRA fino alla chiusura del locale. Se la cucina ha chiuso —
+  // o il locale è chiuso del tutto — non c'è fascia da proporre: prenotare un
+  // ritiro a locale chiuso era il difetto, non una gentilezza.
+  if (info && (!info.localeAperto || !info.cucinaAperta)) return [];
   let fine = info && info.chiude ? toMin(info.chiude) : 24 * 60;
   if (fine <= adesso) fine += 24 * 60;
   const out = [];
@@ -2803,6 +2908,25 @@ function asportoScadenzaLabel(hhmm) {
 }
 // L'ordine composto, scritto sullo stesso dominio: l'app lo recupera con il
 // codice di ritiro finché la proposta non è scaduta.
+// L'ordine del banco vive quanto la scheda: serve a due cose, riprenderlo se
+// si ricarica la pagina e proporne lo spostamento quando si scansiona il QR
+// di un tavolo (P-192). Chiuso il browser, non serve più a nessuno.
+function byupBancoScrivi(o) {
+  try {
+    sessionStorage.setItem('byup_banco_webapp', JSON.stringify({
+      codiceRitiro: o.codiceRitiro, venue: o.venue, total: o.total,
+      n: (o.items || []).reduce((s, i) => s + i.qty, 0), creato: new Date().toISOString(),
+    }));
+  } catch {}
+}
+function byupBancoLeggi() {
+  try { return JSON.parse(sessionStorage.getItem('byup_banco_webapp') || 'null'); }
+  catch { return null; }
+}
+function byupBancoPulisci() {
+  try { sessionStorage.removeItem('byup_banco_webapp'); } catch {}
+}
+
 function byupAsportoScrivi(o) {
   try {
     localStorage.setItem('byup_asporto_webapp', JSON.stringify({
@@ -3076,9 +3200,11 @@ if (!window.byupInvioConsentito) {
 }
 
 function Root() {
-  // Asporto (?takeaway=1): si ordina dal browser (D-14); l'ordine non ha una
-  // sessione tavolo, quindi niente sottoscrizione real-time.
-  const takeaway = isTakeawayEntry();
+  // La porta d'ingresso (D-146): tavolo, banco o asporto. Asporto e banco si
+  // ordinano dal browser (D-14) e non hanno una sessione tavolo, quindi niente
+  // sottoscrizione real-time.
+  const modo = ingressoModo();
+  const takeaway = modo === 'asporto';
 
   const [state, setState] = useState({
     cart: [],
@@ -3149,7 +3275,7 @@ function Root() {
 
   let screen;
   if (route.name === 'menu') {
-    screen = <MenuScreen state={state} setState={setState} goTo={goTo} takeaway={takeaway}/>;
+    screen = <MenuScreen state={state} setState={setState} goTo={goTo} takeaway={takeaway} modo={modo}/>;
   } else if (route.name === 'venue') {
     const VS = window.VenueScreen;
     // Tornando al menu DALLA vetrina si è in modalità "sfoglio, nessun tavolo":

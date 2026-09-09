@@ -827,7 +827,9 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
   const [selected, setSelected] = React.useState(null);
   const [sede, setSede] = React.useState({ insegna: 'Cacio e Pepe · ', indirizzo: '', cap: '', citta: 'Roma', prov: 'RM' });
   const setS = (k) => (e) => setSede(x => ({ ...x, [k]: e.target.value }));
-  const sedeOk = sede.insegna.trim().length > 2 && sede.indirizzo.trim() && sede.citta.trim();
+  // Il CAP è obbligatorio quanto l'indirizzo: il modello lo impone sulla sede
+  // e senza di lui la sede nasce incompleta (P-192).
+  const sedeOk = sede.insegna.trim().length > 2 && sede.indirizzo.trim() && sede.citta.trim() && /^\d{5}$/.test(sede.cap.trim());
   const inputStyle = {
     width:'100%', padding:'9px 11px', borderRadius: 10, boxSizing:'border-box',
     border:'1px solid rgba(15,17,21,0.14)', outline:'none', background:'rgba(255,255,255,0.85)',

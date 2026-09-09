@@ -149,6 +149,11 @@ function SalaVenditaDiretta() {
   const [storico, setStorico] = React.useState(() => svLeggiSessione('byup.sala.storico', window.SALA_ORDINI_STORICO || []));
   React.useEffect(() => { svScriviSessione('byup.sala.storico', storico); }, [storico]);
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
+  // P-192: un ordine nato al banco si può portare a un tavolo — chi ha ordinato
+  // in piedi e poi si è seduto. Il contrario non esiste: quello che nasce al
+  // tavolo resta al tavolo (D-146). Lo stesso gesto lo fa il cliente dall'app,
+  // scansionando il QR del tavolo; qui è il personale a farlo per lui.
+  const [portaTavolo, setPortaTavolo] = React.useState(null); // ordine da portare a un tavolo
   const [parcheggia, setParcheggia] = React.useState(false);  // foglio «metti il conto da parte»
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
@@ -181,6 +186,28 @@ function SalaVenditaDiretta() {
     }
     setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
     showToast(`✓ ${svNomeConto(ordine)} saldato · ora è da consegnare`);
+  };
+
+  // L'ordine lascia il banco e si siede: esce dalla coda e le sue righe
+  // diventano ordini del tavolo, che da libero passa a occupato. Il modo di
+  // consegna smette di essere asporto — al tavolo non si incarta niente.
+  const portaSuTavolo = (ordine, tavolo) => {
+    const all = window.SALA_TAVOLI || [];
+    const t = all.find(x => x.id === tavolo.id);
+    if (t) {
+      t.state = 'occupato';
+      t.conto = (t.conto || 0) + (ordine.totale || 0);
+      t.contoSaldato = !!ordine.pagato;
+      t.ordini = [...(t.ordini || []), ...(ordine.items || []).map((it, i) => ({
+        id: `${ordine.id}-t${i}`, nome: it.nome, qty: it.qty, prezzo: it.prezzo,
+        tipologia: it.tipologia, stato: 'consegnato',
+        minutiInPreparazione: 0, minutiInCoda: 0, origin: 'cameriere', guestId: null,
+      }))];
+    }
+    setRitiri(prev => prev.filter(r => r.id !== ordine.id));
+    setPortaTavolo(null);
+    setCoda(null);
+    showToast(`✓ ${svNomeConto(ordine)} portato al tavolo ${tavolo.id}`);
   };
 
   // Un acconto preso su un ordine già in coda resta su quell'ordine. Scrive in
@@ -731,7 +758,16 @@ function SalaVenditaDiretta() {
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
         onCucina={mandaInCucina}
+        onTavolo={setPortaTavolo}
       />
+
+      {/* I tavoli liberi, per l'ordine che si siede (P-192) */}
+      {portaTavolo && (
+        <SaPortaTavoloModal
+          ordine={portaTavolo}
+          onClose={() => setPortaTavolo(null)}
+          onScegli={(tavolo) => portaSuTavolo(portaTavolo, tavolo)}/>
+      )}
 
       {/* Consegnati — l'archivio del servizio */}
       {consegnatiOpen && (
@@ -894,7 +930,7 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucina }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucina, onTavolo }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
@@ -1094,7 +1130,7 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucin
                             in cima ci sta il codice, che è per il rider. */}
                         {svPiattaforma(r.fonte)
                           ? `per ${r.cliente} · ${svRitiroLabel(r)}`
-                          : `${(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ${svRitiroLabel(r)}`}
+                          : `${r.asporto ? 'Asporto' : 'Sul posto'} · ${svRitiroLabel(r)}`}
                       </span>
                       {/* Un conto messo da parte senza mandarlo in cucina: la
                           coda lo dice, altrimenti al ritiro si scopre che non
@@ -1169,6 +1205,21 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucin
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.02)'; }}>
                   {r.pagato ? 'Segna come consegnato' : 'Procedi al pagamento'}
                 </button>
+                {/* Chi ha ordinato al banco e poi si è seduto: l'ordine lo
+                    segue al tavolo (P-192). È un caso, non il gesto della
+                    card — quindi testo, non un secondo pulsante pieno. Solo
+                    per quello che è nato al banco: dal tavolo non si torna
+                    indietro (D-146). */}
+                {r.fonte === 'banco' && onTavolo && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onTavolo(r); }}
+                    className="pn-btn-feedback"
+                    style={{
+                      width:'100%', marginTop: 8, padding:'7px 12px', borderRadius: 999,
+                      background:'transparent', border:'none', color: PN.MUTED,
+                      fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                    }}>Porta a un tavolo</button>
+                )}
               </div>
             </div>
           ))}
@@ -1200,6 +1251,75 @@ const SV_CANALE = {
   ...Object.fromEntries(Object.entries(window.PN_PARTNER || {}).map(([id, p]) =>
     [id, { label: p.nome, bg: p.bg, fg: p.ink }])),
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L'ordine del banco che si siede (P-192 · D-146) — i tavoli liberi, e basta.
+// Non è una mappa e non è la Sala: è una scelta breve fatta al banco, con il
+// cliente davanti che aspetta. I tavoli occupati non si mostrano nemmeno:
+// portare un ordine su un tavolo già aperto è un'altra cosa, e si fa da Sala.
+function SaPortaTavoloModal({ ordine, onClose, onScegli }) {
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const liberi = (window.SALA_TAVOLI || [])
+    .filter(t => t.state === 'libero' && !t.mergedWith)
+    .sort((a, b) => a.id - b.id);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 130, padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 22, width: 460, maxWidth:'100%', maxHeight:'100%',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+          <div style={{flex: 1}}>
+            <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>Porta a un tavolo</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>
+              {svNomeConto(ordine)} lascia il banco e si siede: le sue righe diventano ordini del tavolo.
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
+            cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
+          }}>×</button>
+        </div>
+
+        <div className="pn-scroll" style={{
+          flex: 1, minHeight: 0, overflow:'auto',
+          padding:'0 22px 22px', display:'flex', flexDirection:'column', gap: 8,
+        }}>
+          {liberi.length === 0 && (
+            <div style={{textAlign:'center', padding:'34px 20px', color: PN.MUTED, fontSize: 16}}>
+              Nessun tavolo libero: l'ordine resta al banco.
+            </div>
+          )}
+          {liberi.map(t => (
+            <button key={t.id} onClick={() => onScegli(t)} className="pn-btn-feedback"
+              style={{
+                display:'flex', alignItems:'center', gap: 12, width:'100%', textAlign:'left',
+                padding:'12px 14px', borderRadius: 14, cursor:'pointer', fontFamily:'inherit',
+                background:'rgba(255,255,255,0.78)', border:`1px solid ${PN.BORDER_HAIR}`,
+              }}>
+              <span style={{flex: 1, minWidth: 0}}>
+                <span style={{display:'block', fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Tavolo {t.id}</span>
+                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{t.posti} posti</span>
+              </span>
+              <span style={{display:'inline-flex', color: PN.MUTED_SOFT}}><PnI.ChevronRight size={13}/></span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SaConsegnatiModal({ consegnati, onClose, onVai }) {
   React.useEffect(() => {

@@ -79,19 +79,19 @@ const SALA_VENDITA_CATS = {
 // pagato:true = saldato via Byup App; pagato:false = ordinato dalla webapp
 // guest (che non permette il pagamento), da incassare al banco al ritiro.
 const SALA_ASPORTO_CONTI = [
-  { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', pagato:true, totale:64.50, codiceRitiro:'K4F7',
+  { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', asporto:true, pagato:true, totale:64.50, codiceRitiro:'K4F7',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50,tipologia:'acqua_birra',hasAlcohol:true},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50,tipologia:'acqua_birra'},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
   // Webapp SENZA nome (P-05 · D-14): la webapp guest non chiede più alcun
   // nome — l'ordine d'asporto è identificato dal SOLO codice di ritiro. Il
   // mock deve rifletterlo, o chi sviluppa il backend crede che il campo
   // esista.
-  { id:'asp-4', codice:'#A-1045', cliente:null, ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
+  { id:'asp-4', codice:'#A-1045', cliente:null, ritiro:'20:00', fonte:'webapp', asporto:true, pagato:false, totale:37.00, codiceRitiro:'H5W8',
     items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Birra media',qty:2,prezzo:5.50,tipologia:'acqua_birra',hasAlcohol:true}] },
-  { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', pagato:true, totale:31.00, codiceRitiro:'B2N9',
+  { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', asporto:true, pagato:true, totale:31.00, codiceRitiro:'B2N9',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tagliere salumi',qty:1,prezzo:13.00},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', pagato:true, totale:22.00, codiceRitiro:'Q7D3',
+  { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', asporto:true, pagato:true, totale:22.00, codiceRitiro:'Q7D3',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'asp-5', codice:'#A-1046', cliente:null, ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
+  { id:'asp-5', codice:'#A-1046', cliente:null, ritiro:'20:45', fonte:'webapp', asporto:true, pagato:false, totale:29.00, codiceRitiro:'T9C2',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
   // Piattaforme in coda attiva (P-04 · D-15): entrano DIRETTE in «Da
   // consegnare» — pagate sulla piattaforma, il denaro non passa da Byup — e
@@ -101,9 +101,9 @@ const SALA_ASPORTO_CONTI = [
   // order ID a 4 cifre (Glovo, collection code a 3 cifre, è nello storico).
   // P-119 (D-106): Just Eat è uscita — la sua specifica non è acquisibile —
   // e al suo posto c'è Uber Eats, la cui documentazione è in raccolta.
-  { id:'asp-6', codice:'7K2F9', cliente:'Federica Colombo', ritiro:'20:20', fonte:'ubereats', pagato:true, totale:42.50,
+  { id:'asp-6', codice:'7K2F9', cliente:'Federica Colombo', ritiro:'20:20', fonte:'ubereats', asporto:true, pagato:true, totale:42.50,
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00},{nome:'Acqua minerale',qty:2,prezzo:2.50,tipologia:'acqua_birra'}] },
-  { id:'asp-7', codice:'4821', cliente:'Andrea Fabbri', ritiro:'20:35', fonte:'deliveroo', pagato:true, totale:31.50,
+  { id:'asp-7', codice:'4821', cliente:'Andrea Fabbri', ritiro:'20:35', fonte:'deliveroo', asporto:true, pagato:true, totale:31.50,
     items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Spritz',qty:1,prezzo:6.50,tipologia:'bibite_alcolici_confezionati',hasAlcohol:true},{nome:'Panna cotta',qty:1,prezzo:5.50}] },
 ];
 
@@ -117,23 +117,23 @@ const SALA_ORDINI_STORICO = [
   // Glovo collection code a 3).
   // Nota di prodotto: al lancio queste integrazioni non esistono — entrano
   // quando ci sono gli accordi.
-  { id:'sto-9', codice:'3M8QA', cliente:'Paolo Grimaldi', ritiro:'19:48', fonte:'ubereats', pagato:true, totale:33.50, stato:'consegnato',
+  { id:'sto-9', codice:'3M8QA', cliente:'Paolo Grimaldi', ritiro:'19:48', fonte:'ubereats', asporto:true, pagato:true, totale:33.50, stato:'consegnato',
     items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', pagato:true, totale:27.50, stato:'consegnato',
+  { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', asporto:true, pagato:true, totale:27.50, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50,tipologia:'acqua_birra',hasAlcohol:true},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
   { id:'sto-5', codice:'#1245', cliente:null, ritiro:'19:31', fonte:'banco', pagato:true, asporto:true, totale:19.50, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
   // Webapp senza nome anche in archivio (P-05 · D-14): l'identità è il
   // codice di ritiro, che risponde a «è già passato a ritirare?».
-  { id:'sto-4', codice:'#A-1040', cliente:null, ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato', codiceRitiro:'M3P6',
+  { id:'sto-4', codice:'#A-1040', cliente:null, ritiro:'19:20', fonte:'webapp', asporto:true, pagato:true, totale:24.00, stato:'consegnato', codiceRitiro:'M3P6',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'sto-8', codice:'627', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', pagato:true, totale:25.00, stato:'consegnato',
+  { id:'sto-8', codice:'627', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', asporto:true, pagato:true, totale:25.00, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Panna cotta',qty:1,prezzo:5.50},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
   { id:'sto-3', codice:'#1244', cliente:null, ritiro:'19:12', fonte:'banco', pagato:true, asporto:false, totale:9.50, stato:'consegnato',
     items:[{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Acqua minerale',qty:1,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'sto-2', codice:'#A-1039', cliente:'Davide Sarti', ritiro:'19:05', fonte:'byup', pagato:true, totale:50.00, stato:'consegnato',
+  { id:'sto-2', codice:'#A-1039', cliente:'Davide Sarti', ritiro:'19:05', fonte:'byup', asporto:true, pagato:true, totale:50.00, stato:'consegnato',
     items:[{nome:'Tagliere misto',qty:1,prezzo:14.00},{nome:'Bistecca fiorentina',qty:1,prezzo:32.00},{nome:'Acqua minerale',qty:2,prezzo:2.00,tipologia:'acqua_birra'}] },
-  { id:'sto-7', codice:'9174', cliente:'Marco Leone', ritiro:'18:58', fonte:'deliveroo', pagato:true, totale:43.50, stato:'consegnato',
+  { id:'sto-7', codice:'9174', cliente:'Marco Leone', ritiro:'18:58', fonte:'deliveroo', asporto:true, pagato:true, totale:43.50, stato:'consegnato',
     items:[{nome:'Tagliata di manzo',qty:2,prezzo:18.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50}] },
   { id:'sto-1', codice:'#1243', cliente:null, ritiro:'18:54', fonte:'banco', pagato:true, asporto:true, totale:12.00, stato:'consegnato',
     items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00}] },
@@ -158,7 +158,10 @@ const svContoIdDiOrdine = (ordine) => `cnt-sv-${ordine.id}`;
 function svOrdineAConto(ordine) {
   const oggi = new Date();
   const data = `${oggi.getFullYear()}-${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
-  const asporto = ordine.fonte === 'banco' ? !!ordine.asporto : true;
+  // D-146: il modo di consegna non si deduce dall'origine, lo porta l'ordine.
+  // Nasce dalla porta da cui il cliente è entrato — il QR del tavolo, quello
+  // del banco, quello dell'asporto — e al banco lo decide «Vai ad asporto».
+  const asporto = !!ordine.asporto;
   // Chi ha pagato con l'app lo dice l'origine dell'ordine; le piattaforme
   // hanno incassato LORO (P-04): metodo dedicato, fuori dai totali di
   // contanti e POS della cassa. Il documento fiscale però lo emettiamo NOI
