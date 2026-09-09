@@ -1771,7 +1771,9 @@ function PaymentCard({ onClick }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.2 }}>La tua carta si sente sola.</div>
-            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte — 30 secondi e paghi in un tap.</div>
+            {/* Si nominano i metodi che ci sono (P-193): Google Pay torna qui
+                il giorno che si può scegliere davvero. */}
+            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Carte — 30 secondi e paghi in un tap.</div>
           </div>
           <div style={{
             background: '#ceff00', color: '#141414', flexShrink: 0,

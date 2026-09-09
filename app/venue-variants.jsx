@@ -254,8 +254,12 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
         </div>
 
         {/* ── Perks (tutte visibili, niente scroll) ── */}
+        {/* «Byuppini ×2 qui» è uscito (P-193): il programma dei Byuppini non è
+            attivo — è uscito con P-122 — e prometterne il doppio in vetrina
+            offre un premio che non esiste. QUANDO IL PROGRAMMA SARÀ ATTIVO va
+            rimesso qui, con la sua monetina. */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', padding: '14px 22px 0' }}>
-          {[['⚡', 'Prenotazione prioritaria'], ['🪙', 'Byuppini ×2 qui'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => (
+          {[['⚡', 'Prenotazione prioritaria'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => (
             <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
               background: '#fff', border: '1px solid rgba(201,162,39,.4)', color: INK_P,
               fontSize: 11.5, fontWeight: 700, padding: '8px 12px', borderRadius: 999,

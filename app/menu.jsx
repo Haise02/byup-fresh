@@ -3455,6 +3455,8 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 // Metodo di pagamento selezionato (id → etichetta mostrata nel riepilogo)
 function payMethodName(id) {
   switch (id) {
+    // PayPal e Klarna non si scelgono più (P-193), ma un ordine vecchio può
+    // ancora portarli: si leggono, non si offrono.
     case 'paypal': return 'PayPal';
     case 'klarna': return 'Klarna';
     case 'card': return 'Carta · Visa •••• 4242';
@@ -4552,10 +4554,14 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
     goBack();
   };
 
+  // DUE metodi, non quattro (P-193): carta e Apple Pay sono quelli che il
+  // prestatore dei pagamenti ci dà oggi. PayPal e Klarna erano promesse che
+  // nessuno poteva mantenere — e una promessa di pagamento non mantenuta la
+  // scopre il cliente con il conto in mano.
+  // QUANDO CI SARANNO vanno rimessi qui, insieme a Google Pay: le icone
+  // (PaypalIcon, KlarnaIcon) restano nel file, pronte.
   const methods = [
     { id: 'apple', name: 'Apple Pay', icon: <ApplePayIcon/>, sub: '' },
-    { id: 'paypal', name: 'PayPal', icon: <PaypalIcon/>, sub: '' },
-    { id: 'klarna', name: 'Paga con Klarna', icon: <KlarnaIcon/>, sub: '' },
     { id: 'card', name: 'Carta di credito', icon: <CardIcon/>, sub: 'Aggiungi carta' },
   ];
 

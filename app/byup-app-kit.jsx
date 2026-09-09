@@ -548,7 +548,17 @@ window.ByupKit = {
 (function () {
   const K_STATO = 'byup_consent_state';
   const K_LOG = 'byup_consent_data';
-  const VERSIONE_INFORMATIVA = '1.0';
+  // La versione che finisce nel registro è quella del DOCUMENTO che il
+  // cliente aveva davanti quando ha deciso (P-193), letta da BYUP_LEGAL: una
+  // stringa unica scritta qui diceva «1.0» mentre l'informativa era alla 0.6,
+  // e in un registro che serve come prova quel numero è tutto.
+  // Ogni voce dice da quale documento discende: i consensi privacy
+  // dall'informativa, l'accettazione dei termini dai termini.
+  const DOC_DI = { accept_terms: 'TOS01' };
+  const versioneDi = (id) => {
+    const doc = (window.ByupLegal || {})[DOC_DI[id] || 'INF01'];
+    return (doc && doc.versione) || null;
+  };
   const leggi = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch (e) { return fb; } };
   const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const avvisa = () => { try { window.dispatchEvent(new Event('byup-consensi-change')); } catch (e) {} };
@@ -560,7 +570,9 @@ window.ByupKit = {
   };
   const appendi = (riga) => { const log = leggi(K_LOG, []); log.push(riga); scrivi(K_LOG, log); };
   window.ByupConsensi = {
-    VERSIONE_INFORMATIVA,
+    // La versione non è più una costante: si chiede per voce, perché dipende
+    // dal documento che quella voce presenta (P-193).
+    versioneDi,
     TIPI,
     // {ok, action, quando, versione} oppure null se mai deciso
     stato(id) { return leggi(K_STATO, {})[id] || null; },
@@ -577,9 +589,10 @@ window.ByupKit = {
       const legittimoInteresse = !!(TIPI[id] && TIPI[id].base === 'legittimo interesse');
       const action = legittimoInteresse ? (ok ? 'opposition_withdrawn' : 'opposed') : (ok ? 'granted' : 'revoked');
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: !!ok, action, quando, versione: VERSIONE_INFORMATIVA };
+      const versione = versioneDi(id);
+      stato[id] = { ok: !!ok, action, quando, versione };
       scrivi(K_STATO, stato);
-      appendi(Object.assign({ id, consent_type: id, action, ok: !!ok, quando, versione: VERSIONE_INFORMATIVA }, extra || {}));
+      appendi(Object.assign({ id, consent_type: id, action, ok: !!ok, quando, versione }, extra || {}));
       avvisa();
       return stato[id];
     },
@@ -590,7 +603,7 @@ window.ByupKit = {
       const stato = leggi(K_STATO, {});
       delete stato[id];
       scrivi(K_STATO, stato);
-      appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, quando, versione: VERSIONE_INFORMATIVA });
+      appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, quando, versione: versioneDi(id) });
       avvisa();
     },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
@@ -600,9 +613,10 @@ window.ByupKit = {
     dichiara(id, valore) {
       const quando = new Date().toISOString();
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: true, action: 'granted', quando, versione: VERSIONE_INFORMATIVA, valore };
+      const versione = versioneDi(id);
+      stato[id] = { ok: true, action: 'granted', quando, versione, valore };
       scrivi(K_STATO, stato);
-      appendi({ id, consent_type: id, action: 'granted', ok: true, valore, quando, versione: VERSIONE_INFORMATIVA });
+      appendi({ id, consent_type: id, action: 'granted', ok: true, valore, quando, versione });
       avvisa();
       return stato[id];
     },
