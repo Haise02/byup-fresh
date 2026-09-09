@@ -710,6 +710,11 @@ const CERTIFICAZIONI = [
   { id: 'C010', localeId: 'L1020', tipo: 'senza_lattosio', stato: 'dichiarata', dataInvio: new Date(Date.now() - 86400000 * 12), file: null, size: null },
   { id: 'C011', localeId: 'L1025', tipo: 'filiera_corta',  stato: 'dichiarata', dataInvio: new Date(Date.now() - 86400000 * 3),  file: null, size: null },
   { id: 'C012', localeId: 'L1018', tipo: 'presidio_slow_food', stato: 'approvata', dataInvio: new Date(Date.now() - 86400000 * 60), revisedAt: new Date(Date.now() - 86400000 * 58), revisedBy: 'admin2', scadenzaCert: new Date('2027-05-31'), file: 'Presidio_SlowFood_2026.pdf', size: '780 KB' },
+  // Gli altri due stati (P-193): una scaduta — il documento c'era, il tempo è
+  // passato — e una revocata dall'ente che l'aveva rilasciata. Non sono
+  // rifiuti: quelli dicono che non è mai stata valida.
+  { id: 'C013', localeId: 'L1008', tipo: 'kosher', stato: 'scaduta', dataInvio: new Date(Date.now() - 86400000 * 400), revisedAt: new Date(Date.now() - 86400000 * 398), revisedBy: 'admin1', scadenzaCert: new Date(Date.now() - 86400000 * 30), motivo: 'Il certificato era valido fino a un mese fa: serve la versione rinnovata del Rabbinato.', file: 'Kosher_2025.pdf', size: '610 KB' },
+  { id: 'C014', localeId: 'L1014', tipo: 'dop', stato: 'revocata', dataInvio: new Date(Date.now() - 86400000 * 200), revisedAt: new Date(Date.now() - 86400000 * 12), revisedBy: 'admin2', motivo: 'Il consorzio di tutela ha revocato la certificazione: comunicazione ricevuta il 3 agosto 2026.', file: 'DOP_consorzio.pdf', size: '520 KB' },
 ];
 
 // ---------- TEAM ADMIN ----------

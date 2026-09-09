@@ -1851,6 +1851,11 @@ const CERT_STATI_DRW = {
   // può contestarle dopo, con motivo.
   dichiarata: { label: 'Autodichiarata', color: 'TEAL' },
   contestata: { label: 'Contestata',     color: 'DANGER' },
+  // Scaduta e revocata (P-193): sono state valide e non lo sono più — la
+  // scadenza la constata l'orologio, la revoca la dispone l'ente. L'assistenza
+  // le deve vedere: è quello che il locale chiede al telefono.
+  scaduta:    { label: 'Scaduta',        color: 'WARN' },
+  revocata:   { label: 'Revocata dall\'ente', color: 'DANGER' },
 };
 
 function DrwCertificazioni({ locale: l, onCambia }) {

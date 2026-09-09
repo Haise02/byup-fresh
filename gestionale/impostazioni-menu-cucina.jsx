@@ -8243,6 +8243,10 @@ function AiUploadCta({onClick, children}) {
   );
 }
 
+// I menù escono da qui perché la Vetrina ne deduca la fascia di prezzo
+// (P-193): è la stessa fonte che il cliente vede, e una fascia che smentisse
+// il menù sarebbe peggio di nessuna fascia.
+window.MENUS_INIT = MENUS_INIT;
 window.ImpMenuCucina = ImpMenuCucina;
 window.ImpFlussi = MCConfigura;
 window.AiUploadCta = AiUploadCta;

@@ -65,6 +65,69 @@ function useVetrinaDati() {
   return [dati, aggiorna];
 }
 
+// ─── La fascia di prezzo, dedotta (P-193) ───────────────────────────────────
+// Quattro gradini, come li legge l'app del cliente: il conto medio di un
+// piatto principale decide dove cade il locale. Si calcola dai piatti attivi
+// del menù acceso — se il menù non c'è ancora, non si inventa una fascia.
+const VET_FASCE = [
+  { simbolo: '€',    fino: 12, testo: 'fino a 12 € a piatto' },
+  { simbolo: '€€',   fino: 22, testo: 'da 12 a 22 € a piatto' },
+  { simbolo: '€€€',  fino: 40, testo: 'da 22 a 40 € a piatto' },
+  { simbolo: '€€€€', fino: Infinity, testo: 'oltre 40 € a piatto' },
+];
+// I prezzi arrivano dal menù acceso (MENUS_INIT, in Impostazioni → Menù): è
+// la stessa fonte che il cliente vede, quindi la fascia non può smentirlo.
+function vetPrezziDelMenu() {
+  const menus = window.MENUS_INIT || [];
+  const acceso = menus.find(m => m.active) || menus[0];
+  if (!acceso) return [];
+  return (acceso.categories || [])
+    .flatMap(c => (c.items || []).filter(i => i.active).map(i => Number(i.price) || 0))
+    .filter(p => p > 0);
+}
+function VetFasciaPrezzo() {
+  const [spiega, setSpiega] = React.useState(false);
+  const prezzi = React.useMemo(() => vetPrezziDelMenu(), []);
+  const medio = prezzi.length ? prezzi.reduce((a, b) => a + b, 0) / prezzi.length : null;
+  const fascia = medio == null ? null : VET_FASCE.find(f => medio < f.fino) || VET_FASCE[VET_FASCE.length - 1];
+
+  return (
+    <div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+        <span style={{
+          padding: '9px 16px', borderRadius: 12,
+          background: fascia ? PN.PINK_BG_SOFT : '#F4F5F7',
+          color: fascia ? PN.PINK_DARK : PN.MUTED,
+          fontSize: 22, fontWeight: 800, letterSpacing: 1,
+        }}>{fascia ? fascia.simbolo : '—'}</span>
+        <span style={{flex: 1, minWidth: 200, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+          {fascia
+            ? <>Il tuo menù dice <b>{fascia.simbolo}</b> — {fascia.testo}, su una media di {medio.toFixed(2).replace('.', ',')} €.</>
+            : <>Il menù non ha ancora prezzi: la fascia compare quando ci sono.</>}
+        </span>
+        <button type="button" onClick={() => setSpiega(v => !v)}
+          aria-label="Come si calcola" title="Come si calcola"
+          style={{
+            padding: 0, width: 26, height: 26, flexShrink: 0, borderRadius: '50%',
+            border: `1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.MUTED,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}><Icon name="status-info" size={14}/></button>
+      </div>
+      {spiega && (
+        <div style={{
+          marginTop: 12, padding: '11px 13px', borderRadius: 10,
+          background: '#F7F8FA', border: `1px solid ${PN.BORDER_SOFT}`,
+          fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
+        }}>
+          La fascia è la media dei prezzi dei piatti attivi del menù acceso, letta su quattro
+          gradini: {VET_FASCE.map(f => `${f.simbolo} ${f.testo}`).join(' · ')}. Cambiando i
+          prezzi cambia da sé — non c'è niente da impostare qui.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ImpVetrina() {
   const [sub, setSub] = React.useState('profilo');
   const [dirty, setDirty] = React.useState(false);
@@ -461,6 +524,14 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         </div>
       </ImpCard>
 
+      {/* La fascia di prezzo non si chiede (P-193): si deduce dai prezzi del
+          menù attivo e si mostra così com'è. Chiedere al ristoratore un dato
+          che possiamo calcolare vuol dire farsi dire una cosa che poi il menù
+          smentisce. In sola lettura, con la «i» che spiega da dove esce. */}
+      <ImpCard anchor="fascia" title="Fascia di prezzo" sub="Come il tuo locale compare nelle ricerche dell'app">
+        <VetFasciaPrezzo/>
+      </ImpCard>
+
       {/* ─── Avanzate: tag, locali collegati e certificazioni — contratte di default ── */}
       <div style={{margin: '22px 2px 10px'}}>
         <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.8, textTransform: 'uppercase'}}>Avanzate</div>
@@ -538,7 +609,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
           {VETRINA_CERTS.map(c => (
             <CertCard key={c.tipo} cert={c}
-              onOpenRejected={() => setCertModal({mode:'rifiutata', tipo: c.tipo, reason: c.reason})}/>
+              onOpenRejected={() => setCertModal({mode: c.status, tipo: c.tipo, reason: c.reason})}/>
           ))}
         </div>
         <div style={{fontSize:13.5, color:PN.MUTED, marginTop:12, lineHeight:1.5}}>
@@ -1170,17 +1241,24 @@ const CERT_DIZIONARIO = [
   { id: 'presidio_slow_food', label: 'Presidio Slow Food',             ente: 'Slow Food',                    requires_document: true },
 ];
 const certDi = (id) => CERT_DIZIONARIO.find(c => c.id === id) || { id, label: id, ente: '—', requires_document: true };
+// I SEI stati (P-193): oltre alle quattro di sempre, una certificazione può
+// essere SCADUTA — il documento c'era, il tempo è passato — o REVOCATA
+// dall'ente che l'aveva rilasciata. Sono due cose diverse dal rifiuto: quella
+// non è mai stata valida, queste lo sono state.
 const VETRINA_CERTS = [
   { tipo: 'aic_spiga_barrata', status: 'approvata' },
   { tipo: 'biologico_ue',      status: 'attesa',     sent: '12 luglio 2026' },
   { tipo: 'halal',             status: 'rifiutata',  reason: 'Documento scaduto: il certificato caricato non riporta la data di rinnovo dell\'ente.' },
   // L'autodichiarazione: dichiarata, senza documento e senza revisione.
   { tipo: 'vegetariano',       status: 'dichiarata', sent: '20 luglio 2026' },
+  { tipo: 'kosher',            status: 'scaduta',    reason: 'Il certificato era valido fino al 31 maggio 2026: caricane uno rinnovato per tornare in vetrina.' },
+  { tipo: 'dop',               status: 'revocata',   reason: 'Il consorzio di tutela ha revocato la certificazione il 3 agosto 2026.' },
 ];
 
 function CertCard({ cert, onOpenRejected }) {
   const [hover, setHover] = React.useState(false);
-  const clickable = cert.status === 'rifiutata';
+  // Si apre tutto ciò che porta un motivo: il rifiuto, la scadenza, la revoca.
+  const clickable = !!cert.reason;
   const S = {
     // Approvata e rifiutata: solo il bordo colorato, dentro bianche.
     approvata: { border: PN.GREEN,       color: PN.GREEN, label: 'Approvata',            bg: PN.WHITE },
@@ -1189,6 +1267,11 @@ function CertCard({ cert, onOpenRejected }) {
     attesa:    { border: PN.BORDER_SOFT, color: PN.MUTED, label: 'In attesa',            bg: '#F4F5F7' },
     // Autodichiarata: presa d'atto, nessuna revisione — si dice così.
     dichiarata:{ border: PN.GREEN,       color: PN.GREEN, label: 'Autodichiarata · senza documento', bg: PN.WHITE },
+    // Scaduta e revocata (P-193): sono state valide, e non lo sono più. Non
+    // stanno col rifiuto — quello dice che non lo è mai stata — e in vetrina
+    // non compaiono più finché non tornano buone.
+    scaduta:   { border: PN.AMBER,       color: '#B45309', label: 'Scaduta · rinnova il documento', bg: PN.WHITE },
+    revocata:  { border: PN.RED,         color: PN.RED,   label: 'Revocata dall\'ente · vedi motivo', bg: PN.WHITE },
   }[cert.status];
   return (
     <div
@@ -1230,7 +1313,15 @@ function CertCard({ cert, onOpenRejected }) {
 }
 
 function CertUploadModal({ ctx, onClose }) {
-  const rejected = ctx.mode === 'rifiutata';
+  // Rifiutata, scaduta o revocata: tre motivi diversi che si aprono allo
+  // stesso modo — leggi perché, e ricarichi il documento (P-193).
+  const CERT_MOTIVI = {
+    rifiutata: { titolo: 'Motivo del rifiuto',   cta: 'Invia di nuovo',  testa: 'Ricarica certificazione' },
+    scaduta:   { titolo: 'Perché è scaduta',     cta: 'Carica il rinnovo', testa: 'Rinnova certificazione' },
+    revocata:  { titolo: 'Motivo della revoca',  cta: 'Invia di nuovo',  testa: 'Ricarica certificazione' },
+  };
+  const motivoCtx = CERT_MOTIVI[ctx.mode] || null;
+  const rejected = !!motivoCtx;
   // Per cosa è la certificazione: dal rifiuto arriva già selezionata.
   const [tipo, setTipo] = React.useState(rejected ? ctx.tipo : null);
   // L'autodichiarazione non ha documento: cambia il testo, sparisce la
@@ -1294,7 +1385,7 @@ function CertUploadModal({ ctx, onClose }) {
         <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
-              {rejected ? `Ricarica certificazione · ${certDi(ctx.tipo).label}` : auto ? 'Dichiara' : 'Carica certificazione'}
+              {rejected ? `${motivoCtx.testa} · ${certDi(ctx.tipo).label}` : auto ? 'Dichiara' : 'Carica certificazione'}
             </div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
               {auto ? 'Autodichiarazione: nessun documento da caricare. La rendi sotto la tua responsabilità; Byup ne prende atto e può intervenire dopo.' : 'PDF rilasciato dall\'ente (indicativo: ' + (tipo ? certDi(tipo).ente : 'AIC, VeganOK, Halal Italia…') + '), max 10MB.'}
@@ -1315,7 +1406,7 @@ function CertUploadModal({ ctx, onClose }) {
           }}>
             <span style={{color: PN.RED, flexShrink: 0, marginTop: 1}}>{VIcon.alert(16)}</span>
             <div>
-              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.RED}}>Motivo del rifiuto</div>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.RED}}>{motivoCtx.titolo}</div>
               <div style={{fontSize: 13.5, color: PN.TEXT, marginTop: 2, lineHeight: 1.45}}>{ctx.reason}</div>
             </div>
           </div>
@@ -1371,7 +1462,7 @@ function CertUploadModal({ ctx, onClose }) {
                 }}/>
                 Invio…
               </span>
-            ) : (rejected ? 'Invia di nuovo' : auto ? 'Dichiara' : 'Carica')}
+            ) : (rejected ? motivoCtx.cta : auto ? 'Dichiara' : 'Carica')}
           </ImpButton>
         </div>
         <style>{`@keyframes cert-spin { to { transform: rotate(360deg); } }`}</style>
