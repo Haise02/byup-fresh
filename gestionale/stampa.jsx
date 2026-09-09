@@ -839,9 +839,11 @@ window.byupStampaAnteprima = function (html) {
   w.document.open(); w.document.write(html); w.document.close();
   return { esito: 'anteprima', vero: false };
 };
-// La comanda verso una stampante di cucina: si accoda. Senza stampante (il
-// pulsante nella rail del monitor di cucina) stampa dal browser, a mano —
-// perché lì c'è una persona che preme.
+// La comanda verso una stampante di cucina: si accoda. Senza stampante non si
+// stampa affatto (P-192 · D-151): per le comande non esiste il ripiego dal
+// browser che i documenti del cliente hanno (D-109), perché in cucina non c'è
+// nessuno che prema Stampa — la cucina lavora dal monitor, e il gestionale lo
+// dice in sala. Il pulsante del monitor che passava di qui non esiste più.
 window.byupStampaComanda = function (righe, identita, opts = {}) {
   const dev = opts.stampante || null;
   if (dev) {
@@ -852,8 +854,7 @@ window.byupStampaComanda = function (righe, identita, opts = {}) {
     const r = opts.silenzioso ? { esito: 'accodata', vero: false } : window.byupStampaAnteprima(html);
     return Object.assign(r, { job, stampante: dev.name });
   }
-  const html = window.byupLayoutComanda({ identita, sotto: opts.sotto, righe, quando: opts.quando, stampante: null, anteprima: null });
-  return window.byupStampaBrowser(html);
+  return { esito: 'nessuna_stampante', vero: false };
 };
 
 // ─── L'invio di un ordine accoda le comande, per categoria ──────────────────

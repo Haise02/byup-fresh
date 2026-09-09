@@ -48,9 +48,13 @@ const INTEGRATIONS = [
   { id:'ubereats', name: PN_PARTNER.ubereats.nome, cat:'delivery', logo: PN_PARTNER.ubereats.sigla, bg: PN_PARTNER.ubereats.bg, color: PN_PARTNER.ubereats.ink, desc:'Ordini in coda e in cucina, menù pubblicato', status:'predisposta',
     scheda:'Il collegamento del locale avviene autorizzando l\'app di Byup su Uber (scope eats.pos_provisioning): nessuna credenziale da digitare. Gli ordini arrivano firmati (HMAC SHA-256) con il codice di cinque caratteri che il rider legge al banco, con 11,5 minuti per accettarli, ed entrano già pagati in coda e in cucina. Il menù si pubblica intero con allergeni e valori nutrizionali mappati sui dizionari. Si accende con l\'add-on, quando ci saranno gli accordi.' },
   // Collegamenti API — Zapier è la prima realizzazione del collegamento
-  // generico (P-32 · D-29), a dominio aperto: la tessera apre il foglio
-  // IntCollegaModal e il suo stato si RICAVA dall'elenco delle connessioni
-  // (vedi ImpIntegrazioni), non sta scritto qui. Niente prezzo e niente
+  // generico (P-32 · D-29), a dominio aperto. SPENTA E PRONTA (P-192 · D-145):
+  // la tessera ha preso la forma di quelle delle piattaforme di consegna —
+  // predisposta, con la scheda di cosa farà — e il collegamento non si porta a
+  // termine: nessuna chiave si genera. Quello che c'è dietro resta scritto e
+  // non si tocca: IntCollegaModal, INT_CONNESSIONI_MOCK e il modello
+  // tenant_api_connections descritto qui sotto valgono ancora, e il giorno che
+  // si accende la tessera torna `api: true`. Niente prezzo e niente
   // cancello sull'add-on api_third_party: il gating commerciale si decide al
   // lancio, e finché non è deciso la scheda non lo inventa. Il catalogo degli
   // eventi che il ristoratore può automatizzare, e dei dati che escono con
@@ -58,7 +62,8 @@ const INTEGRATIONS = [
   // Google Business Profile non c'è (P-118): lecito in principio (D-29), ma
   // non studiato — niente tessera «in arrivo», un'integrazione non studiata
   // non si promette. Aruba non c'è (D-38).
-  { id:'zapier', name:'Zapier', cat:'api', api:true, logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi verso le tue app', status:'available' },
+  { id:'zapier', name:'Zapier', cat:'api', logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi verso le tue app', status:'predisposta',
+    scheda:'Il collegamento generico (D-29) fa uscire verso un\'app esterna quello che l\'esercente detiene come venditore, con una credenziale che vale per una sede o per tutte e non attraversa mai il confine fra ristoranti. Autorizza il solo titolare del locale, che prima dichiara di agire come titolare del trattamento per quel flusso e di avere con il terzo un proprio accordo; la revoca chiude la connessione e resta a registro. Manca il catalogo degli eventi automatizzabili e dei dati che escono con ciascuno, che va scritto prima di accendere: finché non c\'è, il collegamento non si porta a termine e nessuna chiave si genera.' },
 ];
 
 // ─── Collegamenti API: la connessione con un'app esterna (P-32 · D-29) ─────
@@ -379,7 +384,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
           <span style={{width:6, height:6, borderRadius:'50%', background: s.dot, flexShrink: 0, alignSelf:'center'}}/>
           <span style={{flexShrink: 0}}>{s.label}</span>
           {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
-          {(item.status === 'predisposta' || item.status === 'collegata') && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· add-on spento nell'MVP</span>}
+          {(item.status === 'predisposta' || item.status === 'collegata') && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.id === 'zapier' ? 'spento nell\'MVP' : 'add-on spento nell\'MVP'}</span>}
         </div>
         {stripeCard && <PosVirtualeRimando/>}
 
@@ -460,7 +465,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
           )}
           {(item.status === 'predisposta' || item.status === 'collegata') && (
             <React.Fragment>
-              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(true)}>{item.status === 'collegata' ? 'Rivedi il collegamento' : 'Collega'}</ImpButton>
+              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(true)}>{item.status === 'collegata' ? 'Rivedi il collegamento' : item.id === 'zapier' ? 'Cosa farà' : 'Collega'}</ImpButton>
               {scheda && <IntDeliveryModal item={item} onClose={() => setScheda(false)}/>}
             </React.Fragment>
           )}
@@ -518,6 +523,11 @@ const INT_DELIVERY = {
       'Il marchio è stato scelto: senza Brand ID la sede resta a metà.',
       'Il collegamento può metterci qualche minuto a comparire: riprova.',
     ],
+  },
+  // Zapier è spento e pronto (P-192 · D-145): un passo solo, che dice cosa
+  // farà il collegamento e perché oggi non si porta a termine.
+  zapier: {
+    passi: ['Cosa fa il collegamento'],
   },
   ubereats: {
     passi: ['Autorizza Byup su Uber', 'Punti vendita', 'Attivazione'],
@@ -582,9 +592,21 @@ function IntDeliveryModal({ item, onClose }) {
     </div>
   );
 
-  // ── I tre percorsi ────────────────────────────────────────────────────────
+  // ── I percorsi ────────────────────────────────────────────────────────────
   let corpo = null, azione = null;
-  if (item.id === 'glovo') {
+  if (item.id === 'zapier') {
+    // Nessun passo da compiere: si legge cosa farà e si chiude. Non si genera
+    // alcuna chiave e non si scrive alcuna connessione (P-192 · D-145).
+    corpo = (
+      <div>
+        <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55}}>{item.scheda}</div>
+        <div style={{marginTop: 12, padding:'11px 13px', borderRadius: 10, background: PN.AMBER_SOFT, border:`1px solid ${PN.AMBER}33`, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+          Il collegamento è <b>predisposto, non attivo</b>: da qui non nasce nessuna credenziale finché il catalogo degli eventi non è scritto.
+        </div>
+      </div>
+    );
+    azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={onClose}>Ho capito</ImpButton>;
+  } else if (item.id === 'glovo') {
     if (passo === 1) {
       corpo = (
         <div>
@@ -796,7 +818,9 @@ function IntDeliveryModal({ item, onClose }) {
           {/* Onesto fino in fondo: il percorso è quello vero, ma l'add-on è
               spento e i dati sono di esempio. */}
           <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>
-            L'add-on delle piattaforme è spento nell'MVP: qui il collegamento è simulato con dati di esempio, e i passi sono quelli che {item.name} chiede davvero.
+            {item.id === 'zapier'
+              ? 'Il collegamento con le app esterne è spento nell\'MVP: quello che c\'è dietro è progettato, e si accende quando il catalogo degli eventi è definito.'
+              : `L'add-on delle piattaforme è spento nell'MVP: qui il collegamento è simulato con dati di esempio, e i passi sono quelli che ${item.name} chiede davvero.`}
           </div>
         </div>
       </div>

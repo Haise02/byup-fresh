@@ -144,7 +144,10 @@ function ImpApp() {
   // sezioni che il ruolo non ha, ma a una schermata si arriva anche da un
   // rimando, dalla ricerca rapida o da un avviso, e lì la colonna non è la
   // porta. Il testo dice quale sezione, non «non hai i permessi».
-  const puoSezione = !sezione.area || !window.pnPuo || window.pnPuo(sezione.area);
+  const puoSezione = (!sezione.area || !window.pnPuo || window.pnPuo(sezione.area))
+    // Le pagine che il ruolo personalizzato apre (P-192): il cancello vale
+    // anche per chi arriva da un rimando, non solo per la colonna.
+    && (!window.pnPuoPaginaImpostazioni || sezione.area !== 'impostazioni' || window.pnPuoPaginaImpostazioni(sezione.id));
 
   return (
     // Schermata piena, non finestra: le impostazioni sono un'applicazione

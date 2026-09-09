@@ -109,8 +109,11 @@ function ImpNavSidebar({ active, onChange, collapsed }) {
         flex: 1, display: 'flex', flexDirection: 'column', gap: 2,
         minHeight: 0, overflowY: 'auto', position: 'relative',
       }}>
-        {/* La colonna mostra le sole sezioni del ruolo (P-185 · D-138). */}
-        {IMP_SEZIONI.filter(x => !x.area || !window.pnPuo || window.pnPuo(x.area)).map(s => (
+        {/* La colonna mostra le sole sezioni del ruolo (P-185 · D-138), e le
+            sole pagine che un ruolo personalizzato ha concesso (P-192). */}
+        {IMP_SEZIONI.filter(x => (!x.area || !window.pnPuo || window.pnPuo(x.area))
+          // …e, per un ruolo che ha ristretto le pagine, solo quelle (P-192).
+          && (!window.pnPuoPaginaImpostazioni || x.area !== 'impostazioni' || window.pnPuoPaginaImpostazioni(x.id))).map(s => (
           <PnNavItem key={s.id} label={s.label} icon={s.icon} collapsed={collapsed}
             badge={daFare[s.id] ? daFare[s.id] : undefined} pallino={active === s.id}
             active={active === s.id} onClick={() => onChange(s.id)}/>

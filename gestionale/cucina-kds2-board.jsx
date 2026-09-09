@@ -1712,35 +1712,12 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         <Kds2Annulla voci={pronti} onRipristina={ripristina}/>
       </div>
 
-      {/* P-124 (D-108): la comanda di carta della sorgente selezionata. Il KDS
-          e le stampanti convivono: chi tocca un tavolo nella rail può mandarne
-          la comanda alla stampa — dal browser, il layout a 80 mm con le righe
-          per categoria (stampa.jsx), con la persona che conferma. L'invio
-          automatico alle stampanti che interrogano il server (CloudPRNT, Server
-          Direct Print) per categoria (category_routings) e la coda print_jobs
-          sono del backend e qui non esistono: si stampa a mano. */}
-      {selezione != null && typeof window.byupStampaComanda === 'function' && (() => {
-        const mie = porzioni.filter(p => kds2SorgenteId(p.source) === selezione && p.status !== 'incoming');
-        if (!mie.length) return null;
-        const identita = kds2Identita(mie[0].source);
-        const righeStampa = mie.map(p => ({ qty: p.quantity || 1, name: p.dishName, category: p.category, course: p.course || null, modifiers: p.modifiers || [], allergen: p.allergen || null }));
-        return (
-          <button type="button" data-kds2-interattivo="" data-stampa-comanda=""
-            onClick={() => window.byupStampaComanda(righeStampa, identita, { quando: mie[0].firedAt, sotto: (() => { const seg = window.byupSegnoCanale ? window.byupSegnoCanale(mie[0].source.label, mie[0].source) : null; return seg ? seg.testo : null; })() })}
-            title={'Stampa la comanda di ' + identita}
-            style={{
-              position: 'absolute', right: barra ? 8 : PAD_X, bottom: 16, zIndex: 5,
-              display: 'inline-flex', alignItems: 'center', gap: 9,
-              height: H_BERSAGLIO, padding: '0 18px', borderRadius: 12,
-              background: K.TESTO, color: K.FONDO, border: '2px solid ' + K.TESTO,
-              fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
-              fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
-            }}>
-            Stampa comanda · {identita}
-          </button>
-        );
-      })()}
+      {/* Dalla cucina non si stampa (P-192 · D-151). Qui c'era il pulsante
+          «Stampa comanda», che mandava alla stampa dal browser la comanda
+          della sorgente selezionata: la comanda esce perché la stampante è
+          configurata e l'ordine è stato inviato, e da nient'altro. Per le
+          comande non esiste ripiego — la cucina lavora dal monitor, e se una
+          stampante non risponde è il gestionale a dirlo in sala. */}
 
       {/* La barra demo genera ordini finti: ha senso nell'anteprima, non sopra
           il servizio vero di un locale. */}

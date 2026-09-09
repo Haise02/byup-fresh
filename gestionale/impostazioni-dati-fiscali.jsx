@@ -1082,6 +1082,8 @@ function AdeAttivazioniCard() {
 
   // Il regime forfettario ferma tutto (P-176 · D-128): la riga 1 lo dice, le
   // altre restano spente. Nessun documento parte, e la delega non è il punto.
+  // La guardia resta com'è anche ora che i regimi sono cinque (P-192 · D-132):
+  // è il solo forfettario a fermare l'emissione — gli altri quattro passano.
   const forfettario = !!(window.byupForfettario && window.byupForfettario());
   const senzaDelega = reg.delega === 'fai_da_te';
   const pastiglia = (tono, label) => {

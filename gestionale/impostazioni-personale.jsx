@@ -231,7 +231,18 @@ function ImpPersonale() {
   // I ruoli personalizzati sono gli unici che cambiano: Cassa, Cameriere e
   // Titolare sono di sistema e restano quelli. Modificarne i permessi non li
   // smonta — ne nasce uno personalizzato nuovo (vedi CreateRoleModal).
-  const [customRoles, setCustomRoles] = React.useState(CUSTOM_ROLES);
+  // I ruoli personalizzati stanno nel registro condiviso (P-192): le loro
+  // aree e le pagine di Impostazioni che aprono le legge il gestionale per
+  // decidere cosa mostrare, quindi non possono restare in questa schermata.
+  const [customRoles, setCustomRolesState] = React.useState(() => {
+    const salvati = window.byupReadRuoliCustom ? window.byupReadRuoliCustom() : [];
+    return salvati.length ? salvati : CUSTOM_ROLES;
+  });
+  const setCustomRoles = (aggiorna) => setCustomRolesState(prev => {
+    const next = typeof aggiorna === 'function' ? aggiorna(prev) : aggiorna;
+    if (window.byupWriteRuoliCustom) window.byupWriteRuoliCustom(next);
+    return next;
+  });
   const allRoles = [...ROLES, ...customRoles];
 
   // Il censimento dei POS (P-105). I telefoni di Byup Staff NON sono righe di

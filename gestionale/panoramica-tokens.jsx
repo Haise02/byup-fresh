@@ -658,13 +658,43 @@ const PN_RUOLI_AREE = {
   cameriere: ['app'],
 };
 const PN_RUOLI_LABEL = { titolare: 'Titolare', cassa: 'Cassa', cameriere: 'Cameriere' };
+// I ruoli che il locale si crea da sé vivono in un registro condiviso
+// (byup_ruoli_custom): li scrive Impostazioni → Personale e li legge chi deve
+// sapere cosa quel ruolo apre. Senza un posto comune le spunte restavano nella
+// schermata che le raccoglieva, e nessuno le guardava (P-192).
+const PN_RUOLI_CUSTOM_KEY = 'byup_ruoli_custom';
+window.byupReadRuoliCustom = () => {
+  try { const s = localStorage.getItem(PN_RUOLI_CUSTOM_KEY); return s ? JSON.parse(s) : []; }
+  catch (e) { return []; }
+};
+window.byupWriteRuoliCustom = (v) => {
+  try { localStorage.setItem(PN_RUOLI_CUSTOM_KEY, JSON.stringify(v || [])); } catch (e) {}
+  try { window.dispatchEvent(new Event('byup-ruoli-change')); } catch (e) {}
+};
 const PN_UTENTE = (() => {
   let r = 'titolare';
-  try { const q = new URLSearchParams(window.location.search).get('ruolo'); if (q && PN_RUOLI_AREE[q]) r = q; } catch (e) {}
+  let q = null;
+  try { q = new URLSearchParams(window.location.search).get('ruolo'); } catch (e) {}
+  if (q && PN_RUOLI_AREE[q]) r = q;
+  // Un ruolo personalizzato porta le sue aree e, se l'ha ristretto, le sole
+  // pagine di Impostazioni che apre.
+  const custom = q && !PN_RUOLI_AREE[q] ? (window.byupReadRuoliCustom() || []).find(x => x.id === q) : null;
+  if (custom) {
+    return { nome: 'Mario Rossi', ruolo: custom.id, ruoloLabel: custom.label || custom.id,
+      aree: custom.areas || [], pagineImpostazioni: custom.settingsPages };
+  }
   return { nome: 'Mario Rossi', ruolo: r, ruoloLabel: PN_RUOLI_LABEL[r], aree: PN_RUOLI_AREE[r] };
 })();
 window.PN_UTENTE = PN_UTENTE;
 window.pnPuo = (area) => PN_UTENTE.aree.includes(area);
+// Le pagine di Impostazioni che il ruolo apre (P-192). Nessuna lista = tutte
+// quelle che l'area «impostazioni» già concede: la restrizione è un di più che
+// si sceglie, non il caso normale. «Dati fiscali» resta un'area sua (D-138) e
+// passa di lì, non da qui.
+window.pnPuoPaginaImpostazioni = (id) => {
+  const p = PN_UTENTE.pagineImpostazioni;
+  return !Array.isArray(p) || p.includes(id);
+};
 
 // ─── Statistiche di servizio: l'informazione al personale (P-35 · D-30) ────
 // Il testo unico che l'app di incasso (staff/) e quella di sala (cameriere/)
