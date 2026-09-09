@@ -1884,6 +1884,15 @@ function AdmServizioClientiKPI({ richiamate }) {
   const mediaPerLocale = perLocale.length ? k.richiamate.totali / perLocale.length : 0;
   // Il tempo di chiusura migliora quando SCENDE: il segno del delta va
   // rovesciato prima di darlo al badge, che colora il positivo di verde.
+  // La comunicazione più vecchia ancora aperta, da qualunque canale sia
+  // arrivata: è il ticket su cui qualcuno sta aspettando da più tempo.
+  const piuVecchia = useMemoSrv(() => {
+    if (typeof COMUNICAZIONI === 'undefined') return null;
+    const aperte = COMUNICAZIONI.filter(c => c.stato === 'nuova' || c.stato === 'in_corso');
+    if (!aperte.length) return null;
+    return aperte.reduce((a, b) => (a.data <= b.data ? a : b));
+  }, []);
+  const piuVecchiaOre = piuVecchia ? Math.floor((Date.now() - piuVecchia.data.getTime()) / 3600000) : 0;
   const deltaChiusura = k.ticket.chiusuraPrecOre
     ? -(k.ticket.chiusuraMediaOre - k.ticket.chiusuraPrecOre) / k.ticket.chiusuraPrecOre * 100
     : null;
@@ -1960,6 +1969,35 @@ function AdmServizioClientiKPI({ richiamate }) {
           sub={`${k.ticket.apertiOra} ticket aperti in questo momento`}
           data={k.ticket.serie} gradId="grad-srv-ticket"/>
       </div>
+
+      {/* La media dice come andiamo, la più vecchia dice a chi stiamo facendo
+          aspettare (P-193). È il numero che si guarda per decidere cosa fare
+          adesso, e sta accanto agli altri due perché è la stessa domanda letta
+          dalla parte di chi aspetta. */}
+      {piuVecchia && (
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14, alignItems:'start'}}>
+          <AdmCard padding={0} style={{gridColumn:'span 2', overflow:'hidden'}}>
+            <div style={{padding:'15px 16px 14px', display:'flex', flexDirection:'column', gap:7}}>
+              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em'}}>
+                La più vecchia non risolta
+              </span>
+              <div style={{display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+                <span style={{fontSize:29, fontWeight:800, color: piuVecchiaOre >= 48 ? ADM.DANGER : ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1}}>
+                  {srvOre(piuVecchiaOre)}
+                </span>
+                <span style={{fontSize:12.8, color:ADM.MUTED}}>di attesa</span>
+              </div>
+              <span style={{fontSize:12.8, color:ADM.TEXT, lineHeight:1.45}}>
+                <b>{piuVecchia.oggetto}</b>
+              </span>
+              <span style={{fontSize:12.5, color:ADM.MUTED}}>
+                {piuVecchia.senderName} · {piuVecchia.id}
+                {piuVecchia.assignedTo ? ` · in mano a ${(TEAM.find(t => t.id === piuVecchia.assignedTo) || {}).nome || piuVecchia.assignedTo}` : ' · non assegnata a nessuno'}
+              </span>
+            </div>
+          </AdmCard>
+        </div>
+      )}
 
       {/* La riga di sopra dice quanti ne arrivano e quanto ci mettiamo a
           chiuderli: due numeri di produzione. Questa dice se li stiamo

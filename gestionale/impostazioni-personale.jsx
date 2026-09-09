@@ -403,7 +403,11 @@ function ImpPersonale() {
             all'altra: una persona e il monitor di cucina — che entra come una
             persona, con una sua vista. Il monitor sta in secondo piano perché
             si collega una volta e poi non ci si torna, ma sta qui e non in
-            fondo alla colonna destra, perché è un'azione della pagina. */}
+            fondo alla colonna destra, perché è un'azione della pagina.
+            Il monitor CONTA fra le utenze del piano (P-193): il modello le
+            conta insieme ai dispositivi, e un monitor occupa un posto come una
+            persona. Le stampanti no — quelle non entrano da qui e non sono
+            utenze: si collegano in Integrazioni. */}
         <div style={{display:'flex', gap: 8, alignItems:'center', flexShrink: 0}}>
           <ImpButton
             variant="ghost"

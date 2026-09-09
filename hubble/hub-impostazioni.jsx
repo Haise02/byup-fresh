@@ -64,6 +64,11 @@ function HubDominiPage() {
   const [nuovo, setNuovo] = useStateIm(null);       // { locale, dominio, nome, scopo, rispostaA, opposizione }
   const [nuovoSms, setNuovoSms] = useStateIm(null); // { etichetta, tipo, paesi, scopo, opposizione }
   const [modifica, setModifica] = useStateIm(null); // id del mittente con lo scopo aperto
+  // Il registro dei soppressi (P-193 · D-150): si cerca, si legge, e basta.
+  const [cercaSopp, setCercaSopp] = useStateIm('');
+  const soppressi = (typeof HUB_SOPPRESSI !== 'undefined' ? HUB_SOPPRESSI : [])
+    .filter(x => !cercaSopp.trim() || x.recapito.toLowerCase().includes(cercaSopp.trim().toLowerCase()))
+    .slice().sort((a, b) => b.dal - a.dal);
   const verificati = domini.filter(d => d.stato === 'verificato');
   const scopi = Object.keys(HUB_SCOPI_MITTENTE);
   const senzaInformative = !mittenti.some(m => m.scopo === 'informative' && m.stato !== 'disattivato');
@@ -150,6 +155,7 @@ function HubDominiPage() {
             { id: 'domini', label: 'Domini', conteggio: domini.length },
             { id: 'mittenti', label: 'Indirizzi mittente', conteggio: mittenti.filter(m => m.stato !== 'disattivato').length },
             { id: 'numeri', label: 'Mittenti SMS', conteggio: numeri.filter(n => n.stato !== 'disattivato').length },
+            { id: 'soppressi', label: 'Recapiti soppressi', conteggio: (typeof HUB_SOPPRESSI !== 'undefined' ? HUB_SOPPRESSI.length : 0) },
           ]}/>
         </div>
 
@@ -316,6 +322,43 @@ function HubDominiPage() {
                     </div>
                     <HubStrumento icona={n.stato === 'disattivato' ? 'refresh' : 'pause'} onClick={() => disattivaSms(n.id)}
                       title="Si disattiva, non si cancella: i messaggi già spediti lo nominano">{n.stato === 'disattivato' ? 'Riattiva' : 'Disattiva'}</HubStrumento>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Recapiti soppressi (P-193 · D-150): sola lettura. Non c'è nessuna
+            azione, e non è una dimenticanza — chi è qui dentro ci è finito per
+            un rimbalzo, un reclamo o una sua richiesta, e riportarlo in lista a
+            mano vorrebbe dire scrivergli contro la sua volontà. */}
+        {tab === 'soppressi' && (
+          <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: '11px 13px', borderRadius: 11, background: '#fff', border: `1px solid ${ADM.BORDER}`, borderLeft: `3px solid ${ADM.PINK}`, fontSize: 12.9, color: ADM.TEXT, lineHeight: 1.55 }}>
+              Chi è qui dentro non riceve più nulla su questo recapito, da nessuna campagna. Si consulta per rispondere a «perché non gli arrivano le email?»: non si toglie e non si aggiunge a mano.
+            </div>
+            <input value={cercaSopp} onChange={e => setCercaSopp(e.target.value)}
+              placeholder="Cerca un indirizzo o un numero…"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`, fontFamily: 'inherit', fontSize: 13.5, color: ADM.TEXT, background: '#fff', boxSizing: 'border-box', outline: 'none' }}/>
+            {soppressi.length === 0 ? (
+              <div style={{ padding: '26px 18px', textAlign: 'center', color: ADM.MUTED, fontSize: 13.4 }}>
+                {cercaSopp.trim() ? `Nessun recapito soppresso corrisponde a «${cercaSopp.trim()}»: a questo indirizzo si può scrivere.` : 'Nessun recapito soppresso.'}
+              </div>
+            ) : soppressi.map(x => {
+              const m = HUB_SOPPRESSI_MOTIVI[x.motivo] || { label: x.motivo, desc: '' };
+              return (
+                <div key={x.recapito} style={{ border: `1px solid ${ADM.BORDER}`, borderRadius: 13, padding: '13px 15px', background: '#fff', display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: ADM.PANEL_SOFT, color: ADM.MUTED }}>
+                    {x.canale === 'sms' ? <BuIcons.smartphone size={16}/> : <BuIcons.mail size={16}/>}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontSize: 14.4, fontWeight: 700, color: ADM.TEXT, fontFamily: 'ui-monospace, monospace' }}>{x.recapito}</div>
+                    <div style={{ fontSize: 12.8, color: ADM.MUTED, marginTop: 3, lineHeight: 1.5 }}>{m.desc}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>{m.label}</div>
+                    <div style={{ fontSize: 12.5, color: ADM.MUTED_SOFT, marginTop: 2 }}>dal {fmtDate(x.dal)}</div>
                   </div>
                 </div>
               );

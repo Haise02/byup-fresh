@@ -14,14 +14,30 @@ const CERT_OGGETTO = 'Richiesta certificazione alimentare';
 // ─── Costruzione dataset unificato ──────────────────────────────────────────
 // Tutti i ticket arrivano dal titolare di un locale.
 // Le richieste di cert sono "standardizzate": oggetto fisso, no body, solo allegati.
+// La PRIORITÀ del ticket (P-193): tre gradini, con «normale» che è il caso di
+// tutti — un campo che parte pieno di eccezioni non lo guarda nessuno. Non è
+// l'età del ticket, che la lista già segnala da sé: è quanto conta rispondere
+// a questo prima che a un altro, e lo decide chi guarda la coda.
+const TICKET_PRIORITA = {
+  alta:    { label: 'Alta',    color: 'DANGER', ordine: 0 },
+  normale: { label: 'Normale', color: 'MUTED',  ordine: 1 },
+  bassa:   { label: 'Bassa',   color: 'MUTED_SOFT', ordine: 2 },
+};
+const ticketPriorita = (i) => (i && i.priorita) || 'normale';
+
 const COMUNICAZIONI = (() => {
   // Le autodichiarazioni non aprono un ticket: presa d'atto, nessuna revisione
   // (P-61). Solo chi ha un documento passa da Assistenza.
   const fromCert = CERTIFICAZIONI.filter(c => !certAutodichiarata(c.tipo)).map(c => {
     const locale = LOCALI.find(l => l.id === c.localeId);
+    // Scaduta e revocata (P-193) sono pratiche CHIUSE: sono state valide e non
+    // lo sono più, non c'è niente da revisionare. Senza questa riga cadevano
+    // nel ramo finale e tornavano in coda come richieste nuove.
     const stato = c.stato === 'pending' ? 'nuova'
                : c.stato === 'approvata' ? 'approvata'
-               : c.stato === 'rifiutata' ? 'rifiutata' : 'nuova';
+               : c.stato === 'rifiutata' ? 'rifiutata'
+               : (c.stato === 'scaduta' || c.stato === 'revocata' || c.stato === 'contestata') ? 'risolta'
+               : 'nuova';
     return {
       id: c.id,
       certRequest: true,
@@ -34,6 +50,7 @@ const COMUNICAZIONI = (() => {
       allegati: [{ name: c.file, size: c.size, kind: 'pdf' }],
       data: c.dataInvio,
       stato,
+      priorita: 'normale',
       tags: [],
       assignedTo: c.revisedBy || null,
       motivo: c.motivo,
@@ -59,6 +76,7 @@ const COMUNICAZIONI = (() => {
         allegati: s.allegati ? Array.from({length: s.allegati}).map((_,i) => ({ name: `Screenshot_${i+1}.png`, size: '420 KB', kind: 'image' })) : [],
         data: s.data,
         stato,
+        priorita: 'normale',
         tags: [],
         assignedTo: s.assignedTo || null,
         resolvedBy: s.risoltaDa,
@@ -70,9 +88,9 @@ const COMUNICAZIONI = (() => {
     { id:'M101', localeId:'L1005', oggetto:'Posso anticipare l\'orario di apertura sulla mia scheda Byup?', desc:'Buongiorno,\n\nda lunedì prossimo inizieremo i pranzi alle 12:00 invece che alle 12:30. Riuscite ad aggiornare gli orari di apertura sul nostro profilo Byup? Grazie mille.\n\nA presto,', data:new Date(Date.now() - 35*60000) },
     { id:'M102', localeId:'L1012', oggetto:'Come riattivo le notifiche di prenotazione?', desc:'Salve,\n\ndopo l\'ultimo aggiornamento dell\'app non mi arrivano più le notifiche delle nuove prenotazioni. Ho controllato le impostazioni del telefono e sembrano a posto. Mi potete aiutare?\n\nGrazie.', data:new Date(Date.now() - 2.5*3600000) },
     { id:'M103', localeId:'L1020', oggetto:'Vorrei programmare una demo del piano Plus', desc:'Buongiorno,\n\nstiamo valutando il passaggio al piano Plus. Possiamo fissare una call di 20 minuti per capire bene cosa cambia rispetto allo Starter e quali funzionalità aggiuntive avremmo a disposizione?\n\nDisponibilità preferita: pomeriggio dopo le 16.\n\nGrazie,', data:new Date(Date.now() - 18*3600000), tags:['lead-upgrade'] },
-    { id:'M104', localeId:'L1029', oggetto:'Errore export contabilità maggio', desc:'Buongiorno,\n\nquando provo a esportare la contabilità di maggio dal gestionale, mi compare "errore 502" e il file non si scarica. Sto preparando i documenti per il commercialista.\n\nUrgente, grazie.', data:new Date(Date.now() - 8*3600000), tags:['contabilita'], assignedTo:'support2' },
-    { id:'M105', localeId:'L1034', oggetto:'Aggiornamento stickers QR per la sala', desc:'Salve,\n\nabbiamo cambiato la disposizione dei tavoli e mi servirebbero nuovi sticker QR aggiornati con i nuovi numeri tavolo. Come posso richiederli?\n\nGrazie!', data:new Date(Date.now() - 26*3600000) },
-    { id:'M106', localeId:'L1041', oggetto:'Recensione offensiva da rimuovere', desc:'Buongiorno,\n\nieri sera abbiamo ricevuto una recensione contenente insulti personali al titolare. Vi chiedo gentilmente di valutarne la rimozione secondo le linee guida della community Byup.\n\nGrazie.', data:new Date(Date.now() - 4*3600000), tags:['moderazione'],
+    { id:'M104', localeId:'L1029', oggetto:'Errore export contabilità maggio', desc:'Buongiorno,\n\nquando provo a esportare la contabilità di maggio dal gestionale, mi compare "errore 502" e il file non si scarica. Sto preparando i documenti per il commercialista.\n\nUrgente, grazie.', data:new Date(Date.now() - 8*3600000), tags:['contabilita'], assignedTo:'support2', priorita:'alta' },
+    { id:'M105', localeId:'L1034', oggetto:'Aggiornamento stickers QR per la sala', desc:'Salve,\n\nabbiamo cambiato la disposizione dei tavoli e mi servirebbero nuovi sticker QR aggiornati con i nuovi numeri tavolo. Come posso richiederli?\n\nGrazie!', data:new Date(Date.now() - 26*3600000), priorita:'bassa' },
+    { id:'M106', localeId:'L1041', oggetto:'Recensione offensiva da rimuovere', desc:'Buongiorno,\n\nieri sera abbiamo ricevuto una recensione contenente insulti personali al titolare. Vi chiedo gentilmente di valutarne la rimozione secondo le linee guida della community Byup.\n\nGrazie.', data:new Date(Date.now() - 4*3600000), tags:['moderazione'], priorita:'alta',
       moderazione: { utenteId:'U2007', rating:1, dataRecensione:new Date(Date.now() - 26*3600000), segnalataDa:'locale', motivoSegnalazione:'Insulti personali al titolare',
         testo:'Posto pessimo, il titolare è un incapace e pure maleducato, roba da denuncia. Cibo immangiabile, non andateci mai, gente del genere dovrebbe chiudere e sparire.' } },
     { id:'M108', localeId:'L1014', oggetto:'Recensione che pubblica dati di terzi', desc:'Ciao,\n\nleggendo le recensioni del locale ho notato che una recensione fa nome e cognome di un\'altra persona presente quella sera, senza il suo consenso. Non mi sembra corretto, ve la segnalo.\n\nGrazie.', data:new Date(Date.now() - 6*3600000), tags:['moderazione'], senderName:'Giulia Ferraro', senderEmail:'giulia.ferraro@gmail.com',
@@ -94,6 +112,7 @@ const COMUNICAZIONI = (() => {
       allegati: e.allegati || [],
       data: e.data,
       stato: e.stato || 'nuova',
+      priorita: e.priorita || 'normale',
       tags: e.tags || [],
       // Serve almeno un ticket in mano a un collega, altrimenti lo stato «ci
       // sta già lavorando qualcun altro» non si vede mai e non si può
@@ -118,6 +137,9 @@ function AdmComunicazioniPage({ openId }) {
   const cCert     = items.filter(i => i.certRequest && i.stato === 'nuova').length;
   const cMine     = items.filter(i => i.assignedTo === MY_ID && (i.stato === 'nuova' || i.stato === 'in_corso')).length;
   const cResolved = items.filter(i => i.stato === 'risolta' || i.stato === 'approvata' || i.stato === 'rifiutata').length;
+  // Gli urgenti sono quelli ad alta priorità ancora aperti: chiusi, non c'è
+  // più niente da anticipare.
+  const cUrgenti  = items.filter(i => ticketPriorita(i) === 'alta' && (i.stato === 'nuova' || i.stato === 'in_corso')).length;
 
   const filtered = useMemoCom(() => {
     let r = items;
@@ -125,6 +147,7 @@ function AdmComunicazioniPage({ openId }) {
     if (view === 'cert')     r = r.filter(i => i.certRequest && i.stato === 'nuova');
     if (view === 'mine')     r = r.filter(i => i.assignedTo === MY_ID && (i.stato === 'nuova' || i.stato === 'in_corso'));
     if (view === 'resolved') r = r.filter(i => i.stato === 'risolta' || i.stato === 'approvata' || i.stato === 'rifiutata');
+    if (view === 'urgenti')  r = r.filter(i => ticketPriorita(i) === 'alta' && (i.stato === 'nuova' || i.stato === 'in_corso'));
     if (search) {
       const q = search.toLowerCase();
       r = r.filter(i => {
@@ -135,7 +158,10 @@ function AdmComunicazioniPage({ openId }) {
           || (locale?.nome.toLowerCase().includes(q));
       });
     }
-    return [...r].sort((a,b) => b.data - a.data);
+    // A parità di tutto vince il più recente; ma un ticket urgente sta sopra a
+    // uno normale arrivato dopo, altrimenti la priorità è una decorazione.
+    return [...r].sort((a, b) =>
+      (TICKET_PRIORITA[ticketPriorita(a)].ordine - TICKET_PRIORITA[ticketPriorita(b)].ordine) || (b.data - a.data));
   }, [items, view, search]);
 
   const selected = items.find(i => i.id === selectedId) || filtered[0];
@@ -173,6 +199,7 @@ function AdmComunicazioniPage({ openId }) {
 
   const views = [
     { id:'open',     label:'Aperte',         count:cOpen },
+    { id:'urgenti',  label:'Urgenti',        count:cUrgenti,  accent:'DANGER' },
     { id:'cert',     label:'Da approvare',   count:cCert,     accent:'WARN' },
     { id:'mine',     label:'Mie',            count:cMine },
     { id:'resolved', label:'Concluse',       count:cResolved },
@@ -191,7 +218,7 @@ function AdmComunicazioniPage({ openId }) {
         <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
           {views.map(v => {
             const active = view === v.id;
-            const urgent = v.id === 'cert' && certUrgent > 0;
+            const urgent = (v.id === 'cert' && certUrgent > 0) || (v.id === 'urgenti' && cUrgenti > 0);
             return (
               <button key={v.id} className="adm-pill" onClick={()=>setView(v.id)} style={{
                 display:'inline-flex', alignItems:'center', gap:7,
@@ -202,7 +229,7 @@ function AdmComunicazioniPage({ openId }) {
                 fontSize:13.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
                 transition:'background 0.14s ease, color 0.14s ease, border-color 0.14s ease',
               }}>
-                {urgent && !active && <span style={{width:6, height:6, borderRadius:'50%', background:ADM.WARN}}/>}
+                {urgent && !active && <span style={{width:6, height:6, borderRadius:'50%', background: v.id === 'urgenti' ? ADM.DANGER : ADM.WARN}}/>}
                 {v.label}
                 <span style={{fontWeight:700, color: active ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT, fontSize:12.5}}>{v.count}</span>
               </button>
@@ -308,6 +335,17 @@ function InboxItem({ item, active, onClick }) {
           )}
 
           <div style={{display:'flex', alignItems:'center', gap:5, flexWrap:'wrap'}}>
+            {/* La priorità alta si vede nella riga, dove si sceglie cosa
+                aprire: le altre due non si scrivono — «normale» è il caso di
+                tutti e «bassa» non è una notizia. */}
+            {ticketPriorita(item) === 'alta' && (
+              <span style={{
+                display:'inline-flex', alignItems:'center', gap:4,
+                padding:'1px 7px', borderRadius:99,
+                background: ADM.DANGER_SOFT, color: ADM.DANGER,
+                fontSize:12, fontWeight:700,
+              }}>Urgente</span>
+            )}
             {item.certRequest && <CertTag/>}
             {item.tags.slice(0, 3).map(t => <CustomTag key={t} label={t}/>)}
             {item.tags.length > 3 && <span style={{fontSize:12.6, color:ADM.MUTED, fontWeight:600}}>+{item.tags.length - 3}</span>}
@@ -685,6 +723,28 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
       <div style={{padding:'18px 32px 16px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
         {/* Riga 1: stato/chip + assegnazione CTA */}
         <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap'}}>
+          {/* La priorità si cambia da qui, dove il ticket si legge: chi decide
+              che viene prima è chi lo sta guardando (P-193). Tre gradini in
+              fila, il corrente acceso — un menù per tre voci sarebbe un clic
+              in più per niente. Chi ha la sola lettura la vede e non la
+              tocca, come per le altre azioni dell'assistenza. */}
+          <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 3px', borderRadius:99, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`}}>
+            {Object.entries(TICKET_PRIORITA).map(([k, p]) => {
+              const on = ticketPriorita(item) === k;
+              return (
+                <button key={k} onClick={() => puoAssistenza && onUpdate({ priorita: k })}
+                  title={puoAssistenza ? `Priorità ${p.label.toLowerCase()}` : 'Serve la scrittura su Assistenza'}
+                  style={{
+                    padding:'3px 9px', borderRadius:99, border:'none', fontFamily:'inherit',
+                    cursor: puoAssistenza ? 'pointer' : 'default',
+                    background: on ? (k === 'alta' ? ADM.DANGER_SOFT : '#fff') : 'transparent',
+                    color: on ? (k === 'alta' ? ADM.DANGER : ADM.TEXT) : ADM.MUTED_SOFT,
+                    fontSize:12.6, fontWeight: on ? 700 : 600,
+                    boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
+                  }}>{p.label}</button>
+              );
+            })}
+          </span>
           {item.certRequest && <CertTag/>}
           {item.stato === 'in_corso' && <StatoChip stato="in_corso"/>}
           {item.stato === 'approvata' && <StatoChip stato="approvata"/>}

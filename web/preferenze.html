@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>byup — Le tue preferenze</title>
+<link rel="icon" type="image/png" href="/assets/byup-icon.png?v=2"/>
+<!-- ════════════════════════════════════════════════════════════════════
+     IL CENTRO DELLE PREFERENZE (P-193 · D-153).
+
+     È la pagina che si apre dal collegamento «Disiscriviti» in fondo alle
+     email e dal rimando degli SMS. Non chiede di accedere: chi ci arriva ha
+     in mano un collegamento firmato che vale per il suo recapito, e
+     obbligarlo a ricordare una password per smettere di ricevere posta
+     sarebbe un modo educato di non farlo smettere.
+
+     Pochi interruttori, in italiano, e nessuna parola di mestiere: che cosa
+     riceve (novità, promozioni), su quale canale, e quanto spesso. In fondo,
+     bene in vista e non nascosto in una riga di testo, «non voglio più
+     ricevere niente»: è la richiesta più frequente, e deve costare un tocco.
+
+     Salvare qui scrive il consenso del contatto; il rifiuto totale lo porta
+     nel registro dei recapiti soppressi (Hubble → Impostazioni → Recapiti e
+     domini di invio → Recapiti soppressi), da dove non si esce a mano.
+     Nel prototipo non c'è un server: la scelta resta nel browser.
+     ════════════════════════════════════════════════════════════════════ -->
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    background: #FAF7F5; color: #1B1B1F; padding: 0;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 34px 20px 60px; }
+  .marchio { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+  .marchio span { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  h1 { font-size: 25px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 6px; }
+  .sotto { font-size: 15px; color: #6B6B73; line-height: 1.5; margin: 0 0 24px; }
+  .recapito { font-weight: 700; color: #1B1B1F; }
+  .card { background: #fff; border: 1px solid #ECE6E2; border-radius: 16px; padding: 4px 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 12px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #8A8A90; margin: 18px 0 6px; }
+  .riga { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid #F2EDE9; }
+  .riga:first-of-type { border-top: none; }
+  .riga .testo { flex: 1; min-width: 0; }
+  .riga .titolo { font-size: 16px; font-weight: 600; }
+  .riga .nota { font-size: 13.5px; color: #6B6B73; margin-top: 2px; line-height: 1.45; }
+  .sw { position: relative; width: 50px; height: 30px; flex-shrink: 0; border: none; border-radius: 999px;
+        background: #D9D4D0; cursor: pointer; transition: background .16s; padding: 0; }
+  .sw[aria-checked="true"] { background: #C2185B; }
+  .sw i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+          background: #fff; transition: left .16s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .sw[aria-checked="true"] i { left: 23px; }
+  .freq { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0 16px; }
+  .freq button { font-family: inherit; font-size: 14.5px; font-weight: 600; padding: 9px 15px; border-radius: 999px;
+                 border: 1.5px solid #E4DED9; background: #fff; color: #1B1B1F; cursor: pointer; }
+  .freq button[aria-pressed="true"] { border-color: #C2185B; background: #FCEFF4; color: #A0134A; }
+  .salva { width: 100%; padding: 15px; border: none; border-radius: 999px; background: #1B1B1F; color: #fff;
+           font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .salva[disabled] { background: #2E7D4F; }
+  .stop { width: 100%; margin-top: 12px; padding: 15px; border-radius: 999px; background: #fff;
+          border: 1.5px solid #E7B4B4; color: #B3261E; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .stop[aria-pressed="true"] { background: #FDECEA; }
+  .esito { margin-top: 16px; padding: 14px 16px; border-radius: 12px; background: #EAF6EE; color: #1E5B37;
+           font-size: 14.5px; line-height: 1.5; }
+  .piede { font-size: 13px; color: #8A8A90; line-height: 1.6; margin-top: 26px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="preferenze.jsx?v=1"></script>
+</body>
+</html>

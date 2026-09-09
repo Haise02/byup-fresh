@@ -829,7 +829,12 @@ function MbIspettore({ b, doc, onCambia, onDoc }) {
           <div style={{ fontSize: 12.2, color: ADM.MUTED, lineHeight: 1.5 }}>
             Ragione sociale e indirizzo sono obbligatori negli invii commerciali. Si scrivono nell'anteprima.
           </div>
-          <HubCampo label="Parola per la disiscrizione"><HubInput valore={b.disiscrizione} onCambia={set('disiscrizione')}/></HubCampo>
+          {/* Il collegamento porta al CENTRO DELLE PREFERENZE (P-193 · D-153),
+              non a una disiscrizione secca: si apre senza accesso, si sceglie
+              che cosa ricevere e su quale canale, e in fondo c'è «non voglio
+              più ricevere niente». La parola qui è solo come si chiama il
+              collegamento nel piede dell'email. */}
+          <HubCampo label="Parola per la disiscrizione" nota="Apre il centro delle preferenze: il destinatario sceglie che cosa ricevere, o smette del tutto."><HubInput valore={b.disiscrizione} onCambia={set('disiscrizione')}/></HubCampo>
           <MbColore label="Colore" valore={b.colore} onCambia={set('colore')}/>
         </React.Fragment>
       )}

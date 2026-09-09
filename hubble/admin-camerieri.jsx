@@ -14,7 +14,10 @@ const RUOLI_STAFF = [
 
 // I dispositivi sono di due nature — SCHERMI e STAMPANTI — e la scheda le
 // distingue nella «Descrizione utenza»: un kitchen monitor e una termica per
-// gli scontrini non si sostituiscono a vicenda.
+// gli scontrini non si sostituiscono a vicenda. In rubrica hanno un tipo di
+// contatto loro (P-193), così l'esclusione da consensi e campagne avviene per
+// costruzione. Per il PIANO invece non sono uguali: i monitor contano fra le
+// utenze — il modello le conta insieme ai dispositivi — le stampanti no.
 const DEVICE_MONITOR   = ['iPad 10.9"', 'iPad mini', 'Samsung Galaxy Tab A9', 'Elo PayPoint', 'iPad Air'];
 const DEVICE_STAMPANTI = ['Epson TM-T20III', 'Star TSP143IV', 'Bixolon SRP-350III', 'Epson TM-m30II'];
 

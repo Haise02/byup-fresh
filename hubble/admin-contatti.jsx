@@ -18,10 +18,19 @@ const { useState: useStateCnt, useMemo: useMemoCnt, useEffect: useEffectCnt } = 
 // rima con «Utente App»: sono entrambi utenti, di due prodotti diversi.
 // Solo parola e colore, niente icona: nella pillola l'icona ripeteva quello
 // che la parola già dice, e la colonna deve scorrere pulita.
+// I dispositivi hanno il LORO tipo (P-193): un monitor di cucina e una
+// stampante non sono utenze di persone, e tenerli fra lo staff obbligava ogni
+// pubblico e ogni consenso a escluderli con un filtro — che prima o poi
+// qualcuno dimentica. Con un tipo proprio l'esclusione avviene per
+// costruzione: un dispositivo non ha un recapito, non dà consensi e non entra
+// in nessuna campagna, perché non è nell'elenco da cui si pesca.
+// Attenzione: i monitor CONTINUANO a contare fra le utenze del piano, che il
+// modello conta insieme ai dispositivi; le stampanti no.
 const CNT_TIPI = {
-  locale: { label: 'Locale',       color: 'PINK'   },
-  staff:  { label: 'Utente Staff', color: 'TEAL'   },
-  utente: { label: 'Utente App',   color: 'PURPLE' },
+  locale:      { label: 'Locale',       color: 'PINK'   },
+  staff:       { label: 'Utente Staff', color: 'TEAL'   },
+  utente:      { label: 'Utente App',   color: 'PURPLE' },
+  dispositivo: { label: 'Dispositivo',  color: 'PLAN_FREE' },
 };
 
 // ─── Stadio commerciale ──────────────────────────────────────────────────────
@@ -209,7 +218,7 @@ const CONTATTI = (() => {
     const locali = s.locali || [];
     if ((s.id.charCodeAt(3) * 3 + s.id.charCodeAt(4)) % 9 === 0) s.eliminato = true;
     rows.push({
-      key: 'stf-' + s.id, tipo: 'staff', ref: s,
+      key: 'stf-' + s.id, tipo: s.ruolo === 'dispositivo' ? 'dispositivo' : 'staff', ref: s,
       nome: s.nome,
       cerca: ruolo + ' ' + locali.map(x => x.nome + ' ' + x.citta).join(' '),
       // Lo staff sta dove sta il suo locale PRINCIPALE: città e regione sono
@@ -469,7 +478,7 @@ function AdmContattiPage({ search, openContatto }) {
           cntRecordCompleto(selected) ? (
             <AdmCard padding={0} style={{overflow: 'hidden'}}>
               {selected.tipo === 'locale' && <LocaleDrawer pieno locale={selected.ref} onClose={chiudi} tabIniziale={selected.tab} pratica={selected.pratica}/>}
-              {selected.tipo === 'staff'  && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
+              {(selected.tipo === 'staff' || selected.tipo === 'dispositivo') && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
               {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi} onDiario={() => setTabDett('attivita')}/>}
             </AdmCard>
           ) : <CntSchedaProprieta riga={riga}/>
@@ -809,7 +818,7 @@ function CntPillola({ color, children }) {
 // selezione decisi in testata, non un tracciato fisso.
 // Un corpo solo per tutte le celle di testo (13.7/500, il font della pagina).
 function CntCella({ id, c }) {
-  const device = c.tipo === 'staff' && c.ref.ruolo === 'dispositivo';
+  const device = c.tipo === 'dispositivo';
   const testo = { fontSize: 13.7, fontWeight: 500, color: ADM.TEXT };
   const tratto = <span style={{fontSize: 13.7, color: ADM.MUTED_LIGHT}}>—</span>;
 
@@ -1346,7 +1355,7 @@ function CntCrea({ open, onChiudi, onCreato }) {
       consensoSms: f.consensoSms,
       primoForm: null, campagnaId: null,
       ultimaAttivita: new Date(), ordini: 0, sessioni: 0,
-      valore: f.tipo === 'staff' ? null : 0,
+      valore: (f.tipo === 'staff' || f.tipo === 'dispositivo') ? null : 0,
     });
     CONTATTI.unshift(riga);
     onCreato(riga);
@@ -1449,7 +1458,7 @@ function CntCrea({ open, onChiudi, onCreato }) {
 function cntRecordCompleto(sel) {
   if (!sel || !sel.ref) return false;
   if (sel.tipo === 'locale') return LOCALI.indexOf(sel.ref) >= 0;
-  if (sel.tipo === 'staff')  return STAFF.indexOf(sel.ref) >= 0;
+  if (sel.tipo === 'staff' || sel.tipo === 'dispositivo') return STAFF.indexOf(sel.ref) >= 0;
   if (sel.tipo === 'utente') return (window.UTENTI || []).indexOf(sel.ref) >= 0;
   return false;
 }

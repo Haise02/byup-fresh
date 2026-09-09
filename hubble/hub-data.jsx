@@ -459,7 +459,7 @@ function hubNascitaDi(c, s) {
   // Lo staff non la dà (P-58 · RL-09): il gestionale lo invita con nome, email
   // e ruolo. Niente da leggere e niente da inventare — e niente da scrivere
   // sul record, che la data non ce l'ha per costruzione.
-  if (c.tipo === 'staff') return null;
+  if (c.tipo === 'staff' || c.tipo === 'dispositivo') return null;
   const gia = c.ref && c.ref.dataNascita;
   if (gia) { const d = new Date(gia); if (!isNaN(d)) return d; }
   if (s % 4 === 0) { if (c.ref && c.ref.dataNascita === undefined) c.ref.dataNascita = null; return null; }
@@ -479,6 +479,18 @@ function hubArricchisci(c) {
   const ref = hubScegli(s, HUB_REFERRAL);
   const interessiPool = ['menu', 'delivery', 'prenotazioni', 'fidelity', 'cassa', 'magazzino'];
   const nInt = s % 4;
+  // Un DISPOSITIVO non è una persona (P-193): non ha un telefono, non dà
+  // consensi, non ha interessi e non riceve niente. L'esclusione da campagne e
+  // consensi avviene qui, per costruzione: non c'è un filtro da ricordarsi.
+  if (c.tipo === 'dispositivo') {
+    return Object.assign(c, {
+      telefono: null, referral: null, campagnaId: null, canale: null, primoForm: null,
+      proprietario: null,
+      consensoMail: false, consensoSms: false, consensoPush: false,
+      interessi: [], ultimaMail: null, nascita: null,
+      ultimaAttivita: giorni(s % 45), ordini: null, sessioni: null, valore: null,
+    });
+  }
   return Object.assign(c, {
     telefono: (s % 11 === 0) ? null : '+39 3' + String(20 + (s % 60)) + ' ' + String(1000000 + (s % 8999999)).slice(0, 7),
     referral: ref || null,
@@ -1078,6 +1090,29 @@ const HUB_AGENTI_MODELLI = [
 // ═══════════════════════════════════════════════════════════════════════════
 // 9 · DOMINI, MITTENTI, NUMERI
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ─── I recapiti soppressi (P-193 · D-150) ───────────────────────────────────
+// La soppressione è il registro di chi non deve più ricevere: ci si finisce
+// per un rimbalzo permanente, per un reclamo, per una disiscrizione o per una
+// richiesta di cancellazione. È una vista in SOLA LETTURA — si cerca un
+// recapito e si legge se è soppresso, da quando e perché — e non ha azioni:
+// togliere qualcuno dalla soppressione a mano vorrebbe dire ricominciare a
+// scrivergli contro la sua volontà, e non lo si fa da una schermata.
+const HUB_SOPPRESSI_MOTIVI = {
+  rimbalzo:      { label: 'Rimbalzo permanente', desc: 'La casella non esiste o rifiuta stabilmente' },
+  reclamo:       { label: 'Segnalato come spam', desc: 'Il destinatario ha usato il pulsante del suo provider' },
+  disiscrizione: { label: 'Disiscritto',         desc: 'Ha tolto il consenso dal centro delle preferenze' },
+  cancellazione: { label: 'Cancellazione dati',  desc: 'Ha chiesto la cancellazione: il recapito resta solo qui' },
+};
+const HUB_SOPPRESSI = [
+  { recapito: 'ordini@trattorialucia.it',   canale: 'email', motivo: 'rimbalzo',      dal: new Date(2026, 6, 14) },
+  { recapito: 'info@osteriadelcorso.it',    canale: 'email', motivo: 'reclamo',       dal: new Date(2026, 5, 2) },
+  { recapito: 'marco.bianchi@gmail.com',    canale: 'email', motivo: 'disiscrizione', dal: new Date(2026, 7, 28) },
+  { recapito: '+39 333 4455661',            canale: 'sms',   motivo: 'disiscrizione', dal: new Date(2026, 7, 3) },
+  { recapito: 'chiara.neri@libero.it',      canale: 'email', motivo: 'cancellazione', dal: new Date(2026, 4, 19) },
+  { recapito: 'noreply@pizzeriadanino.it',  canale: 'email', motivo: 'rimbalzo',      dal: new Date(2026, 8, 1) },
+  { recapito: '+39 340 1122334',            canale: 'sms',   motivo: 'reclamo',       dal: new Date(2026, 3, 22) },
+];
 
 const HUB_DOMINI = [
   { id: 'DM-1', dominio: 'byup.it', uso: 'Email di marketing e transazionali', stato: 'verificato',
