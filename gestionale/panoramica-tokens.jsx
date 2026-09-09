@@ -1955,6 +1955,25 @@ window.byupCopertoRiga = function (subtotale, coperti, cfg) {
     valore: Math.round(importo * n * 100) / 100 };
 };
 
+// Il momento in cui la voce è stata ESPOSTA al cliente (orders
+// .cover_disclosed_at) è quello in cui la riga gli è comparsa davanti la prima
+// volta — la schermata da cui si sfoglia il menù — non quello della conferma
+// dell'ordine (P-192). La prova che il cliente poteva conoscere la tariffa
+// prima di ordinare nasce lì, altrimenti dice solo che l'ha vista mentre
+// confermava. Vale per la sessione: chi riapre il menù al tavolo l'ha già
+// vista, e il momento non si riscrive. Copia guardata in app e webapp.
+window.byupCopertoEsposto = function (segna) {
+  try {
+    const k = 'byup_coperto_esposto';
+    const gia = sessionStorage.getItem(k);
+    if (gia) return gia;
+    if (!segna) return null;
+    const ora = new Date().toISOString();
+    sessionStorage.setItem(k, ora);
+    return ora;
+  } catch (e) { return null; }
+};
+
 // ─── I buoni pasto (P-173 · D-124) ──────────────────────────────────────────
 // Il buono non è denaro: è un credito verso l'emittente, e la cassa lo tiene
 // distinto dal contante. In cassa si registra QUELLO CHE SI È ACCETTATO —

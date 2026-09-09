@@ -513,7 +513,7 @@ function ImpPersonale() {
 
           {resetFatto && (
             <div data-reset-accesso role="status" style={{margin:'10px 14px 0', padding:'10px 12px', borderRadius: 10, background: PN.GREEN_SOFT, color: '#065F46', fontSize: 13.5, lineHeight: 1.45}}>
-              Collegamento per reimpostare l'accesso mandato a <b>{resetFatto.email}</b> ({resetFatto.nome}): vale quarantotto ore. L'atto è nel registro delle attività.
+              Collegamento per reimpostare l'accesso mandato a <b>{resetFatto.email}</b> ({resetFatto.nome}): vale un quarto d'ora. L'atto è nel registro delle attività.
             </div>
           )}
           <div style={{
@@ -923,7 +923,9 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
               )}
               {/* «Reimposta l'accesso» (P-172 · D-121): il titolare manda alla
                   persona il collegamento per reimpostare la password — al suo
-                  recapito, con la scadenza di quarantotto ore — e l'atto va nel
+                  recapito, con la scadenza di un quarto d'ora (P-192: la
+                  scadenza riguarda la validità del collegamento, non il tempo
+                  di consegna, che resta immediato) — e l'atto va nel
                   registro delle attività. Non le sceglie le credenziali: quelle
                   le decide il titolare solo per i dispositivi, che una casella
                   di posta non ce l'hanno. Nessuna richiesta a Byup per chi

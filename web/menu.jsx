@@ -467,6 +467,13 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
   const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
+  // Il coperto è esposto qui, dove la riga compare (P-192): il momento si
+  // registra alla prima comparsa e viaggia con l'ordine, che nascerà dopo.
+  useEffect(() => {
+    if (senzaTavolo || fromVenue) return;
+    const r = byupCopertoRiga(0, 1);
+    if (r.attiva && window.byupCopertoEsposto) window.byupCopertoEsposto(true);
+  }, []);
   // Chi ha ordinato al banco e poi si siede: scansionando il QR del tavolo gli
   // si chiede se portarcelo (P-192 · D-146). Si chiede una volta sola: se dice
   // di no, l'ordine resta al banco e nessuno glielo richiede.
@@ -638,11 +645,14 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
     if (!esito.ok) { setState(s => ({ ...s, rifiuto: esito.messaggio })); return; }
     if (window.byupSegnaTavoloQr) window.byupSegnaTavoloQr(tavoloN, 'webapp_guest');
     setConfirm(true);
-    // P-103: il momento in cui la voce di coperto o servizio è stata esposta e
-    // confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
-    // di carta la prova che il cliente poteva conoscerla non esiste; qui
-    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
-    const coverDisclosedAt = new Date().toISOString();
+    // P-103: il momento in cui la voce di coperto o servizio è stata esposta
+    // finisce sull'ordine (orders.cover_disclosed_at). Su un menù di carta la
+    // prova che il cliente poteva conoscerla non esiste; qui esiste, ed è un
+    // vantaggio che il prodotto offre all'esercente. È il momento in cui la
+    // riga è COMPARSA (P-192), non quello della conferma: qui si legge, non si
+    // calcola, e il ripiego serve solo a chi arriva senza essere passato dal
+    // menù.
+    const coverDisclosedAt = (window.byupCopertoEsposto && window.byupCopertoEsposto()) || new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
@@ -2960,6 +2970,23 @@ function byupCopertoRiga(subtotale, coperti, cfg) {
   }
   const importo = Number(c.importo) || 0; const n = Math.max(1, coperti || 1);
   return { nome, attiva: importo > 0, forma: 'fissa', importo, etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`, valore: Math.round(importo * n * 100) / 100 };
+}
+
+// Copia guardata di byupCopertoEsposto (P-192): il momento in cui la riga è
+// comparsa al cliente, non quello in cui ha confermato. Se si tocca una, si
+// toccano tutte.
+if (!window.byupCopertoEsposto) {
+  window.byupCopertoEsposto = function (segna) {
+    try {
+      const k = 'byup_coperto_esposto';
+      const gia = sessionStorage.getItem(k);
+      if (gia) return gia;
+      if (!segna) return null;
+      const ora = new Date().toISOString();
+      sessionStorage.setItem(k, ora);
+      return ora;
+    } catch (e) { return null; }
+  };
 }
 
 // ─── La finestra notturna della giornata fiscale (P-148) ────────────────────

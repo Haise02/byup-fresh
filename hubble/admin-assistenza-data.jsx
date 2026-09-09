@@ -929,8 +929,10 @@ Object.assign(window, {
 //   outcome — pending, restored, refused (con causale), withdrawn: il
 //     ripristino riguarda le sole credenziali di accesso.
 //   request_channel — callback, email, chat, gestionale.
-// Coda registrata: l'operatore ha tre identità nei mock (SRV_IO, MY_ID,
-// TEAM isYou); qui vale SRV_IO. Il reset dal login del gestionale funziona
+// Coda registrata: chi chiude una pratica è l'account collegato (P-192), lo
+// stesso di TEAM isYou — l'identificativo fisso della sezione non esiste più.
+// Nel seme le pratiche già chiuse portano ancora 'support1', che è un membro
+// del team come gli altri. Il reset dal login del gestionale funziona
 // (P-172 · D-121): «Password dimenticata» manda il collegamento al recapito
 // dell'utenza, e il titolare reimposta il proprio personale da Impostazioni →
 // Personale. Qui arrivano solo i casi che quei due livelli non risolvono.

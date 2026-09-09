@@ -1108,5 +1108,19 @@ const GUSTI = [
       const importo = Number(c.importo) || 0; const n = Math.max(1, coperti || 1);
       return { nome, attiva: importo > 0, forma: 'fissa', importo, etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`, valore: Math.round(importo * n * 100) / 100 };
     },
+    // Il momento in cui la riga è COMPARSA al cliente (P-192), non quello
+    // della conferma: è quello che finisce in orders.cover_disclosed_at.
+    // Copia guardata di window.byupCopertoEsposto.
+    esposto(segna) {
+      try {
+        const k = 'byup_coperto_esposto';
+        const gia = sessionStorage.getItem(k);
+        if (gia) return gia;
+        if (!segna) return null;
+        const ora = new Date().toISOString();
+        sessionStorage.setItem(k, ora);
+        return ora;
+      } catch (e) { return null; }
+    },
   };
 })();

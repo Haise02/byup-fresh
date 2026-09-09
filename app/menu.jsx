@@ -823,6 +823,12 @@ function CatBand({ name, count, index = 0, total = 5 }) {
 
 
 function MenuScreen({ state, setState, goTo }) {
+  // Il coperto è esposto qui, dove la riga compare (P-192): il momento si
+  // registra alla prima comparsa e viaggia con l'ordine, che nascerà dopo.
+  React.useEffect(() => {
+    const r = window.ByupCoperto ? window.ByupCoperto.riga(0, 1) : null;
+    if (r && r.attiva && window.ByupCoperto.esposto) window.ByupCoperto.esposto(true);
+  }, []);
   // menu_view (P-38): il menù visto, una volta per apertura, solo con
   // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
   // menu_view porta l'identificativo della sede, non il nome (P-161 · D-115).
@@ -1052,10 +1058,11 @@ function MenuScreen({ state, setState, goTo }) {
     if (window.byupSegnaTavoloQr) window.byupSegnaTavoloQr(tavoloN, 'byup_app');
     setConfirm(true);
     // P-103: il momento in cui la voce di coperto o servizio è stata esposta
-    // e confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
-    // di carta la prova che il cliente poteva conoscerla non esiste; qui
-    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
-    const coverDisclosedAt = new Date().toISOString();
+    // finisce sull'ordine (orders.cover_disclosed_at). Su un menù di carta la
+    // prova che il cliente poteva conoscerla non esiste; qui esiste, ed è un
+    // vantaggio che il prodotto offre all'esercente. È il momento in cui la
+    // riga è COMPARSA (P-192), non quello della conferma.
+    const coverDisclosedAt = (window.ByupCoperto && window.ByupCoperto.esposto()) || new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {

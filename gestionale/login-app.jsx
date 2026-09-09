@@ -188,7 +188,7 @@ function LoginApp() {
               }}>
                 {resetInviato.manca
                   ? 'Scrivi qui sopra l\'email o il nome utente del tuo account, poi premi di nuovo «Password dimenticata?».'
-                  : <React.Fragment>Ti abbiamo mandato il collegamento per reimpostare la password a <b>{mascheraRecapito(resetInviato.a)}</b>, il recapito della tua utenza. Vale quarantotto ore: dopo, chiedilo di nuovo da qui.</React.Fragment>}
+                  : <React.Fragment>Ti abbiamo mandato il collegamento per reimpostare la password a <b>{mascheraRecapito(resetInviato.a)}</b>, il recapito della tua utenza. Vale un quarto d'ora: dopo, chiedilo di nuovo da qui.</React.Fragment>}
               </div>
             )}
 

@@ -288,6 +288,21 @@ function oraChiusura(conto) {
   return fmtOra(ps[ps.length - 1].ora);
 }
 
+// L'età del conto in giorni (P-192). `liberatoOre` è nei dati da sempre e
+// nessuna vista la leggeva: su un conto non saldato è la cosa che dice se è
+// una distrazione di stasera o un buco di settimane.
+function contoEtaGiorni(conto) {
+  const ore = Number(conto.liberatoOre);
+  if (!isFinite(ore)) return null;
+  return Math.floor(ore / 24);
+}
+function contoEtaLabel(conto) {
+  const g = contoEtaGiorni(conto);
+  if (g === null) return null;
+  if (g <= 0) return 'oggi';
+  return g === 1 ? 'da 1 giorno' : `da ${g} giorni`;
+}
+
 // Logo Byup inline — gradiente brand col MARCHIO byup (stesso trattamento
 // degli avatar app in sala e dei badge del calendario).
 // Segnala che il riferimento è un utente loggato sulla Byup App.
@@ -1169,6 +1184,68 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
 }
 
 // Popup apertura cassa — chiede il fondo cassa iniziale
+// ─── Annullo di un conto non saldato (P-192) ────────────────────────────────
+// Chiudere senza incasso è un gesto che non si disfa e non lascia un
+// documento: la conferma lo dice per intero, prima. Il conto non sparisce —
+// resta nel registro come annullato — e vale come ordine, quindi scala le
+// transazioni del locale come tutti gli altri.
+function AnnullaContoModal({ conto, onClose, onConfirm }) {
+  const [show, setShow] = React.useState(false);
+  React.useEffect(() => {
+    const r = requestAnimationFrame(() => setShow(true));
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => { cancelAnimationFrame(r); window.removeEventListener('keydown', onKey); };
+  }, [onClose]);
+  if (!conto) return null;
+  const eta = contoEtaLabel(conto);
+
+  return (
+    <React.Fragment>
+      <div onClick={onClose} style={{
+        position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60,
+        opacity: show ? 1 : 0, transition:'opacity .18s ease',
+      }}/>
+      <div style={{
+        position:'fixed', top:'50%', left:'50%',
+        width:440, maxWidth:'92vw',
+        background:'#fff', borderRadius:16,
+        boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
+        zIndex:61, overflow:'hidden', fontFamily:'inherit',
+        animation: show ? 'cassaPopIn .22s cubic-bezier(.16,1,.3,1) both' : 'none',
+        transform:'translate(-50%, -50%)',
+      }}>
+        <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+          <div style={{fontSize: C.T_MD, fontWeight: 800, color: PN.TEXT}}>Annulla il conto</div>
+          <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>
+            {conto.tavolo} · {conto.cliente || conto.idOrdine}{eta ? ` · aperto ${eta}` : ''}
+          </div>
+        </div>
+
+        <div style={{padding:'16px 22px 4px', fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.55}}>
+          Il conto si chiude senza incasso: i {`€${Number(conto.daSaldare || 0).toFixed(2)}`} ancora
+          da saldare non entrano in cassa e <b>non si emette alcun documento</b>.
+          Il conto resta nel registro come annullato, e vale come ordine: scala
+          le transazioni del locale come tutti gli altri.
+        </div>
+
+        <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
+          <button onClick={onClose} style={{
+            flex:1, padding:'11px 16px', background: PN.WHITE,
+            border:`1px solid ${PN.BORDER}`, borderRadius:9,
+            fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+          }}>Torna indietro</button>
+          <button onClick={onConfirm} className="cassa-btn" style={{
+            flex:2, padding:'11px 16px', background: PN.TEXT, color:'#fff',
+            border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700,
+            cursor:'pointer', fontFamily:'inherit',
+          }}>Annulla il conto</button>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
 function ApriCassaModal({ open, onClose, onConfirm }) {
   const [amount, setAmount] = React.useState('');
   const [show, setShow] = React.useState(false);
@@ -1606,6 +1683,11 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   const [canale, setCanale] = React.useState('all'); // 'all' | 'asporto' | 'sala'
   const [modalPagamento, setModalPagamento] = React.useState(null);
   const [saldati, setSaldati] = React.useState(new Set());
+  // Annullare un conto non saldato lo chiude senza incasso (P-192): non nasce
+  // alcun documento, e il conto resta nel registro con quel nome. Vale come
+  // ordine e scala le transazioni del locale come tutti gli altri.
+  const [annullati, setAnnullati] = React.useState(new Set());
+  const [chiediAnnullo, setChiediAnnullo] = React.useState(null); // il conto in attesa di conferma
 
   // Le rettifiche vivono nel registro persistente (rettDi, in testa al file):
   // con D-20 ogni documento conosce le proprie righe, quindi il vecchio
@@ -1995,7 +2077,15 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                       {conto.stato === 'saldato' ? '—' : `€${conto.daSaldare.toFixed(2)}`}
                     </span>
                     <span style={{textAlign:'right'}} onClick={e => e.stopPropagation()}>
-                      {conto.stato === 'non_saldato' && !saldati.has(conto.id) && (
+                      {/* L'età del conto, accanto alle sue azioni: è la prima
+                          cosa che si guarda per decidere se annullarlo. */}
+                      {conto.stato === 'non_saldato' && !saldati.has(conto.id) && !annullati.has(conto.id) && contoEtaLabel(conto) && (
+                        <span data-conto-eta style={{
+                          display:'block', fontSize: C.T_XS, color: PN.MUTED,
+                          fontWeight: 600, marginBottom: 4,
+                        }}>{contoEtaLabel(conto)}</span>
+                      )}
+                      {conto.stato === 'non_saldato' && !saldati.has(conto.id) && !annullati.has(conto.id) && (
                         <button
                           onClick={() => setModalPagamento(conto)}
                           onMouseEnter={e => { e.currentTarget.style.background = '#2E333C'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(15, 17, 21, 0.30)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
@@ -2010,6 +2100,28 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                           }}>
                           Vai al conto
                         </button>
+                      )}
+                      {/* Annullare non è saldare: è chiudere senza incasso.
+                          Perciò non è un secondo pulsante pieno accanto al
+                          primo, ma la riga discreta sotto (P-192). */}
+                      {conto.stato === 'non_saldato' && !saldati.has(conto.id) && !annullati.has(conto.id) && (
+                        <button
+                          onClick={() => setChiediAnnullo(conto)}
+                          className="pn-btn-feedback"
+                          style={{
+                            display:'block', marginLeft:'auto', marginTop: 4,
+                            padding:'2px 0', background:'none', border:'none',
+                            color: PN.MUTED, fontSize: C.T_XS, fontWeight: 600,
+                            cursor:'pointer', fontFamily:'inherit',
+                          }}>Annulla il conto</button>
+                      )}
+                      {conto.stato === 'non_saldato' && annullati.has(conto.id) && (
+                        <span style={{
+                          display:'inline-flex', alignItems:'center', gap:6,
+                          padding:'4px 10px', borderRadius: C.R_PILL,
+                          background:'#F1F2F4', color: PN.MUTED,
+                          fontSize: C.T_XS, fontWeight:600,
+                        }}>Annullato</span>
                       )}
                       {conto.stato === 'non_saldato' && saldati.has(conto.id) && (
                         <span style={{
@@ -2176,6 +2288,18 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           }}
           onClose={() => setModalPagamento(null)}
           onConfirm={(esito) => { if (!esito || esito.saldato !== false) setSaldati(s => new Set([...s, modalPagamento.id])); }}
+        />
+      )}
+
+      {/* La conferma dell'annullo (P-192) */}
+      {chiediAnnullo && (
+        <AnnullaContoModal
+          conto={chiediAnnullo}
+          onClose={() => setChiediAnnullo(null)}
+          onConfirm={() => {
+            setAnnullati(a => new Set([...a, chiediAnnullo.id]));
+            setChiediAnnullo(null);
+          }}
         />
       )}
 

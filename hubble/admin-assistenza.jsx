@@ -39,10 +39,16 @@
 
 const { useState: useStateSrv, useMemo: useMemoSrv } = React;
 
-// Chi sta usando la console. Non riuso MY_ID della sezione Ticket: che le due
+// Chi sta usando la console è l'account collegato, non un identificativo
+// scritto qui (P-192): una pratica di ripristino la chiude una persona, e il
+// nome che resta a registro deve essere il suo. Stessa fonte delle estrazioni
+// in questo file — hubUtenteCorrente, che rispetta anche l'impersonazione
+// `?ruolo=` della demo. Non riuso MY_ID della sezione Ticket: che le due
 // sezioni abbiano lo stesso operatore è una coincidenza dei dati demo, non un
 // legame da rendere strutturale.
-const SRV_IO = 'support1';
+const srvIo = () => (typeof hubUtenteCorrente === 'function' ? hubUtenteCorrente() : {});
+const srvIoId = () => srvIo().id || null;
+const srvIoNome = () => { const me = srvIo(); return me.nomeCompleto || me.nome || '—'; };
 
 // ─── Estrazioni del registro operazioni (P-47 · D-38) ───────────────────────
 // Il comando: ristorante, periodo, motivo da elenco chiuso e nota. Chiede
@@ -392,11 +398,11 @@ function SrvRichiamate({ richiamate, setRichiamate }) {
         // fuori dal rapporto sulla puntualità, che si calcola sulle sole
         // chiamate a cui qualcuno ha risposto.
         return { ...r, stato:'persa', risposto:false,
-          tentativi:(r.tentativi || 0) + 1, operatore: SRV_IO, richiamataIl: adesso,
+          tentativi:(r.tentativi || 0) + 1, operatore: srvIoId(), richiamataIl: adesso,
           inTempo: adesso <= r.entro,
           noteOperatore: null, problemaCat: null, risolto: null, urgenza: null };
       }
-      return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: SRV_IO,
+      return { ...r, stato:'fatta', risposto:true, richiamataIl: adesso, operatore: srvIoId(),
         inTempo: adesso <= r.entro,
         problemaCat: esito.problemaCat, risolto: esito.risolto,
         urgenza: esito.risolto ? null : esito.urgenza,
@@ -2484,9 +2490,9 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
     const link = outcome === 'restored' ? { link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null } : {};
     onAggiorna({
       outcome, identity_check_method: metodo, identity_evidence_ref: evidenza.trim(), note: note.trim(),
-      verified_by: SRV_IO, verified_at: ora, ...link, ...(extra || {}),
+      verified_by: srvIoId(), verified_at: ora, ...link, ...(extra || {}),
     });
-    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: SRV_IO,
+    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: srvIoNome(),
       action: outcome === 'restored' ? 'ha ripristinato l\'accesso di' : outcome === 'refused' ? 'ha rifiutato il ripristino dell\'accesso di' : 'ha chiuso come ritirata la pratica di',
       target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: outcome === 'restored' ? 'OK' : 'DANGER', tipo: 'accessi', when: ora });
   };
@@ -2494,8 +2500,8 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
   const riemetti = () => {
     if (!puoAssistenza) return;
     const ora = new Date();
-    onAggiorna({ link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null, riemissioni: [...(r.riemissioni || []), { il: ora, da: SRV_IO }] });
-    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: SRV_IO, action: 'ha riemesso il collegamento di ripristino per', target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: 'WARN', tipo: 'accessi', when: ora });
+    onAggiorna({ link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null, riemissioni: [...(r.riemissioni || []), { il: ora, da: srvIoId() }] });
+    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: srvIoNome(), action: 'ha riemesso il collegamento di ripristino per', target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: 'WARN', tipo: 'accessi', when: ora });
   };
 
   const riga = (k, v) => (
@@ -2522,7 +2528,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
         {riga('Locale', `${r.localeNome} · ${r.localeCitta}`)}
         {riga('Canale della richiesta', SRV_RIPRISTINO_CANALI[r.request_channel])}
         {riga('Richiesta il', srvDataOra(r.richiestaIl))}
-        {!aperta && riga('Verificata da', `${r.verified_by} · ${srvDataOra(r.verified_at)} · traccia di responsabilità, non una metrica`)}
+        {!aperta && riga('Verificata da', `${(TEAM.find(t => t.id === r.verified_by) || {}).nomeCompleto || (TEAM.find(t => t.id === r.verified_by) || {}).nome || r.verified_by} · ${srvDataOra(r.verified_at)} · traccia di responsabilità, non una metrica`)}
       </AdmCard>
 
       <AdmCard padding={18}>
@@ -2551,7 +2557,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
               <label style={SRV_ETI}>Note</label>
               <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Cosa è stato verificato e come" style={SRV_TXT}/>
             </div>
-            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:10}}>Verifica registrata a nome di <b style={{color:ADM.TEXT}}>{SRV_IO}</b> (tu) · traccia di responsabilità, mai base di metriche.</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:10}}>Verifica registrata a nome di <b style={{color:ADM.TEXT}}>{srvIoNome()}</b> (tu) · traccia di responsabilità, mai base di metriche.</div>
           </React.Fragment>
         ) : (
           <React.Fragment>
