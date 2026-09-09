@@ -116,13 +116,19 @@ const ACC_PACCHETTI = [
   { id:'pack-l', nome:'Pacchetto L', ordini: 5000, prezzo: 249, etichetta:'Una tantum · miglior valore' },
 ];
 
+// Le fatture che BYUP emette al locale, col formato del modello: serie,
+// progressivo e anno (P-194), lo stesso di quelle che il locale emette ai suoi
+// clienti (FPR 65/26, in sala-fattura-modal.jsx). «INV-2025-0012» era una
+// sigla inglese con l'anno per esteso, di un anno che non è nemmeno quello del
+// prototipo. La disciplina chiede solo un progressivo che identifichi la
+// fattura in modo univoco: questo è coerenza interna, non un obbligo.
 const ACC_FATTURE = [
-  { num: 'INV-2025-0012', data: '01 Dic 2025', importo: 46.99, stato: 'Pagata' },
-  { num: 'INV-2025-0011', data: '01 Nov 2025', importo: 46.99, stato: 'Pagata' },
-  { num: 'INV-2025-0010', data: '01 Ott 2025', importo: 46.99, stato: 'Pagata' },
-  { num: 'INV-2025-0009', data: '01 Set 2025', importo: 46.99, stato: 'Pagata' },
-  { num: 'INV-2025-0008', data: '01 Ago 2025', importo: 46.99, stato: 'Pagata' },
-  { num: 'INV-2025-0007', data: '01 Lug 2025', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 12/26', data: '01 Set 2026', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 11/26', data: '01 Ago 2026', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 10/26', data: '01 Lug 2026', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 9/26',  data: '01 Giu 2026', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 8/26',  data: '01 Mag 2026', importo: 46.99, stato: 'Pagata' },
+  { num: 'FT 7/26',  data: '01 Apr 2026', importo: 46.99, stato: 'Pagata' },
 ];
 
 const ACC_SESSIONI = [

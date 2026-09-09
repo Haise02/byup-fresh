@@ -280,6 +280,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 
   // ── Ricavi per canale: le quote vengono dalle serie e si riportano ai
   //    ricavi del periodo, così i tre importi tornano al totale in testa.
+  //    I ricavi dalle piattaforme di consegna non ci sono (P-194): le
+  //    piattaforme sono predisposte e spente (D-106). Quando si accendono
+  //    entrano qui e in «Ordini per canale» (stat-ordini.jsx) come quarta
+  //    voce, con la loro tinta di PN_PARTNER.
   const CANALI = [
     { id:'sala',    label:'Sala',            icona:'place-table',     colore: PN.PINK,  serie: d.origine.sala },
     { id:'asporto', label:'Asporto',         icona:'commerce-bag',    colore: PN.GREEN, serie: d.origine.asporto },

@@ -73,6 +73,10 @@ const CASH_MOVEMENTS = Array.from({length: 12}).map((_, i) => {
   };
 });
 
+// I NUMERI DELL'IVA SONO D'ESEMPIO (P-194), e restano tali: qui servono a far
+// vedere il grafico e il riepilogo per aliquota. Nel modello, nei documenti e
+// nello sviluppo l'IVA a debito e a credito non si scrive: si ricava dai
+// documenti fiscali emessi e dai costi registrati, che sono la sola fonte.
 const IVA_MONTHLY = [
   { m:'Gen', deb: 8420, cred: 6210 },
   { m:'Feb', deb: 7850, cred: 5980 },

@@ -727,6 +727,11 @@ function ImpSalaTavoli() {
                       <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
                       <MenuItem icon={<BuIcons.trash size={14}/>} danger onClick={() => {
                         setSalaMenu(null);
+                        // Una sala deve restare (P-194): è un vincolo di
+                        // INTERFACCIA, non del modello — che non conosce una
+                        // sala «principale» né un minimo. Senza sale i tavoli
+                        // non avrebbero dove stare, e la schermata non
+                        // saprebbe cosa mostrare.
                         if (sale.length <= 1) {
                           setConfirmDialog({
                             title: 'Impossibile eliminare',

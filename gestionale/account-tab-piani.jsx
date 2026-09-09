@@ -335,6 +335,11 @@ function AccPianiAbbonamenti() {
             padding: 3, gap: 2,
             border: '1px solid #E5E7EB',
           }}>
+            {/* «Risparmia 15%» resta com'è per scelta del titolare (P-194):
+                sui quattro piani lo sconto vero va dal 13,5 al 14,5 per cento,
+                e il quindici è la cifra tonda con cui l'offerta si racconta.
+                Chi svilupperà il calcolo lo sappia: il badge non si ricava dai
+                prezzi, è scritto. */}
             {[
               { key:'monthly', label:'Mensile' },
               { key:'annual',  label:'Annuale', badge:'Risparmia 15%' },

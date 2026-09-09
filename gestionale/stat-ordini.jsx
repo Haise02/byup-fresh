@@ -8,6 +8,12 @@
 // qualunque numero, e i tempi medi condividono una scala, così il fatto
 // interessante (in sala ci vuole quasi il quadruplo) si vede invece di
 // doverlo calcolare. La quota la portano le pillole, il totale il sottotitolo.
+// TRE canali, non quattro: gli ordini che arrivano dalle piattaforme di
+// consegna non entrano qui (P-194), perché le piattaforme non sono collegate —
+// sono predisposte e spente (D-106). QUANDO LO SARANNO vanno aggiunte, qui e
+// in «Ricavi per canale» (stat-economici.jsx), senza rompere questo layout: la
+// barra in testa e le pillole reggono un quarto canale, i tempi medi no — il
+// tempo di una consegna non è confrontabile con quello di un tavolo.
 const CANALI_ORDINI = [
   { id:'sala',    label:'In sala',          sub:'Coperti seduti',    icona:'place-table',       colore: PN.WINE },
   { id:'asporto', label:'Asporto',          sub:'Ordini da ritirare', icona:'commerce-bag',     colore: PN.PINK },

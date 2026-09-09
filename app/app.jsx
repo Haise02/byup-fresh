@@ -564,52 +564,10 @@ function SelectChip({ label, active, onClick }) {
   );
 }
 
-// ─── Notifications panel ────────────────────────────────────
-function NotifSheet({ open, onClose }) {
-  if (!open) return null;
-  const items = [
-    { icon: BK.ASSETS.cat.pizza,    title: 'Al Settembrini', text: 'Ha pubblicato un nuovo menu di stagione', time: '2h' },
-    { icon: BK.ASSETS.hero.spritz,  title: 'Promo lampo', text: '-30% da Mario fino alle 22', time: '5h' },
-    { icon: BK.ASSETS.hero.froyo,   title: 'Nuova recensione', text: 'Hai ricevuto una risposta', time: '1g' },
-    { icon: BK.ASSETS.cat.brunch,   title: 'Promemoria', text: 'Cena prenotata domani alle 20:30', time: '1g' },
-  ];
-  return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 70,
-        animation: 'fade 0.2s ease',
-      }}/>
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 71,
-        background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '12px 0 20px', animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
-        maxHeight: '70%', overflowY: 'auto',
-      }}>
-        <div style={{ width: 40, height: 4, background: '#d0d0d0', borderRadius: 2, margin: '4px auto 14px' }}/>
-        <div style={{ padding: '0 20px 12px', fontFamily: BK.TYPE.display, fontSize: 20, fontWeight: 600, color: TEXT }}>Notifiche</div>
-        {items.map((n, i) => (
-          <div key={i} style={{
-            display: 'flex', gap: 12, alignItems: 'flex-start',
-            padding: '12px 20px', borderTop: `1px solid ${BORDER}`,
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 14, background: BG_GRAY,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}><img src={n.icon} width="26" height="26" alt=""/></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT }}>{n.title}</div>
-                <div style={{ fontSize: 12, color: MUTED, flexShrink: 0 }}>{n.time}</div>
-              </div>
-              <div style={{ fontSize: 13.5, color: MUTED, marginTop: 2 }}>{n.text}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
+// Il pannello delle notifiche non c'è più (P-194): nessun pulsante lo apriva,
+// e le sue quattro righe finte erano l'unica cosa che lo teneva in vita. Il
+// campanello porta alla POSTA, che è dove le notifiche vivono davvero — con
+// le loro sezioni e la loro storia, non in un foglio che si chiude.
 
 // ─── Schermata categoria: tutti i locali della categoria, 2 per riga ───
 const CAT_SCREEN_PHOTOS = {
@@ -2552,7 +2510,6 @@ function App({ recoveryArmed = false }) {
     setSavedBooking(null);
   };
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   // Recupero ordine: armato da Root al primo accesso post-registrazione (dopo i
   // popup permessi). `recoveryBannerOpen` = banner in alto (auto-rimosso a 5s);
   // `recoveryActive` = la notifica resta in Posta → Novità.
@@ -2834,7 +2791,6 @@ function App({ recoveryArmed = false }) {
         filters={filters} setFilters={setFilters}/>
 
       {/* Notifications */}
-      <NotifSheet open={notifOpen} onClose={() => setNotifOpen(false)}/>
 
       {/* Recupero ordine: popup codice + caricamento simulato */}
       {recoveryOverlays}

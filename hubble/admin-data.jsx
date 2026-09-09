@@ -67,15 +67,18 @@ const onbConfigFatti = (r) => {
 //   dormant     inattivo: nessuna operazione da un certo tempo (qui 30
 //               giorni), chiusure straordinarie escluse (P-46: un locale
 //               chiuso per ferie non è un locale fermo); l'abbonamento è acceso
-//   churned     cessato: fine del rapporto, per disdetta del locale (art. 5)
-//               o risoluzione di Byup (art. 4) — quale delle due lo dice il
-//               provvedimento, non questo campo
+//   churned     disdetto: il locale ha lasciato (art. 5). Se invece è stato
+//               Byup a risolvere il contratto (art. 4) lo dice il
+//               provvedimento, che si chiama «Risolto» (P-194)
 const LOC_CICLO_VITA = {
   registered: { label: 'Iscritto',      color: 'INFO' },
   onboarding: { label: 'In onboarding', color: 'WARN' },
   active:     { label: 'Attivo',        color: 'OK' },
   dormant:    { label: 'Inattivo',      color: 'PLAN_FREE' },
-  churned:    { label: 'Cessato',       color: 'DANGER' },
+  // «Disdetto» e non «Cessato» (P-194): il ciclo di vita racconta il locale
+  // che ha LASCIATO. Quello a cui Byup ha risolto il contratto lo dice il
+  // provvedimento, con la sua parola — «Risolto».
+  churned:    { label: 'Disdetto',      color: 'DANGER' },
 };
 
 // Listino allineato a quello del gestionale (ACC_PIANI in gestionale/account-data.jsx),
@@ -1632,7 +1635,7 @@ const ADM_PROVVEDIMENTI = {
   none:       { label: 'Nessuno',  color: 'OK' },
   limited:    { label: 'Limitato', color: 'WARN' },
   suspended:  { label: 'Sospeso',  color: 'DANGER' },
-  terminated: { label: 'Cessato',  color: 'INK' },
+  terminated: { label: 'Risolto',  color: 'INK' },
 };
 function admProvvedimentoRiga(l) {
   const vive = SOSPENSIONI.filter(x => x.soggettoId === l.id && !x.revoca);

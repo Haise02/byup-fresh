@@ -132,6 +132,10 @@ const STAFF = (() => {
 
     // Le statistiche da sala esistono solo per chi ha un'utenza CAMERIERE:
     // sono loro a prendere ordini, servire coperti e ricevere mance.
+    // RESTANO CALCOLATE anche se Hubble non le mostra (P-194): servono alle
+    // Statistiche del gestionale, dove il locale le legge come datore di
+    // lavoro (D-30). Non è codice morto: chi facesse pulizia togliendole
+    // toglierebbe il dato a un'altra superficie.
     if (ruolo === 'cameriere') {
       membro.scontrinoMedio = 14 + Math.round(rnd() * 52) / 2;          // 14–40 €, a mezzi euro
       membro.manciaMedia = Math.round((0.8 + rnd() * 3.4) * 10) / 10;   // 0,80–4,20 €
