@@ -334,8 +334,12 @@ function SubStepInfo({venue, v, pronto}) {
             border: '1px solid rgba(16, 185, 129, 0.25)',
             fontSize: 15, color: ONB.TEXT, lineHeight: 1.45,
           }}>
+            {/* Le due parti del premio non sono la stessa cosa (P-192): chi
+                arriva ha i mesi, chi ha invitato ha gli ordini. Le cifre sono
+                quelle di ACC_REFERRAL, che qui non c'è: si scrivono, e la
+                schermata dei piani resta la fonte. */}
             Con questo codice hai <b>2 mesi gratis</b> quando attivi un abbonamento —
-            e due vanno a chi te l'ha passato.
+            e chi te l'ha passato riceve <b>3.500 ordini senza scadenza</b>.
           </div>
         )}
       </OnbCard>

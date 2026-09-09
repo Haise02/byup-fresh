@@ -295,6 +295,15 @@ function AcPayAddModal({ onClose, onAdd }) {
 }
 
 function AccFatturazione() {
+  // Il piano attivo, dal listino (P-192): l'importo della prossima fattura e
+  // quello che si perde disdicendo si leggono da lì, non si scrivono a mano.
+  const acPianoAttivo = (window.accPianoCorrente ? window.accPianoCorrente() : null) || {};
+  // Il supporto telefonico non è di tutti i piani: chi non ce l'ha non può
+  // perderlo, e dirglielo è una minaccia inventata. Stesso condizionale della
+  // schermata dei piani, che legge `supPhone`.
+  const acCosePerse = ['i menu digitali extra', 'i membri staff aggiuntivi']
+    .concat(acPianoAttivo.supPhone ? ['il supporto telefonico'] : []);
+  const acTestoPerdi = `Perderai ${acCosePerse.slice(0, -1).join(', ')} e ${acCosePerse[acCosePerse.length - 1]} inclusi nel tuo piano.`;
   const [metodi, setMetodi] = React.useState([
     { id: 1, brand: 'visa', last4: '4242', exp: '09/27', holder: 'Mario Rossi' },
   ]);
@@ -325,6 +334,7 @@ function AccFatturazione() {
   const [cancelText, setCancelText] = React.useState('');
   const [motivi, setMotivi] = React.useState([]);
   const [motivoNota, setMotivoNota] = React.useState('');
+  const [motivoAltro, setMotivoAltro] = React.useState(''); // il testo di «altro» (P-192)
   const MOTIVI = [
     { id:'prezzo',      label:'Costa troppo per quanto lo usiamo' },
     { id:'poco_uso',    label:'Non lo usiamo abbastanza' },
@@ -334,6 +344,9 @@ function AccFatturazione() {
     { id:'tecnico',     label:'Problemi tecnici o lentezza' },
     { id:'assistenza',  label:'Assistenza non all\'altezza' },
     { id:'chiusura',    label:'Chiusura o stagionalità del locale' },
+    // «Altro» chiude l'elenco (P-192): otto motivi non coprono tutti i modi di
+    // andarsene, e senza questa voce chi non si riconosce ne spunta uno a caso.
+    { id:'altro',       label:'Altro' },
   ];
   const toggleMotivo = (id) => setMotivi(m => m.includes(id) ? m.filter(x => x !== id) : [...m, id]);
   const CANCEL_PHRASE = 'Annulla abbonamento';
@@ -501,9 +514,15 @@ function AccFatturazione() {
               Prossima fattura
             </span>
           </div>
+          {/* L'importo è quello del piano attivo, preso dal listino (P-192):
+              scritto a mano diceva una cifra che nel listino non esiste. «IVA
+              esclusa» accanto, perché il prezzo del listino è al netto e la
+              fattura che arriva è più alta. */}
           <div style={{display:'flex', alignItems:'baseline', gap: 8}}>
-            <span style={{fontSize: 18, fontWeight: 800, color: AC_FATTURA_INK}}>€49,00</span>
-            <span style={{fontSize: 14, color: AC_FATTURA_INK, opacity: 0.75}}>· 1 Gennaio 2026</span>
+            <span style={{fontSize: 18, fontWeight: 800, color: AC_FATTURA_INK}}>
+              €{Number(acPianoAttivo.prezzo || 0).toFixed(2).replace('.', ',')}
+            </span>
+            <span style={{fontSize: 14, color: AC_FATTURA_INK, opacity: 0.75}}>IVA esclusa · 1 Gennaio 2026</span>
           </div>
         </div>
 
@@ -554,7 +573,7 @@ function AccFatturazione() {
           non è un bottone come gli altri. */}
       <AcDangerZone
         titolo="Annulla abbonamento"
-        testo="Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano."
+        testo={acTestoPerdi}
         nota="L'abbonamento resta attivo fino alla fine del periodo già pagato: dopo, l'account passa al piano Gratuito."
         cta="Annulla abbonamento"
         onCta={() => setCancelStep('motivi')}
@@ -581,6 +600,16 @@ function AccFatturazione() {
                 </label>
               );
             })}
+            {/* Spuntato «altro», il campo che lo spiega si apre qui sotto e
+                non è più facoltativo: è l'unica cosa che quel motivo dice. */}
+            {motivi.includes('altro') && (
+              <div style={{marginTop: 6}}>
+                <div style={MODAL_LABEL}>Qual è il motivo?</div>
+                <textarea value={motivoAltro} onChange={e => setMotivoAltro(e.target.value)}
+                  placeholder="Raccontacelo in una riga"
+                  style={{...MODAL_INPUT, minHeight: 60, resize:'vertical', fontSize: 15}}/>
+              </div>
+            )}
             <div style={{marginTop: 6}}>
               <div style={MODAL_LABEL}>Vuoi aggiungere qualcosa? (facoltativo)</div>
               <textarea value={motivoNota} onChange={e => setMotivoNota(e.target.value)}
@@ -592,15 +621,21 @@ function AccFatturazione() {
             <button onClick={closeCancel} style={AcBtnGhost}>Torna indietro</button>
             {/* Almeno un motivo: è l'unica cosa che chiediamo in cambio, e
                 senza non ha senso aver aperto questa finestra. */}
-            <button onClick={() => setCancelStep('confirm')} disabled={motivi.length === 0} style={{
+            {(() => {
+              // Scegliere «altro» e non dire quale è come non aver scelto.
+              const pronto = motivi.length > 0 && (!motivi.includes('altro') || motivoAltro.trim().length > 0);
+              return (
+            <button onClick={() => setCancelStep('confirm')} disabled={!pronto} style={{
               padding: '9px 16px', borderRadius: 999, border: 'none',
-              background: motivi.length ? PN.BTN_DARK : PN.WHITE_FROST,
-              color: motivi.length ? PN.WHITE : PN.MUTED_SOFT,
+              background: pronto ? PN.BTN_DARK : PN.WHITE_FROST,
+              color: pronto ? PN.WHITE : PN.MUTED_SOFT,
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit',
-              cursor: motivi.length ? 'pointer' : 'not-allowed',
-              boxShadow: motivi.length ? PN.INSET_HIGHLIGHT_DARK : 'none',
+              cursor: pronto ? 'pointer' : 'not-allowed',
+              boxShadow: pronto ? PN.INSET_HIGHLIGHT_DARK : 'none',
               transition: 'background 200ms, color 200ms',
             }}>Continua</button>
+              );
+            })()}
           </AcPayModalFoot>
         </AcPayModal>
       )}
@@ -620,7 +655,7 @@ function AccFatturazione() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={AC_FATTURA_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
                 <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano.
+              {acTestoPerdi}
             </div>
           </AcPayModalBody>
           <AcPayModalFoot>

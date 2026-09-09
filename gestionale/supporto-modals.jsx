@@ -44,7 +44,9 @@ function SupChatWidget({ open, onClose, onEmail, onCall }) {
       if (lower.includes('pagament') || lower.includes('stripe')) reply = 'Per i pagamenti vai in Account → Pagamenti e fatturazione. Da lì colleghi Stripe Connect. Le commissioni sono 1,5% (Premium) + Stripe (1,5% + 0,25€). Vuoi che ti apra la guida?';
       else if (lower.includes('menu') || lower.includes('menù') || lower.includes('piatti')) reply = 'Per gestire il menù vai in Cucina → Menù. Puoi aggiungere, modificare o disattivare piatti in tempo reale. Le modifiche sono visibili in vetrina entro 30 secondi.';
       else if (lower.includes('staff') || lower.includes('camerieri') || lower.includes('cuoco')) reply = 'Aggiungi membri dello staff in Account → Staff → Invita membro. Scegli il ruolo (Admin, Cuoco, Cameriere, Sola lettura) e ti invierò l\'invito via email.';
-      else if (lower.includes('prenot')) reply = 'Le prenotazioni le gestisci in Sala & Prenotazioni → Calendario. byup invia automaticamente i promemoria al cliente 24h e 2h prima.';
+      // Un promemoria solo, un'ora prima (P-192): è quello che l'app dichiara
+      // al cliente, e le due superfici devono dire la stessa cosa.
+      else if (lower.includes('prenot')) reply = 'Le prenotazioni le gestisci in Sala & Prenotazioni → Calendario: arrivano già confermate, e byup manda al cliente un promemoria un\'ora prima.';
       else if (lower.includes('grazie') || lower.includes('ok')) reply = 'Felice di averti aiutato! Se hai altre domande sono qui.';
       setMessages(m => [...m, { from:'bot', text: reply, time: t }]);
     }, 1100);
