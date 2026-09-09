@@ -32,8 +32,13 @@ const TT_ACCENTS = {
                seat: 'rgba(255, 90, 95, 0.22)',  back: 'rgba(227, 36, 89, 0.36)' },
   dapulire:  { tint: 'rgba(217, 119, 6, 0.14)',  ring: 'rgba(217, 119, 6, 0.42)',  ink: '#B45309',
                seat: 'rgba(217, 119, 6, 0.22)',  back: 'rgba(217, 119, 6, 0.36)' },
+  // «Fuori uso» non è uno stato del servizio (P-193 · D-141): libero,
+  // occupato, prenotato e da liberare raccontano il turno, un tavolo tolto per
+  // la stagione è un'altra cosa e si spegne — grigio, senza colore di stato.
+  fuoriuso:  { tint: 'rgba(15, 17, 21, 0.05)',   ring: 'rgba(15, 17, 21, 0.18)',   ink: '#6B7280',
+               seat: 'rgba(15, 17, 21, 0.10)',   back: 'rgba(15, 17, 21, 0.16)' },
 };
-const TT_LABELS = { libero: 'Libero', prenotato: 'Prenotato', occupato: 'Occupato', dapulire: 'Da liberare' };
+const TT_LABELS = { libero: 'Libero', prenotato: 'Prenotato', occupato: 'Occupato', dapulire: 'Da liberare', fuoriuso: 'Fuori uso' };
 
 // Forma derivata dai posti: 2-5 square · 6+ rect.
 // (La shape 'round' è stata ritirata: sotto il 120% di zoom la label di

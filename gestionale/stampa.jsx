@@ -83,6 +83,25 @@ const PN_PRINTER_MODELLI = {
   star:  { nome: 'Star Micronics', protocollo: 'cloudprnt', modelli: ['TSP143IV', 'TSP100IV SK', 'mC-Print2', 'mC-Print3', 'mC-Label3'] },
   epson: { nome: 'Epson',          protocollo: 'server_direct_print', modelli: ['TM-m30III', 'TM-m30II', 'TM-m50II', 'TM-T88VII', 'TM-T88VI'] },
 };
+// La MISURA DELLA CARTA (P-193 · D-148): il layout della comanda e del
+// documento la usano per sapere quanti caratteri stanno su una riga. Il
+// dizionario la propone per i dieci modelli che conosciamo, ma resta
+// cambiabile: a contare per il collegamento è il protocollo, non il modello, e
+// una stampante che non conosciamo si collega lo stesso.
+const PN_CARTA_MISURE = [
+  { id: '58', mm: 58, colonne: 32, label: '58 mm · 32 caratteri' },
+  { id: '80', mm: 80, colonne: 48, label: '80 mm · 48 caratteri' },
+];
+// I modelli stretti sono quelli da 58: gli altri dei due elenchi sono da 80.
+const PN_CARTA_PER_MODELLO = { 'mC-Print2': '58', 'mC-Label3': '58' };
+window.PN_CARTA_MISURE = PN_CARTA_MISURE;
+window.pnCartaProposta = function (device_model) {
+  return PN_CARTA_PER_MODELLO[device_model] || '80';
+};
+window.pnCartaLabel = function (id) {
+  const m = PN_CARTA_MISURE.find(x => x.id === String(id));
+  return m ? m.label : '—';
+};
 const PN_PRINTER_PROTOCOLLI = {
   cloudprnt:           { label: 'CloudPRNT',           breve: 'CloudPRNT', chiave: 'indirizzo MAC (la stampante lo presenta da sé al primo sondaggio)', url: 'https://print.byup.it/cloudprnt/' },
   server_direct_print: { label: 'Server Direct Print', breve: 'SDP',       chiave: 'identificativo impostato sulla stampante (ID del server)',          url: 'https://print.byup.it/sdp/' },
@@ -150,10 +169,12 @@ const pnStampantiSeme = () => ({
     { id: 'prn-1', type: 'printer', name: 'Cucina', device_model: 'TSP143IV', printer_vendor: 'star',
       printer_protocol: 'cloudprnt', cloud_client_id: '00:11:62:4F:A3:9C', poll_interval_seconds: 5,
       connection_status: 'online', connection_checked_at: pnIsoFa(9), venue_id: 'cp', use: 'comande', pos_ids: [],
+      paper_width: '80',
       routing: ['principale:antipasti', 'principale:primi', 'principale:secondi'], last_test_print_at: pnIsoFa(2 * 86400 + 3600), last_test_print_result: 'ok' },
     { id: 'prn-2', type: 'printer', name: 'Bar', device_model: 'TM-m30III', printer_vendor: 'epson',
       printer_protocol: 'server_direct_print', cloud_client_id: 'cp-bar-01', poll_interval_seconds: 5,
       connection_status: 'online', connection_checked_at: pnIsoFa(4), venue_id: 'cp', use: 'comande', pos_ids: [],
+      paper_width: '80',
       routing: ['principale:bevande', 'principale:dolci'], last_test_print_at: null, last_test_print_result: null },
   ],
   print_jobs: [],

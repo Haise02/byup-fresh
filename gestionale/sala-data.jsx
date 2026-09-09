@@ -214,6 +214,12 @@ const SALA_TAVOLI = [
     note: { tipo:'evento', testo:'Aziendale' },
     nextReservation: { time: '21:00', name: 'Rick Sanchez', posti: 8, inMin: 15 },
     minutiAllaPrenotazione: 15 },
+
+  // Il tavolo tolto per la stagione (P-193 · D-141): `attivo: false` è un asse
+  // diverso dallo stato del servizio — non è né libero né occupato, è che in
+  // sala non c'è. Si spegne da Impostazioni → Sala e tavoli, e qui non si può
+  // aprire. Gli altri non portano il campo: senza, un tavolo è attivo.
+  { id: 19, state: 'libero', posti: 4, attivo: false, ordini: [] },
 ];
 
 // Conti aperti

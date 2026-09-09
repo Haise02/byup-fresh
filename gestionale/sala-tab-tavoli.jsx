@@ -70,8 +70,11 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
     bumpAttesa(n => n + 1);
   }
 
-  // Esclude i tavoli "uniti" (mergedWith): non sono entità autonome, fanno parte del source.
-  const tavoliBase = (window.SALA_TAVOLI || SALA_TAVOLI).filter(t => !t.mergedWith);
+  // Esclude i tavoli "uniti" (mergedWith): non sono entità autonome, fanno
+  // parte del source. Ed esclude i tavoli spenti (P-193 · D-141): `attivo:
+  // false` è il tavolo tolto per la stagione — non è uno stato del servizio,
+  // è che in sala non c'è, e non deve né contarsi né aprirsi.
+  const tavoliBase = (window.SALA_TAVOLI || SALA_TAVOLI).filter(t => !t.mergedWith && t.attivo !== false);
   const counts = {
     Tutti: tavoliBase.length,
     Liberi: tavoliBase.filter(t=>t.state==='libero').length,

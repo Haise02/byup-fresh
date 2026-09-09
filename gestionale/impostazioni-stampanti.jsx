@@ -82,7 +82,11 @@ function ImpStampantiBlocco({ inline, colonne }) {
   // e azione appoggiata in fondo. Una tessera per stampante collegata, più la
   // tessera d'ingresso che apre il popup.
   const griglia = { display: 'grid', gridTemplateColumns: `repeat(${colonne || 3}, 1fr)`, gap: 12 };
-  const SOTTO = 'Comande e documenti del cliente escono dalle stampanti collegate al nostro server. Le comande non hanno ripiego: se la stampante non risponde, la cucina lavora dal monitor. I documenti sì: si stampano dal browser della postazione.';
+  // Nessuna destinazione di ripiego (P-193 · D-147): quando una stampante non
+  // risponde la comanda non si dirotta su un'altra — si avvisa, con la fascia
+  // trasversale che già esiste. Un secondo indirizzo dove mandarla farebbe
+  // uscire la comanda dove nessuno la aspetta, e il difetto resterebbe muto.
+  const SOTTO = 'Comande e documenti del cliente escono dalle stampanti collegate al nostro server. Le comande non hanno ripiego: se la stampante non risponde, la cucina lavora dal monitor e il gestionale lo dice in sala. I documenti sì: si stampano dal browser della postazione.';
   // Senza card il blocco porta da sé la riga che spiega le due vie: è la
   // stessa frase del sottotitolo, e senza di essa il passo non direbbe più
   // perché una stampante serve e l'altra no.
@@ -175,6 +179,7 @@ function TesseraStampante({ d, uso, sola, onConfigura, onScollega }) {
       </div>
       <div style={{ fontSize: 14.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>
         {marca ? `${marca} ` : ''}{d.device_model}
+        {d.paper_width && <span style={{ color: PN.MUTED_SOFT }}> · {window.pnCartaLabel(d.paper_width)}</span>}
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 14 }}>
@@ -388,6 +393,12 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
   const [routing, setRouting] = React.useState(() => new Set(device ? (device.routing || []) : []));
   const [posScelti, setPosScelti] = React.useState(() => new Set(device ? (device.pos_ids || []) : []));
   const [autoPrint, setAutoPrint] = React.useState(() => !!window.byupAutoPrintRicevuta());
+  // La misura della carta (P-193 · D-148): il dizionario la propone dal
+  // modello, ma resta una scelta — per il collegamento conta il protocollo, e
+  // un modello che non conosciamo si collega comunque.
+  const [carta, setCarta] = React.useState(() => (device && device.paper_width)
+    ? String(device.paper_width)
+    : window.pnCartaProposta(base.device_model));
   const [prova, setProva] = React.useState('idle');     // idle | corso | ok | ko
   const marca = (window.PN_PRINTER_MODELLI[base.printer_vendor] || {}).nome || base.printer_vendor;
   const proto = (window.PN_PRINTER_PROTOCOLLI[base.printer_protocol] || {});
@@ -428,7 +439,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
     if (uso === 'documenti' && window.byupProvaStampaDocumenti) window.byupProvaStampaDocumenti();
     if (device) {
       window.byupStampantePatch(device.id, {
-        name: n, use: uso,
+        name: n, use: uso, paper_width: carta,
         routing: uso === 'comande' ? [...routing] : [],
         pos_ids: uso === 'documenti' ? [...posScelti] : [],
       });
@@ -438,6 +449,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
       window.byupStampanteAggiungi({
         id, type: 'printer', name: n, device_model: candidata.device_model, printer_vendor: candidata.printer_vendor,
         printer_protocol: candidata.printer_protocol, cloud_client_id: candidata.cloud_client_id,
+        paper_width: carta,
         poll_interval_seconds: 5, connection_status: 'online', connection_checked_at: new Date().toISOString(),
         venue_id: IMP_PRN_SEDE, use: uso, pos_ids: [], routing: uso === 'comande' ? [...routing] : [],
         last_test_print_at: prova === 'ok' ? new Date().toISOString() : null, last_test_print_result: prova === 'ok' ? 'ok' : null,
@@ -516,6 +528,21 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>{u.label}</div>
                   <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45 }}>{u.nota}</div>
                 </button>
+              );
+            })}
+          </div>
+        </ImpField>
+
+        <ImpField label="Misura della carta" hint={`Proposta dal modello ${base.device_model}: cambiala se questa stampante monta un rotolo diverso. Decide quanti caratteri stanno su una riga.`}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {(window.PN_CARTA_MISURE || []).map(m => {
+              const on = carta === m.id;
+              return (
+                <button key={m.id} data-carta={m.id} onClick={() => setCarta(m.id)} style={{
+                  padding: '11px 14px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: on ? '#F4F5F7' : PN.WHITE,
+                  fontSize: 15, fontWeight: on ? 700 : 600, color: PN.TEXT,
+                }}>{m.label}</button>
               );
             })}
           </div>

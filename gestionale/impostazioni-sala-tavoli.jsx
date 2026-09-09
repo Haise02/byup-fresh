@@ -61,7 +61,6 @@ function normalizzaNomeTavolo(name) {
 const TAVOLI_INIT = Array.from({length: 8}).map((_, i) => ({
   id: i + 1,
   name: `Tavolo ${i+1}`,
-  alias: '',
   coperti: [2,4,2,6,4,2,4,8][i],
   disabled: i === 1, // tavolo 2 disattivato
   shape: ['round','square','rect','round','square','round','rect','rect'][i],
@@ -156,6 +155,16 @@ function ImpSalaTavoli() {
     return () => ['byup-locale-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
   }, [sede.id]);
   const [editSala, setEditSala] = React.useState(null); // {id?, name, active} per nuova/edit
+  // Riordino delle sale (P-193): su e giù di un posto. L'ordine è quello
+  // dell'elenco, e lo stesso che vedrà chi lavora in sala.
+  const spostaSala = (id, delta) => setSale(prev => {
+    const i = prev.findIndex(x => x.id === id);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= prev.length) return prev;
+    const next = [...prev];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  });
   const [salaMenu, setSalaMenu] = React.useState(null);
   const [view, setView] = React.useState('lista');
   const [selected, setSelected] = React.useState(new Set());
@@ -403,7 +412,7 @@ function ImpSalaTavoli() {
     }
     const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
     const name = nextGlobalTavoloName(sale);
-    const newT = { id: newId, name, alias: '', coperti: 4, shape: 'square', disabled: false, pos };
+    const newT = { id: newId, name, coperti: 4, shape: 'square', disabled: false, pos };
     setTavoli(prev => [...prev, newT]);
     setCreatingTable(newId);
   };
@@ -416,7 +425,6 @@ function ImpSalaTavoli() {
     const newTavoli = names.map((name, i) => ({
       id: baseId + 1 + i,
       name,
-      alias: '',
       coperti: config.coperti,
       shape: config.shape || 'square',
       disabled: false,
@@ -557,7 +565,10 @@ function ImpSalaTavoli() {
 
   // Filter + sort lista
   let visible = [...tavoli];
-  if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || (t.alias||'').toLowerCase().includes(search.toLowerCase()));
+  // Si cerca per nome, cioè per numero (P-193): l'alias non esiste più — il
+  // nome lo dà il sistema nella forma «Tavolo N», e un secondo nome libero
+  // faceva due identità per la stessa cosa.
+  if (search) visible = visible.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
   if (filterStato === 'attivi') visible = visible.filter(t => !t.disabled);
   if (filterStato === 'fuoriuso') visible = visible.filter(t => t.disabled);
   visible.sort((a,b) => naturalCompare(a.name, b.name));
@@ -697,6 +708,19 @@ function ImpSalaTavoli() {
                       boxShadow: '0 8px 24px rgba(0,0,0,0.1)', padding: 6,
                     }}>
                       <MenuItem icon={<BuIcons.edit size={14}/>} onClick={() => { setEditSala({...s}); setSalaMenu(null); }}>Modifica sala</MenuItem>
+                      {/* L'ordine delle sale è quello in cui si lavora, non
+                          quello in cui sono state create (P-193): la sala che
+                          si apre per prima sta in cima, e ci si arriva con due
+                          frecce invece che rifacendole tutte. */}
+                      {sale.length > 1 && <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>}
+                      {sale.length > 1 && (
+                        <MenuItem icon={<span style={{display:'inline-flex', transform:'rotate(-90deg)'}}><PnI.ChevronRight size={12}/></span>}
+                          onClick={() => { spostaSala(s.id, -1); setSalaMenu(null); }}>Sposta su</MenuItem>
+                      )}
+                      {sale.length > 1 && (
+                        <MenuItem icon={<span style={{display:'inline-flex', transform:'rotate(90deg)'}}><PnI.ChevronRight size={12}/></span>}
+                          onClick={() => { spostaSala(s.id, 1); setSalaMenu(null); }}>Sposta giù</MenuItem>
+                      )}
                       <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
                       <MenuItem icon={<BuIcons.trash size={14}/>} danger onClick={() => {
                         setSalaMenu(null);
@@ -789,7 +813,7 @@ function ImpSalaTavoli() {
                     <span style={{position:'absolute', left: 11, top:'50%', transform:'translateY(-50%)', display:'inline-flex', color: PN.MUTED}}><BuIcons.search size={13}/></span>
                     <input
                       value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Cerca tavolo per nome o alias…"
+                      placeholder="Cerca tavolo per numero…"
                       style={{
                         width:'100%', padding:'9px 12px 9px 34px',
                         border:`1px solid ${PN.BORDER}`, borderRadius: 8,
@@ -809,7 +833,7 @@ function ImpSalaTavoli() {
                     // Crea tavolo a posizione di default e apri popover
                     const center = { x: 4, y: 2.5 };
                     const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
-                    setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), alias: '', coperti: 4, shape: 'square', disabled: false, pos: center }]);
+                    setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, shape: 'square', disabled: false, pos: center }]);
                     setCreatingTable(newId);
                   }}>
                     Aggiungi tavolo
@@ -912,7 +936,7 @@ function ImpSalaTavoli() {
                     <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                       const center = { x: 4, y: 2.5 };
                       const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
-                      setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), alias: '', coperti: 4, shape: 'square', disabled: false, pos: center }]);
+                      setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, shape: 'square', disabled: false, pos: center }]);
                       setCreatingTable(newId);
                     }}>
                       Aggiungi tavolo
@@ -1728,6 +1752,10 @@ function SalaModal({ sala, onSave, onClose }) {
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
         <div style={MODAL_BODY}>
+          {/* Il nome è modificabile per tutte le sale, anche la prima (P-193):
+              «Sala principale» è il nome con cui nasce, non un'etichetta di
+              sistema. Quello che la prima sala non fa è sparire — il vincolo
+              di non cancellabilità resta, ed è un vincolo d'interfaccia. */}
           <ImpField label="Nome sala">
             <input
               value={name} onChange={e => setName(e.target.value)} autoFocus
@@ -2065,14 +2093,14 @@ function ImportPlanModal({ onClose, onImport }) {
   // Mock generato dall'AI
   const generated = {
     tavoli: [
-      { id: 101, name: 'Tavolo 1', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1, y: 1} },
-      { id: 102, name: 'Tavolo 2', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3, y: 1} },
-      { id: 103, name: 'Tavolo 3', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5, y: 1} },
-      { id: 104, name: 'Tavolo 4', alias:'', coperti: 6, shape: 'rect', disabled: false, pos: {x: 7, y: 1} },
-      { id: 105, name: 'Tavolo 5', alias:'', coperti: 2, shape: 'round', disabled: false, pos: {x: 1.5, y: 3} },
-      { id: 106, name: 'Tavolo 6', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 3.5, y: 3} },
-      { id: 107, name: 'Tavolo 7', alias:'', coperti: 4, shape: 'square', disabled: false, pos: {x: 5.5, y: 3} },
-      { id: 108, name: 'Tavolo 8', alias:'', coperti: 8, shape: 'rect', disabled: false, pos: {x: 7.5, y: 3} },
+      { id: 101, name: 'Tavolo 1', coperti: 2, shape: 'round', disabled: false, pos: {x: 1, y: 1} },
+      { id: 102, name: 'Tavolo 2', coperti: 4, shape: 'square', disabled: false, pos: {x: 3, y: 1} },
+      { id: 103, name: 'Tavolo 3', coperti: 4, shape: 'square', disabled: false, pos: {x: 5, y: 1} },
+      { id: 104, name: 'Tavolo 4', coperti: 6, shape: 'rect', disabled: false, pos: {x: 7, y: 1} },
+      { id: 105, name: 'Tavolo 5', coperti: 2, shape: 'round', disabled: false, pos: {x: 1.5, y: 3} },
+      { id: 106, name: 'Tavolo 6', coperti: 4, shape: 'square', disabled: false, pos: {x: 3.5, y: 3} },
+      { id: 107, name: 'Tavolo 7', coperti: 4, shape: 'square', disabled: false, pos: {x: 5.5, y: 3} },
+      { id: 108, name: 'Tavolo 8', coperti: 8, shape: 'rect', disabled: false, pos: {x: 7.5, y: 3} },
     ],
     furniture: [
       { id: 'fai-1', kind: 'kitchen', label:'Cucina', x: 0.2, y: 4.4, w: 2.5, h: 1.4, color:'#7c2436', textColor:'#FFF' },
