@@ -175,14 +175,20 @@ const ALLERGENS = (window.ByupKit.ALLERGENI || []).reduce(function (m, a) {
   return m;
 }, {});
 
-function AllergenDots({ ids, onTap, max }) {
+// `decongelato` (P-193 · D-152) viaggia con gli allergeni perché si comporta
+// come loro: un bollino accanto al nome che, toccato, dice cos'è. Non È un
+// allergene — sta fuori dal dizionario e ha il suo segno.
+const DECONGELATO_DOT = { label: 'Decongelato', icon: '❄️' };
+
+function AllergenDots({ ids, onTap, max, decongelato }) {
   const [openId, setOpenId] = useState(null);
-  const shown = max ? ids.slice(0, max) : ids;
-  const extra = max ? Math.max(0, ids.length - max) : 0;
+  const voci = (ids || []).map(id => ({ key: id, ...ALLERGENS[id] })).filter(v => v.label)
+    .concat(decongelato ? [{ key: '__decongelato', ...DECONGELATO_DOT }] : []);
+  const shown = max ? voci.slice(0, max) : voci;
+  const extra = max ? Math.max(0, voci.length - max) : 0;
   return (
     <div style={{ display: 'flex', gap: 6, rowGap: 6, flexWrap: 'wrap', position: 'relative', minWidth: 0 }}>
-      {shown.map(id => {
-        const a = ALLERGENS[id]; if (!a) return null;
+      {shown.map(({ key: id, ...a }) => {
         const isOpen = openId === id;
         return (
           <span key={id} style={{ position: 'relative' }}>
@@ -256,7 +262,7 @@ const DISHES_SEME = {
     { id: 'a2', name: 'Impepata di cozze', price: 18, kind: 'cozze', photo: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&q=70&auto=format&fit=crop',
       desc: 'Impepata di cozze nostrane, fresche di giornata, origine Italia.',
       longDesc: 'Cozze nostrane fresche di giornata cotte con aglio, olio extravergine, prezzemolo e pepe nero macinato. Servite con crostini di pane casereccio tostato.',
-      prep: 18, allergens: ['pesce','crostacei','glutine','lattosio'], bestSeller: true, tone: 'b',
+      prep: 18, allergens: ['pesce','crostacei','glutine','lattosio'], decongelato: true, bestSeller: true, tone: 'b',
       ingredients: ['Aglio', 'Prezzemolo', 'Pepe nero', 'Crostini'],
       extras: [{ id: 'e1', name: 'Crostini extra', price: 2 }, { id: 'e2', name: 'Limone bio', price: 0.5 }],
       variants: [{ id: 'piccante', label: 'Piccantezza', options: ['Normale', 'Piccante', 'Molto piccante'] }],
@@ -1598,7 +1604,7 @@ function MenuScreen({ state, setState, goTo }) {
                         </div>
                         {d.allergens.length > 0 && (
                           <div style={{ marginBottom: 10 }}>
-                            <AllergenDots ids={d.allergens}/>
+                            <AllergenDots ids={d.allergens} decongelato={d.decongelato}/>
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -3087,7 +3093,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {dish.allergens.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
               <span style={{ fontSize: 11.5, color: MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>Allergeni</span>
-              <AllergenDots ids={dish.allergens}/>
+              <AllergenDots ids={dish.allergens} decongelato={dish.decongelato}/>
             </div>
           )}
         </div>

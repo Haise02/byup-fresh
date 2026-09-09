@@ -55,12 +55,18 @@ const ALLERGENS = {
   molluschi:  { label: 'Molluschi',   color: '#7aa8c8', icon: '🐚' },
 };
 
-function AllergenDots({ ids }) {
+// `decongelato` (P-193 · D-152) viaggia con gli allergeni perché si comporta
+// come loro: un bollino accanto al nome che, toccato, dice cos'è. Non È un
+// allergene — sta fuori dal dizionario e ha il suo segno.
+const DECONGELATO_DOT = { label: 'Decongelato', icon: '❄️' };
+
+function AllergenDots({ ids, decongelato }) {
   const [openId, setOpenId] = useState(null);
+  const voci = (ids || []).map(id => ({ key: id, ...ALLERGENS[id] })).filter(v => v.label)
+    .concat(decongelato ? [{ key: '__decongelato', ...DECONGELATO_DOT }] : []);
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, position: 'relative' }}>
-      {ids.map(id => {
-        const a = ALLERGENS[id]; if (!a) return null;
+      {voci.map(({ key: id, ...a }) => {
         const isOpen = openId === id;
         return (
           <span key={id} style={{ position: 'relative' }}>
@@ -117,7 +123,7 @@ const DISHES_BY_CAT = {
     { id: 'a2', name: 'Impepata di cozze', price: 18, kind: 'cozze', photo: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&q=70&auto=format&fit=crop',
       desc: 'Impepata di cozze nostrane, fresche di giornata, origine Italia.',
       longDesc: 'Cozze nostrane fresche di giornata cotte con aglio, olio extravergine, prezzemolo e pepe nero macinato. Servite con crostini di pane casereccio tostato.',
-      prep: 18, allergens: ['pesce','crostacei','glutine','lattosio'], tone: 'b',
+      prep: 18, allergens: ['pesce','crostacei','glutine','lattosio'], decongelato: true, tone: 'b',
       ingredients: ['Aglio', 'Prezzemolo', 'Pepe nero', 'Crostini'],
       extras: [{ id: 'e1', name: 'Crostini extra', price: 2 }, { id: 'e2', name: 'Limone bio', price: 0.5 }],
       variants: [{ id: 'piccante', label: 'Piccantezza', options: ['Normale', 'Piccante', 'Molto piccante'] }],
@@ -921,9 +927,9 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
                         <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10 }}>
                           {d.desc}
                         </div>
-                        {d.allergens.length > 0 && (
+                        {(d.allergens.length > 0 || d.decongelato) && (
                           <div style={{ marginBottom: 10 }}>
-                            <AllergenDots ids={d.allergens}/>
+                            <AllergenDots ids={d.allergens} decongelato={d.decongelato}/>
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -2606,10 +2612,10 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               <span onClick={() => setExpanded(false)} style={{ color: PINK, fontWeight: 600, cursor: 'pointer', marginLeft: 4 }}> meno</span>
             )}
           </div>
-          {dish.allergens.length > 0 && (
+          {(dish.allergens.length > 0 || dish.decongelato) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
               <span style={{ fontSize: 11.5, color: MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>Allergeni</span>
-              <AllergenDots ids={dish.allergens}/>
+              <AllergenDots ids={dish.allergens} decongelato={dish.decongelato}/>
             </div>
           )}
         </div>
@@ -2959,9 +2965,16 @@ function byupCopertoLeggi() {
   const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
   try { const s = localStorage.getItem('byup_coperto'); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; }
 }
+// La formula del menù (P-193 · D-141), copia guardata: con il prezzo per
+// persona la quota comprende tutto e la voce non si applica (D-143).
+function byupMenuFormulaLeggi() {
+  try { return localStorage.getItem('byup_menu_formula') === 'per_persona' ? 'per_persona' : 'carte'; }
+  catch { return 'carte'; }
+}
 function byupCopertoRiga(subtotale, coperti, cfg) {
   const c = cfg || byupCopertoLeggi();
   const nome = c.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  if (byupMenuFormulaLeggi() === 'per_persona') return { nome, attiva: false, perPersona: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
   // Sospesa (P-171): la sede è in una regione che vieta la qualificazione in uso, e la voce tace.
   if (c.sospesa) return { nome, attiva: false, sospesa: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
   if (c.forma === 'percentuale') {

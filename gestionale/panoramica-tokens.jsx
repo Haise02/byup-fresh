@@ -1971,6 +1971,11 @@ window.byupCopertoVerifica = function () {
 window.byupCopertoRiga = function (subtotale, coperti, cfg) {
   const c = cfg || window.byupReadCoperto();
   const nome = PN_COPERTO_NOMI[c.qualificazione] || 'Coperto';
+  // Menù a prezzo per persona: la quota comprende tutto e la voce non si
+  // applica (D-143). Non è una sospensione — è che qui non c'è coperto.
+  if (window.byupReadMenuFormula && window.byupReadMenuFormula() === 'per_persona') {
+    return { nome, attiva: false, perPersona: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
+  }
   if (c.sospesa) return { nome, attiva: false, sospesa: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
   if (c.forma === 'percentuale') {
     const aliquota = Number(c.aliquota) || 0;
@@ -1992,6 +1997,22 @@ window.byupCopertoRiga = function (subtotale, coperti, cfg) {
 // prima di ordinare nasce lì, altrimenti dice solo che l'ha vista mentre
 // confermava. Vale per la sessione: chi riapre il menù al tavolo l'ha già
 // vista, e il momento non si riscrive. Copia guardata in app e webapp.
+// La formula del menù che i clienti vedono (P-193 · D-141): 'carte', dove il
+// prezzo è del piatto, o 'per_persona', dove il prezzo è del menù. La scrive
+// Impostazioni → Menù quando cambia il menù attivo, e la legge chi calcola il
+// conto: con il prezzo per persona la quota comprende tutto, e coperto o
+// servizio non si applicano — né fissi né in percentuale, in nessuna regione
+// (D-143).
+const PN_MENU_FORMULA_KEY = 'byup_menu_formula';
+window.byupReadMenuFormula = function () {
+  try { return localStorage.getItem(PN_MENU_FORMULA_KEY) === 'per_persona' ? 'per_persona' : 'carte'; }
+  catch (e) { return 'carte'; }
+};
+window.byupWriteMenuFormula = function (v) {
+  try { localStorage.setItem(PN_MENU_FORMULA_KEY, v === 'per_persona' ? 'per_persona' : 'carte'); } catch (e) {}
+  try { window.dispatchEvent(new Event('byup-menu-formula-change')); } catch (e) {}
+};
+
 window.byupCopertoEsposto = function (segna) {
   try {
     const k = 'byup_coperto_esposto';

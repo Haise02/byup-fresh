@@ -1096,9 +1096,16 @@ const GUSTI = [
   const leggi = () => { try { const s = localStorage.getItem(K); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; } };
   window.ByupCoperto = {
     leggi,
+    // La formula del menù (P-193 · D-141): con il prezzo per persona la quota
+    // comprende tutto e la voce non si applica (D-143). Copia guardata.
+    formula() {
+      try { return localStorage.getItem('byup_menu_formula') === 'per_persona' ? 'per_persona' : 'carte'; }
+      catch { return 'carte'; }
+    },
     riga(subtotale, coperti, cfg) {
       const c = cfg || leggi();
       const nome = NOMI[c.qualificazione] || 'Coperto';
+      if (window.ByupCoperto.formula() === 'per_persona') return { nome, attiva: false, perPersona: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
       // Sospesa (P-171): la sede è in una regione che vieta la qualificazione in uso, e la voce tace.
       if (c.sospesa) return { nome, attiva: false, sospesa: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
       if (c.forma === 'percentuale') {

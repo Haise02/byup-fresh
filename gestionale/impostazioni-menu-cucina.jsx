@@ -337,15 +337,15 @@ const DISH_LIBRARY = [
   // descriptionIsAiGenerated / descriptionAiProvenanceId (P-40 · D-32): la
   // descrizione scritta col comando assistito porta la marca e la provenienza
   // (PN_AI_PROVENIENZE); il nome non è mai generato e non porta nulla.
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0001', descriptionAiGeneratedAt: '2026-09-16T10:12:00Z', allergens: ['gluten'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['gluten']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', prepMin: 8, cat: 'Antipasti', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0001', descriptionAiGeneratedAt: '2026-09-16T10:12:00Z', allergens: ['gluten'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['gluten']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
   { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['milk'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['milk']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
   { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['milk','nuts'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['milk']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['nuts']}]},
-  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['milk']},{name:'Uovo',removable:false,allergens:['eggs']},{name:'Pepe nero',removable:true,allergens:[]}]},
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0002', descriptionAiGeneratedAt: '2026-09-18T15:40:00Z', allergens: ['gluten','milk'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Pecorino romano DOP',removable:false,allergens:['milk']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', prepMin: 14, cat: 'Primi', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['milk']},{name:'Uovo',removable:false,allergens:['eggs']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', prepMin: 12, cat: 'Primi', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0002', descriptionAiGeneratedAt: '2026-09-18T15:40:00Z', allergens: ['gluten','milk'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Pecorino romano DOP',removable:false,allergens:['milk']},{name:'Pepe nero',removable:true,allergens:[]}]},
   { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['gluten','milk'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['gluten']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['milk']}]},
-  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['milk'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['milk']},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', prepMin: 18, cat: 'Secondi', allergens: ['milk'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['milk']},{name:'Olio EVO',removable:false,allergens:[]}]},
   { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['fish'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['fish']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
-  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['gluten']},{name:'Mascarpone',removable:false,allergens:['milk']},{name:'Uova',removable:false,allergens:['eggs']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
+  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', prepMin: 6, cat: 'Dolci', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['gluten']},{name:'Mascarpone',removable:false,allergens:['milk']},{name:'Uova',removable:false,allergens:['eggs']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
   { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['milk'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') , ingredients: [{name:'Panna fresca',removable:false,allergens:['milk']},{name:'Lamponi',removable:true,allergens:[]},{name:'Mirtilli',removable:true,allergens:[]},{name:'Zucchero',removable:false,allergens:[]}]},
 ];
 
@@ -509,7 +509,10 @@ function vociTraducibili({ desc, variants, extras, ingredients }) {
   (variants || []).forEach((v, i) => {
     if (v.name) voci.push({ key:`var:${i}`, gruppo:'Opzioni', label:'Nome del gruppo', it:v.name });
     (v.options || []).forEach((o, j) => {
-      if (o) voci.push({ key:`var:${i}:${j}`, gruppo:'Opzioni', label:`Opzione di «${v.name || 'gruppo senza nome'}»`, it:o });
+      // L'opzione porta anche sovrapprezzo, predefinita e allergeni (P-193):
+      // di suo si traduce il nome.
+      const nome = typeof o === 'string' ? o : (o && o.name) || '';
+      if (nome) voci.push({ key:`var:${i}:${j}`, gruppo:'Opzioni', label:`Opzione di «${v.name || 'gruppo senza nome'}»`, it:nome });
     });
   });
   (extras || []).forEach((e, i) => {
@@ -651,15 +654,11 @@ function MCLibreria() {
 // cui si lavora si sceglie dal selettore in testata: i menù restano più di uno
 // (pranzo, cena, bambini…), semplicemente non occupano più una colonna intera.
 
-const CANALI = [
-  { id: 'qr',       label: 'Tavolo (QR)',      icona: 'grid' },
-  { id: 'delivery', label: 'Asporto/Delivery', icona: 'commerce-delivery' },
-  { id: 'pos',      label: 'Cassa (POS)',      icona: 'commerce-register' },
-];
-const CANALI_IDS = CANALI.map(c => c.id);
-// Un piatto senza `channels` è visibile ovunque: i menù già scritti non hanno
-// il campo e non devono sparire dai canali per una colonna che prima non c'era.
-const canaliDi = (it) => it.channels || CANALI_IDS;
+// I canali del piatto non esistono più (P-193 · D-149). La visibilità la
+// decide il MENÙ: un piatto è visibile se sta in un menù attivo, e per
+// l'asporto si fa un menù d'asporto con i piatti che viaggiano. L'interfaccia
+// per impostarli era già stata tolta, e restava il campo `channels` scritto al
+// salvataggio: chi legge il modello credeva che ci fosse una seconda leva.
 const eur = (n) => '€ ' + Number(n || 0).toFixed(2).replace('.', ',');
 // L'area di lavoro prende l'altezza che resta nello scroller e le tre colonne
 // scorrono ognuna per conto suo. Misurata in px di LAYOUT: il frame del
@@ -836,6 +835,13 @@ function MCMenuComposer() {
     }
     return prev.map(m => m.id === id ? {...m, ...patch} : m);
   });
+  // La formula del menù acceso esce da questa schermata (P-193 · D-141): la
+  // legge chi fa il conto, per sapere se coperto e servizio si applicano.
+  React.useEffect(() => {
+    if (!window.byupWriteMenuFormula) return;
+    const acceso = menus.find(m => m.active);
+    window.byupWriteMenuFormula(acceso && acceso.tipologia === PER_PERSONA ? 'per_persona' : 'carte');
+  }, [menus]);
   const deleteMenu = (id) => {
     setMenus(prev => prev.filter(m => m.id !== id));
     if (activeMenuId === id) {
@@ -1714,8 +1720,12 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
 // qui, dove insieme al nome si dice a chi serve e — se è l'asporto — con che
 // tempi. L'import AI è una scorciatoia dentro questo flusso, non un pulsante
 // che in testata gli faceva concorrenza.
-const AYCE = 'All you can eat';
-const NUOVO_MENU_TIPOLOGIE = ['À la carte', AYCE];
+// La FORMULA del menù (P-193 · D-141): à la carte, dove il prezzo è del
+// piatto, oppure prezzo per persona, dove il prezzo è del menù e vale per
+// tutto quello che si ordina da lì — l'all you can eat è il caso più noto, non
+// l'unico. Due valori oggi, e l'elenco resta aperto.
+const PER_PERSONA = 'Prezzo per persona';
+const NUOVO_MENU_TIPOLOGIE = ['À la carte', PER_PERSONA];
 
 const NM_LABEL  = { display: 'block', fontSize: 14, fontWeight: 600, color: PN.TEXT, marginBottom: 7 };
 const NM_SELECT = {
@@ -1968,11 +1978,11 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const [nome, setNome] = React.useState(modifica ? menu.name : '');
   const [tipologia, setTipologia] = React.useState(modifica ? (menu.tipologia || NUOVO_MENU_TIPOLOGIE[0]) : NUOVO_MENU_TIPOLOGIE[0]);
   const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
-  const [prezzoAyce, setPrezzoAyce] = React.useState(modifica ? (menu.prezzo || '') : '');
+  const [prezzoMenu, setPrezzoMenu] = React.useState(modifica ? (menu.prezzo || '') : '');
   // Il campo si segna in rosso solo dopo che ci sei passato: appena comparso
   // è vuoto perché non l'hai ancora compilato, non perché hai sbagliato.
   const [prezzoTocco, setPrezzoTocco] = React.useState(false);
-  const [tipo, setTipo] = React.useState(modifica ? (menu.tipo || 'sala') : 'sala');   // sala | asporto
+  const [tipo, setTipo] = React.useState(modifica ? (menu.tipo || 'sala') : 'sala');   // sala | banco | asporto
   const [tkLeadTime, setTkLeadTime] = React.useState(modifica ? (menu.leadTime || 20) : 20);
   const [showQr, setShowQr] = React.useState(false);
   const [confermaElimina, setConfermaElimina] = React.useState(false);
@@ -1997,8 +2007,8 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
   // L'all you can eat non ha un prezzo per piatto: ne ha uno solo, ed è la
   // cosa che il cliente vede per prima. Senza, il menù non sta in piedi.
-  const ayce = tipologia === AYCE;
-  const prezzoOk = !ayce || (parseFloat(String(prezzoAyce).replace(',', '.')) > 0);
+  const perPersona = tipologia === PER_PERSONA;
+  const prezzoOk = !perPersona || (parseFloat(String(prezzoMenu).replace(',', '.')) > 0);
   // Due menù con lo stesso nome non si distinguono in nessuna delle liste in
   // cui compaiono.
   const nomePreso = menus.some(x => x.id !== (menu ? menu.id : null)
@@ -2008,7 +2018,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const salva = () => {
     if (!completo) return;
     const dati = {
-      name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime,
+      name: nome.trim(), tipologia, prezzo: perPersona ? prezzoMenu : '', tipo, leadTime: tkLeadTime,
       schedule: modifica ? (menu.schedule || '') : '',
     };
     if (modifica) onSave(menu.id, dati);
@@ -2016,11 +2026,15 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
     onClose();
   };
 
+  // Il tipo serve a SCARICARE IL QR e non vincola il menù (P-193 · D-149): il
+  // menù resta visibile ovunque, e a portare il modo di consegna è la porta da
+  // cui il cliente entra (D-146). Tre porte, tre QR.
   const TIPI = [
     // Il set non ha la posata singola del mock: il tavolo è l'icona con cui
     // «Sala» si legge già in tutto il gestionale.
-    {id: 'sala',    label: 'Sala',    icona: 'place-table'},
-    {id: 'asporto', label: 'Asporto', icona: 'commerce-bag'},
+    {id: 'sala',    label: 'Al tavolo', icona: 'place-table'},
+    {id: 'banco',   label: 'Al banco',  icona: 'commerce-receipt'},
+    {id: 'asporto', label: 'Asporto',   icona: 'commerce-bag'},
   ];
 
   return (
@@ -2068,7 +2082,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18}}>
               <div>
-                <span style={NM_LABEL}>Tipologia di menù</span>
+                <span style={NM_LABEL}>Formula del menù</span>
                 <NMSelect
                   value={tipologia}
                   options={NUOVO_MENU_TIPOLOGIE}
@@ -2078,8 +2092,8 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                 />
               </div>
               <div>
-                <span style={NM_LABEL}>Tipo di menù</span>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+                <span style={NM_LABEL}>QR da scaricare</span>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8}}>
                   {TIPI.map(t => {
                     const on = tipo === t.id;
                     return (
@@ -2101,7 +2115,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
               </div>
             </div>
 
-            {ayce && (
+            {perPersona && (
               <div style={{marginBottom: 18}}>
                 <label style={NM_LABEL} htmlFor="nm-prezzo">
                   Prezzo <span style={{color: PN.PINK}}>*</span>
@@ -2114,7 +2128,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                 }}>
                   <span style={{fontSize: 15, fontWeight: 700, color: PN.MUTED, flexShrink: 0}}>€</span>
                   <input
-                    id="nm-prezzo" inputMode="decimal" value={prezzoAyce}
+                    id="nm-prezzo" inputMode="decimal" value={prezzoMenu}
                     onChange={e => setPrezzoAyce(e.target.value.replace(/[^\d.,]/g, ''))}
                     onBlur={() => setPrezzoTocco(true)}
                     onKeyDown={e => { if (e.key === 'Enter') salva(); }}
@@ -2123,7 +2137,13 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                   <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>a persona</span>
                 </div>
                 <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
-                  Quota fissa dell'all you can eat: i piatti del menù non hanno un prezzo proprio.
+                  Il prezzo è del menù e vale per tutto quello che si ordina da qui: i piatti non ne hanno uno proprio.
+                  {/* D-143: dove il prezzo è per persona, coperto e servizio non
+                      si applicano — né fissi né in percentuale, in nessuna
+                      regione. La quota li comprende già. */}
+                  <span style={{display: 'block', marginTop: 4}}>
+                    Con questa formula <b style={{color: PN.TEXT}}>non si applicano coperto né servizio</b>.
+                  </span>
                 </div>
               </div>
             )}
@@ -2150,12 +2170,12 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
             {/* Il QR non è del menù, è di dove lo si scansiona: in sala ce n'è
                 uno per tavolo e stanno in Sala e tavoli, dove i tavoli si
-                creano; per l'asporto ce n'è uno solo, del locale, e si guarda
-                da qui. Il pulsante dice quale dei due, invece di promettere
-                «il QR del menù» che non esiste. */}
+                creano; per il banco e per l'asporto ce n'è uno solo, del
+                locale, e si guarda da qui. Il pulsante dice quale dei tre,
+                invece di promettere «il QR del menù» che non esiste. */}
             <button
               onClick={() => {
-                if (tipo === 'asporto') { setShowQr(true); return; }
+                if (tipo !== 'sala') { setShowQr(true); return; }
                 onClose();
                 window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'sala'}));
               }}
@@ -2169,8 +2189,8 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
               onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
               onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
             >
-              <Icon name={tipo === 'asporto' ? 'grid' : 'place-table'} size={17}/>
-              {tipo === 'asporto' ? 'Visualizza QR asporto' : 'Vai ai QR dei tavoli'}
+              <Icon name={tipo === 'sala' ? 'place-table' : tipo === 'banco' ? 'commerce-receipt' : 'grid'} size={17}/>
+              {tipo === 'sala' ? 'Vai ai QR dei tavoli' : tipo === 'banco' ? 'Visualizza QR del banco' : 'Visualizza QR asporto'}
             </button>
 
             {/* L'import AI vive qui dentro: è un modo di riempire il menù che
@@ -2270,14 +2290,22 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
         }}>
           <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position: 'relative'}}>
             <div style={MODAL_HEAD}>
-              <div style={{...MODAL_TITLE, fontSize: 22}}>QR del menù</div>
-              <div style={{...MODAL_SUB, marginTop: 2}}>I clienti lo scansionano e vedono questo menù</div>
+              <div style={{...MODAL_TITLE, fontSize: 22}}>{tipo === 'banco' ? 'QR del banco' : 'QR asporto'}</div>
+              <div style={{...MODAL_SUB, marginTop: 2}}>
+                {tipo === 'banco'
+                  ? 'Chi lo scansiona ordina al banco e aspetta lì'
+                  : 'Chi lo scansiona ordina d\'asporto e sceglie l\'ora di ritiro'}
+              </div>
               <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
             </div>
             <div style={{...MODAL_BODY, textAlign: 'center'}}>
               <QrAsporto size={230} style={{margin: '0 auto'}}/>
               <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
-                Esponi al tavolo o sul menù cartaceo.
+                {tipo === 'banco' ? 'Esponilo sul bancone.' : 'Esponilo in vetrina o alla cassa.'}
+                {/* D-149: il QR porta il modo di consegna, non il menù. */}
+                <span style={{display: 'block', marginTop: 5}}>
+                  Il menù resta lo stesso da tutte le porte: a cambiare è come l'ordine viene consegnato.
+                </span>
               </div>
             </div>
             <div style={{...MODAL_FOOT, justifyContent: 'flex-end'}}>
@@ -3730,6 +3758,9 @@ function MCDettagliPiatto({
   const [extras, setExtras] = React.useState(dish.extras || []);
   const [variants, setVariants] = React.useState(dish.variants || []);
   const [recipeSteps, setRecipeSteps] = React.useState(dish.recipeSteps || ['']);
+  // Quanto ci mette a uscire (P-193): sta con la ricetta e le varianti, non
+  // con nome e prezzo — è un dato di cucina. Vuoto = non dichiarato.
+  const [prepMin, setPrepMin] = React.useState(dish.prepMin != null ? String(dish.prepMin) : '');
   const [dietaryTags, setDietaryTags] = React.useState(() =>
     (dish.dietaryTags || []).map(t => typeof t === 'string' ? {name: t, surcharge: ''} : t));
   // P-108 (D-105): la TIPOLOGIA dell'articolo (PN_TIPOLOGIE_ARTICOLO) al
@@ -3740,7 +3771,7 @@ function MCDettagliPiatto({
   const [tipologiaArticolo, setTipologiaArticolo] = React.useState(dish.tipologia || window.PN_TIPOLOGIA_DEFAULT);
   const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
-  const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
+  const [decongelato, setDecongelato] = React.useState(dish.decongelato || false);
   // «Ordinabile anche a cucina chiusa» (P-167 · D-117): spenta per difetto,
   // il locale eccettua i singoli piatti — bevande, piatti freddi.
   const [cucinaChiusaOk, setCucinaChiusaOk] = React.useState(!!dish.cucinaChiusaOk);
@@ -3755,12 +3786,10 @@ function MCDettagliPiatto({
   const [rigenera, setRigenera] = React.useState(null);
 
   // Dati che vivono nel MENÙ, non nella libreria: prezzo e disponibilità. Il
-  // prezzo è uno solo, ovunque. I canali qui non si toccano più, ma vanno
-  // riscritti tali e quali al salvataggio: chi li ha già ristretti non se li
-  // vede tornare tutti accesi.
+  // prezzo è uno solo, ovunque. I canali non ci sono più (P-193 · D-149): la
+  // visibilità è del menù in cui il piatto sta.
   const [prezzo, setPrezzo] = React.useState(item.price.toFixed(2).replace('.', ','));
   const [attivo, setAttivo] = React.useState(!!item.active);
-  const canali = canaliDi(item);
 
   React.useEffect(() => {
     if (!tipOpen) return;
@@ -3823,12 +3852,13 @@ function MCDettagliPiatto({
       descriptionAiGeneratedAt: descAi ? descAi.at : null,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
-      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, cucinaChiusaOk, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, decongelato, cucinaChiusaOk, recipeSteps,
+      prepMin: prepMin.trim() === '' ? null : Math.max(0, parseInt(prepMin, 10) || 0),
       ingredients, extras, variants, dietaryTags, photos,
     });
     onUpdateItem({
       price: parseFloat(String(prezzo).replace(',', '.')) || 0,
-      active: attivo, channels: canali,
+      active: attivo,
     });
   };
 
@@ -3965,8 +3995,13 @@ function MCDettagliPiatto({
                 <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
                   label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
                   info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. Vendita vietata ai minori e avviso al cliente."}}/>
-                <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
-                  label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
+                {/* D-152: non «contiene surgelati» ma DECONGELATO — l'alimento
+                    servito è stato scongelato, ed è quello che la legge chiede
+                    di dichiarare al cliente. Acceso, il menù del cliente porta
+                    il bollino accanto al nome, come per gli allergeni. */}
+                <DishFlag checked={decongelato} onChange={() => setDecongelato(v => !v)}
+                  label="Decongelato" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"
+                  info={{id: 'decongelato', open: tipOpen, setOpen: setTipOpen, text: "L'alimento è stato congelato e viene servito dopo lo scongelamento. Il cliente lo vede come bollino accanto al nome del piatto."}}/>
               </div>
             </MCSezione>
 
@@ -4041,9 +4076,10 @@ function MCDettagliPiatto({
             <MCSezione title="Varianti">
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
                 Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
+                Ogni opzione può avere un sovrapprezzo, essere quella predefinita — il pallino — e dichiarare l'allergene che introduce.
               </div>
               <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
-              <button onClick={() => setVariants(arr => [...arr, {name: '', options: [''], required: true}])} style={{
+              <button onClick={() => setVariants(arr => [...arr, {name: '', options: [{name: ''}], required: true}])} style={{
                 marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
                 border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
@@ -4100,6 +4136,22 @@ function MCDettagliPiatto({
                   </div>
                 </div>
               )}
+            </MCSezione>
+
+            {/* Quanto ci mette (P-193): lo sa la cucina, e serve al cliente
+                che ordina e al monitor che mette in coda. Vuoto vuol dire non
+                dichiarato, non zero. */}
+            <MCSezione title="Tempo di preparazione">
+              <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                <input value={prepMin} inputMode="numeric"
+                  onChange={e => setPrepMin(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="—"
+                  style={{width: 84, padding: '8px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 15.5, fontFamily: 'inherit', textAlign: 'right', outline: 'none'}}/>
+                <span style={{fontSize: 14.5, color: PN.MUTED, fontWeight: 600}}>minuti</span>
+              </div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                Il cliente lo legge nel menù; lascialo vuoto se non vuoi dichiararlo.
+              </div>
             </MCSezione>
 
             {/* La ricetta è roba di cucina, non del listino: sta qui con le
@@ -4425,9 +4477,9 @@ function AppDishCard({ r, prezzo, evidenziato }) {
 }
 
 function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClose }) {
-  // Quella ricostruita qui è la schermata Menu della Byup App: il canale è il
-  // tavolo (QR), non uno da scegliere. Cassa e delivery hanno interfacce loro.
-  const canale = 'qr';
+  // Quella ricostruita qui è la schermata Menu della Byup App. Non c'è un
+  // canale da scegliere (P-193 · D-149): il menù è lo stesso da tutte le
+  // porte, e quello che si vede è quello che è attivo qui dentro.
   const boxRef = React.useRef(null);
   const scrollRef = React.useRef(null);
   const [w, setW] = React.useState(288);
@@ -4446,7 +4498,7 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
     name: c.name,
     rows: c.items
       .map(it => ({...it, dish: library.find(d => d.id === it.dishId)}))
-      .filter(r => r.dish && r.active && canaliDi(r).includes(canale)),
+      .filter(r => r.dish && r.active),
   })).filter(c => c.rows.length > 0);
 
   const visibili = cats.reduce((s, c) => s + c.rows.length, 0);
@@ -4464,7 +4516,7 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
     const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
     const delta = (el.getBoundingClientRect().top - root.getBoundingClientRect().top) / z;
     root.scrollTo({top: Math.max(0, root.scrollTop + delta - 6), behavior: 'smooth'});
-  }, [catName, canale, evidenzia, k]);
+  }, [catName, evidenzia, k]);
 
   return (
     <section style={{
@@ -4567,7 +4619,7 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
                 <div style={{zoom: k, width: 390}}>
                   {cats.length === 0 && (
                     <div style={{padding: '90px 34px', textAlign: 'center', color: APP.MUTED, fontSize: 15, lineHeight: 1.55}}>
-                      Nessun piatto visibile su questo canale.
+                      Nessun piatto attivo in questo menù.
                     </div>
                   )}
                   {cats.map((c, i) => (
@@ -5191,6 +5243,18 @@ const qtaDi = (ing) => {
   if (ing.qty) return `${ing.qty} ${ing.unit || 'g'}`;
   return '';
 };
+// La quantità si scrive come si dice in cucina («50 g», «1 spicchio»), ma per
+// il magazzino serve un numero con la sua unità (P-193 · D-141): quando il
+// testo li contiene si scompone e si salvano accanto, così il calcolo dei
+// consumi ha di che lavorare e la riga resta leggibile. Al cliente la quantità
+// non si mostra mai: è roba di ricetta, non di menù.
+const qtaScomponi = (testo) => {
+  const m = String(testo || '').trim().match(/^([\d.,]+)\s*([A-Za-zà-ù]+)?$/);
+  if (!m) return { qty: null, unit: null };
+  const qty = parseFloat(m[1].replace(',', '.'));
+  if (!isFinite(qty)) return { qty: null, unit: null };
+  return { qty, unit: (m[2] || '').toLowerCase() || null };
+};
 
 const ING_TH = {
   fontSize: 12, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.2,
@@ -5345,7 +5409,7 @@ function IngredientList({ ingredients, setIngredients }) {
                   <div style={{display: 'flex', alignItems: 'center', gap: 4, minWidth: 0}}>
                     {qtaLiberaIdx === i ? (
                       <input autoFocus value={qta}
-                        onChange={e => patch(i, {qta: e.target.value})}
+                        onChange={e => patch(i, {qta: e.target.value, ...qtaScomponi(e.target.value)})}
                         onBlur={() => setQtaLiberaIdx(null)}
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setQtaLiberaIdx(null); }}
                         placeholder="es. 2 fette"
@@ -5358,7 +5422,7 @@ function IngredientList({ ingredients, setIngredients }) {
                             compatto
                             value={qta}
                             options={[{value: '', label: '—'}, ...QTA_PRESET.map(q => ({value: q, label: q})), ...(qta && !QTA_PRESET.includes(qta) ? [{value: qta, label: qta}] : [])]}
-                            onChange={v => patch(i, {qta: v})}
+                            onChange={v => patch(i, {qta: v, ...qtaScomponi(v)})}
                             open={qtaIdx === i}
                             setOpen={v => setQtaIdx(v ? i : null)}
                           />
@@ -5471,7 +5535,8 @@ function IngredientList({ ingredients, setIngredients }) {
             }}>
               <span style={{color: '#2563EB', flexShrink: 0, display: 'inline-flex', marginTop: 1}}><Icon name="status-info" size={15}/></span>
               <span style={{fontSize: 13, color: '#1E40AF', lineHeight: 1.45}}>
-                Gli ingredienti rimovibili potranno essere deselezionati dal cliente in fase d'ordine.
+                Gli ingredienti rimovibili potranno essere deselezionati dal cliente in fase d'ordine,
+                e con loro cade l'allergene che portano. La quantità non la vede: serve al calcolo dei consumi.
               </span>
             </div>
           )}
@@ -5631,8 +5696,16 @@ function ExtrasList({ extras, setExtras }) {
   );
 }
 
+// Un'opzione di variante non è più solo testo (P-193 · D-141): porta il suo
+// sovrapprezzo, dice se è quella predefinita e dichiara l'allergene che
+// introduce — esattamente come le aggiunte a pagamento. Le opzioni scritte
+// prima erano stringhe e si continuano a leggere.
+const mcOpzione = (o) => (typeof o === 'string' ? { name: o } : (o || { name: '' }));
+const mcOpzNome = (o) => mcOpzione(o).name || '';
+
 function VariantsList({ variants, setVariants, hideAddButton }) {
-  const addGroup = () => setVariants(arr => [...arr, { name:'', options:[''], required:true }]);
+  const [allergeniAperto, setAllergeniAperto] = React.useState(null); // `${gruppo}:${opzione}`
+  const addGroup = () => setVariants(arr => [...arr, { name:'', options:[{name:''}], required:true }]);
   // Senza varianti non si dice niente: sopra c'è già la riga che spiega cosa
   // sono e il tasto per crearne una.
   if (variants.length === 0 && hideAddButton) return null;
@@ -5662,14 +5735,45 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
             </div>
             <div style={{padding:12}}>
             <div style={{display:'flex', flexDirection:'column', gap:5, marginBottom:8}}>
-              {v.options.map((opt, oi) => (
-                <div key={oi} style={{display:'flex', gap:8, alignItems:'center'}}>
-                  {/* pallino: rende evidente che sono alternative di una scelta */}
-                  <span aria-hidden="true" style={{
-                    width:14, height:14, borderRadius:'50%', flexShrink:0,
-                    border:`1.5px solid ${PN.BORDER_HOVER || '#D1D5DB'}`, background:PN.WHITE,
-                  }}/>
-                  <input value={opt} onChange={e => updateGroup(i, {options: v.options.map((x, idx) => idx===oi ? e.target.value : x)})} placeholder={`Opzione ${oi+1} (es. Al sangue)`} style={{flex:1, padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}/>
+              {v.options.map((raw, oi) => {
+                const opt = mcOpzione(raw);
+                const patchOpz = (campi) => updateGroup(i, {options: v.options.map((x, idx) => idx===oi ? {...mcOpzione(x), ...campi} : mcOpzione(x))});
+                // La predefinita è una sola per gruppo: sceglierne una toglie
+                // il segno all'altra, come fa un gruppo di radio.
+                const scegliPredefinita = () => updateGroup(i, {options: v.options.map((x, idx) => ({...mcOpzione(x), predefinita: idx === oi}))});
+                const chiaveAll = `${i}:${oi}`;
+                const apertoAll = allergeniAperto === chiaveAll;
+                return (
+                <div key={oi} style={{display:'flex', flexDirection:'column', gap:6}}>
+                <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                  {/* Il pallino non è più solo un segno grafico: è la scelta
+                      predefinita, quella che il cliente trova già fatta. */}
+                  <button type="button" onClick={scegliPredefinita}
+                    title={opt.predefinita ? 'È l\'opzione predefinita' : 'Rendila l\'opzione predefinita'}
+                    style={{
+                      padding:0, width:16, height:16, borderRadius:'50%', flexShrink:0, cursor:'pointer',
+                      border:`1.5px solid ${opt.predefinita ? PN.PINK : (PN.BORDER_HOVER || '#D1D5DB')}`,
+                      background: opt.predefinita ? PN.PINK : PN.WHITE,
+                      display:'grid', placeItems:'center',
+                    }}>
+                    {opt.predefinita && <span style={{width:6, height:6, borderRadius:'50%', background:PN.WHITE}}/>}
+                  </button>
+                  <input value={opt.name || ''} onChange={e => patchOpz({name: e.target.value})} placeholder={`Opzione ${oi+1} (es. Al sangue)`} style={{flex:1, minWidth:0, padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:15.5, fontFamily:'inherit', outline:'none'}}/>
+                  {/* Il sovrapprezzo dell'opzione: vuoto = nessuno. */}
+                  <span style={{fontSize:13, color:PN.MUTED, fontWeight:600, flexShrink:0}}>+€</span>
+                  <input value={opt.extra != null && opt.extra !== '' ? String(opt.extra).replace('.', ',') : ''}
+                    onChange={e => { const t = e.target.value.replace(/[^0-9,.]/g, ''); patchOpz({extra: t === '' ? null : parseFloat(t.replace(',', '.')) || 0}); }}
+                    placeholder="0,00"
+                    style={{width:60, flexShrink:0, padding:'8px 7px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:14, fontFamily:'inherit', textAlign:'right', outline:'none'}}/>
+                  <button type="button" onClick={() => setAllergeniAperto(apertoAll ? null : chiaveAll)}
+                    title="Allergeni che questa opzione introduce"
+                    style={{
+                      padding:'0 9px', height:30, flexShrink:0, borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                      border:`1px solid ${(opt.addsAllergens || []).length ? PN.PINK_SOFT : PN.BORDER_SOFT}`,
+                      background:(opt.addsAllergens || []).length ? PN.PINK_BG_SOFT : PN.WHITE,
+                      color:(opt.addsAllergens || []).length ? PN.PINK_DARK : PN.MUTED,
+                      fontSize:12.5, fontWeight:700,
+                    }}>{(opt.addsAllergens || []).length ? `${(opt.addsAllergens || []).length} allergeni` : 'Allergeni'}</button>
                   {v.options.length > 1 && (
                     <button onClick={() => updateGroup(i, {options: v.options.filter((_, idx) => idx !== oi)})}
                       aria-label={`Rimuovi opzione ${oi+1}`}
@@ -5682,8 +5786,32 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
                     >✕</button>
                   )}
                 </div>
-              ))}
-              <button onClick={() => updateGroup(i, {options: [...v.options, '']})} style={{background:'transparent', border:'none', color: PN.PINK_DARK, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:5, padding:'4px 0', alignSelf:'flex-start'}}>+ Aggiungi opzione</button>
+                {apertoAll && (
+                  <div style={{marginLeft:24, padding:'9px 10px', borderRadius:9, background:'#F7F8FA', display:'flex', flexWrap:'wrap', gap:6}}>
+                    {ALLERGENS.map(a => {
+                      const on = (opt.addsAllergens || []).includes(a.id);
+                      return (
+                        <button key={a.id} type="button" title={a.name}
+                          onClick={() => patchOpz({addsAllergens: on
+                            ? (opt.addsAllergens || []).filter(y => y !== a.id)
+                            : [...(opt.addsAllergens || []), a.id]})}
+                          style={{
+                            display:'inline-flex', alignItems:'center', gap:4,
+                            padding:'3px 8px', borderRadius:999, cursor:'pointer', fontFamily:'inherit',
+                            border: on ? `1.5px solid ${a.color}` : `1px solid ${PN.BORDER_SOFT}`,
+                            background: on ? '#FFF7ED' : PN.WHITE,
+                            color: on ? PN.TEXT : PN.MUTED, fontSize:12.5, fontWeight: on ? 700 : 500,
+                          }}>
+                          <span style={{fontSize:12}}>{a.icon}</span>{a.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                </div>
+                );
+              })}
+              <button onClick={() => updateGroup(i, {options: [...v.options.map(mcOpzione), {name:''}]})} style={{background:'transparent', border:'none', color: PN.PINK_DARK, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:5, padding:'4px 0', alignSelf:'flex-start'}}>+ Aggiungi opzione</button>
             </div>
             <label style={{display:'flex', alignItems:'center', gap:7, fontSize:15, color: PN.MUTED, fontWeight:600, cursor:'pointer', paddingTop:8, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
               <input type="checkbox" checked={v.required} onChange={() => updateGroup(i, {required: !v.required})} style={{margin:0, accentColor: PN.PINK}}/>
@@ -5811,7 +5939,8 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
   // Due dichiarazioni indipendenti, due assi diversi — nessuna dice se il
   // piatto passa dalla cucina, quello lo decidono il flusso ordini e i monitor.
   //   hasAlcohol → cosa contiene (divieto ai minori, avviso al cliente)
-  //   hasFrozen  → come è conservato un ingrediente (dicitura di legge)
+  //   decongelato → l'alimento è stato congelato e si serve scongelato
+  //                 (D-152: dicitura di legge, bollino nel menù del cliente)
   // Nessuna delle due governa l'IVA (P-108 · D-105): quella discende dalla
   // TIPOLOGIA dell'articolo e dal modo di consumo. La spunta «Prodotto
   // finito» è morta: la tipologia la sostituisce e non aveva altri usi.
@@ -5819,7 +5948,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
   const [tipologiaArtOpen, setTipologiaArtOpen] = React.useState(false);
   const [catOpen, setCatOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
-  const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
+  const [decongelato, setDecongelato] = React.useState(dish?.decongelato || false);
   // «Ordinabile anche a cucina chiusa» (P-167 · D-117): spenta per difetto.
   const [cucinaChiusaOk, setCucinaChiusaOk] = React.useState(!!(dish && dish.cucinaChiusaOk));
   const [tipOpen, setTipOpen] = React.useState(null); // tooltip aperto: {id,x,y} o null
@@ -5906,7 +6035,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
-      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, cucinaChiusaOk, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, decongelato, cucinaChiusaOk, recipeSteps,
       ingredients, extras, variants, dietaryTags,
     };
     if (!fromLibrary && catName) {
@@ -6137,8 +6266,12 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                 }}
               />
               <DishFlag
-                checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
-                label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"
+                checked={decongelato} onChange={() => setDecongelato(v => !v)}
+                label="Decongelato" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"
+                info={{
+                  id: 'decongelato', open: tipOpen, setOpen: setTipOpen,
+                  text: "L'alimento è stato congelato e viene servito dopo lo scongelamento. Il cliente lo vede come bollino accanto al nome del piatto.",
+                }}
               />
             </div>
 
@@ -6305,6 +6438,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                       <div style={{fontSize:15.5, fontWeight:700, color:PN.TEXT, marginBottom:4}}>Varianti</div>
                       <div style={{fontSize:15, color:PN.MUTED, lineHeight:1.45}}>
                         Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
+                Ogni opzione può avere un sovrapprezzo, essere quella predefinita — il pallino — e dichiarare l'allergene che introduce.
                       </div>
                     </div>
                     <button onClick={() => setVariants(arr => [...arr, { name:'', options:[''], required:true }])} style={{
