@@ -531,8 +531,10 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, expandedId, 
 // ─────────────────────────────────────────────────────────
 // Floor plan view
 // ─────────────────────────────────────────────────────────
-// Configurazione iniziale tavoli sulla mappa runtime — shape e posizione di partenza.
-// Le posizioni diventano stateful (draggable); le forme sono fisse a setup time.
+// Configurazione iniziale tavoli sulla mappa runtime: la POSIZIONE di
+// partenza, e basta. Le posizioni diventano stateful (draggable); la FORMA non
+// si scrive più (P-194) — la deduce ttSeatShape dal numero di posti, ed era un
+// campo che si scriveva e non si leggeva.
 // Elementi fissi della sala — non draggabili, collisione attiva per i tavoli.
 const SALA_FIXTURES = [
   { id: 'bancone', type: 'counter',  x: 0,  y: 0, w: 5, h: 1 },
@@ -541,23 +543,24 @@ const SALA_FIXTURES = [
 ];
 
 const SALA_INITIAL_POSITIONS = {
-  1:{x:1, y:1, shape:'round'},   2:{x:3, y:1, shape:'square'},
-  3:{x:5, y:1, shape:'rect'},    4:{x:8, y:1, shape:'round'},
-  5:{x:10, y:1, shape:'square'},
-  6:{x:1, y:3, shape:'round'},   7:{x:3, y:3, shape:'rect'},
-  8:{x:6, y:3, shape:'square'},  9:{x:8, y:3, shape:'round'},
-  10:{x:10, y:3, shape:'rect'},
-  11:{x:1, y:5, shape:'round'},  12:{x:3, y:5, shape:'square'},
-  13:{x:5, y:5, shape:'round'},  14:{x:7, y:5, shape:'round'},
-  15:{x:9, y:5, shape:'rect'},
-  16:{x:1, y:6.5, shape:'square'}, 17:{x:3, y:6.5, shape:'round'},
-  18:{x:6, y:6.5, shape:'rect'},
+  1:{x:1, y:1},   2:{x:3, y:1},
+  3:{x:5, y:1},    4:{x:8, y:1},
+  5:{x:10, y:1},
+  6:{x:1, y:3},   7:{x:3, y:3},
+  8:{x:6, y:3},  9:{x:8, y:3},
+  10:{x:10, y:3},
+  11:{x:1, y:5},  12:{x:3, y:5},
+  13:{x:5, y:5},  14:{x:7, y:5},
+  15:{x:9, y:5},
+  16:{x:1, y:6.5}, 17:{x:3, y:6.5},
+  18:{x:6, y:6.5},
 };
 
 // Footprint del tavolo in unità di cella — derivato da posti+orientation.
-// Forma da ttSeatShape (sala-table-tile.jsx): 2-3 round, 4-5 square,
-// 6-8 rect 2u, >8 rect 3u. Il primo arg (shape legacy) è ignorato.
-function getTableDims(shape, posti, orientation) {
+// La forma la deduce ttSeatShape (sala-table-tile.jsx) dai posti: il primo
+// argomento «shape» non esiste più (P-194), era ignorato e obbligava ogni
+// chiamante a passare un null.
+function getTableDims(posti, orientation) {
   return geoIngombro(posti, orientation);
 }
 
@@ -573,14 +576,14 @@ function salaInitPositions() {
   Object.entries(SALA_INITIAL_POSITIONS).forEach(([key, p]) => {
     const id = parseInt(key, 10);
     const t = all.find(x => x.id === id);
-    const fp = getTableDims(null, t?.posti, 'h');
+    const fp = getTableDims(t?.posti, 'h');
     const libero = geoPostoLibero({
       x: p.x, y: p.y, w: fp.w, h: fp.h, ostacoli: placed,
       cols: SALA_GRID_COLS, rows: SALA_GRID_ROWS,
     });
     const pos = libero ? { ...libero, w: fp.w, h: fp.h } : { x: p.x, y: p.y, w: fp.w, h: fp.h };
     placed.push(pos);
-    init[id] = { x: pos.x, y: pos.y, shape: p.shape, orientation: 'h' };
+    init[id] = { x: pos.x, y: pos.y, orientation: 'h' };
   });
   return init;
 }
@@ -721,7 +724,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
     if (!p) return null;
     const t = (tavoli.find(x => x.id === id) || (window.SALA_TAVOLI||[]).find(x => x.id === id));
     if (!t) return null;
-    const d = getTableDims(p.shape, t.posti, p.orientation);
+    const d = getTableDims(t.posti, p.orientation);
     return { x: p.x, y: p.y, w: d.w, h: d.h };
   }, [positions, tavoli]);
 
@@ -757,7 +760,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
       const all = window.SALA_TAVOLI || tavoli;
       const t = all.find(x => x.id === id);
       if (!t) return prev;
-      const fp = getTableDims(null, t.posti, p.orientation);
+      const fp = getTableDims(t.posti, p.orientation);
       const obstacles = [
         ...Object.keys(next).map(k => parseInt(k, 10))
           .filter(k => k !== id)
@@ -765,7 +768,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const tk = all.find(x => x.id === k);
             const pk = next[k];
             if (!tk || !pk) return null;
-            const d = getTableDims(null, tk.posti, pk.orientation);
+            const d = getTableDims(tk.posti, pk.orientation);
             return { x: pk.x, y: pk.y, w: d.w, h: d.h };
           }).filter(Boolean),
         ...SALA_FIXTURES,
@@ -825,7 +828,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
           const base = drag.basePositions[mid];
           if (!base) return;
           const tm = (window.SALA_TAVOLI || tavoli).find(x => x.id === mid);
-          const d = getTableDims(null, tm?.posti, next[mid]?.orientation);
+          const d = getTableDims(tm?.posti, next[mid]?.orientation);
           next[mid] = { ...next[mid],
             x: Math.max(0, Math.min(COLS - d.w, base.x + dx)),
             y: Math.max(0, Math.min(ROWS - d.h, base.y + dy)),
@@ -1141,7 +1144,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const seats = t.posti || 4;
             const shape = ttSeatShape(seats);
             const orient = p.orientation || 'h';
-            const dims = getTableDims(p.shape, seats, orient);
+            const dims = getTableDims(seats, orient);
             const longPitch = orient === 'v' ? PY : PX;
             const bw = ttBodySize(seats, shape, orient, bodyUnit, longPitch);
             let left = gx(p.x) + (dims.w * PX - bw.w) / 2;
@@ -1192,7 +1195,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 const pm = positions[mid];
                 const tm = allT.find(x => x.id === mid);
                 if (!pm || !tm) return;
-                const dm = getTableDims(null, tm.posti, pm.orientation);
+                const dm = getTableDims(tm.posti, pm.orientation);
                 const overlapY = pm.y < p.y + dims.h - EPS && p.y < pm.y + dm.h - EPS;
                 const overlapX = pm.x < p.x + dims.w - EPS && p.x < pm.x + dm.w - EPS;
                 if (overlapY && Math.abs(pm.x - (p.x + dims.w)) < EPS) hideChairSides.push('right');
@@ -1284,7 +1287,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               const seats = tt.posti || 4;
               const shape = ttSeatShape(seats);
               const orient = p.orientation || 'h';
-              const dims = getTableDims(p.shape, seats, orient);
+              const dims = getTableDims(seats, orient);
               const bw = ttBodySize(seats, shape, orient, bodyUnit, orient === 'v' ? PY : PX);
               const bl = gx(p.x) + (dims.w * PX - bw.w) / 2;
               const bt = gy(p.y) + (dims.h * PY - bw.h) / 2;

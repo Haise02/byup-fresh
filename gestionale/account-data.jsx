@@ -5,7 +5,9 @@ const ACC_DATI = {
   cognome: 'Rossi',
   email: 'mario.rossi@email.com',
   telefono: '+39 333 1234567',
-  ruolo: 'Owner',
+  // Nessun ruolo fisso sull'account (P-194): il ruolo è del LOCALE, e la
+  // stessa persona può essere titolare in uno e cameriere in un altro. La
+  // testata mostra quello del locale attivo, letto da ACC_LOCALI.
   ristorante: 'Cantina Pizzeria',
   partitaIva: 'IT12345678901',
   codiceFiscale: 'RSSMRA80A01H501Z',

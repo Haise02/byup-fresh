@@ -434,7 +434,7 @@ const pnLeggiPostazioni = () => {
 window.byupPostazioneIdonea = function () {
   let classe = 'desktop';
   try { classe = document.documentElement.getAttribute('data-pn-device') || 'desktop'; } catch (e) {}
-  const puo = window.pnPuo ? window.pnPuo('vendita') : true;
+  const puo = window.pnPuo ? window.pnPuo('vendita_diretta') : true;
   return classe !== 'phone' && !!puo;
 };
 window.byupPostazioniIdonee = () => pnLeggiPostazioni().filter(p => p.idonea);

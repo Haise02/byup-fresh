@@ -7,8 +7,8 @@
 // (PN_SOGGETTI sf-cp) e si legge dal registro delle sedi, con quelle create
 // dal foglio «Crea la sede», che sopravvivono al ricaricamento.
 const ACC_LOCALI = [
-  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', logo: 'CP', soggetto: 'sf-cp' },
-  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', logo: 'TB', soggetto: 'sf-tb' },
+  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'titolare', logo: 'CP', soggetto: 'sf-cp' },
+  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'cameriere', logo: 'TB', soggetto: 'sf-tb' },
 ];
 
 // Locali già su byup ma non ancora collegati a questo account — usati dalla
@@ -93,6 +93,15 @@ function AccDatiGenerali() {
   // Lista locali (con eventuali richieste in attesa) + popup aggiunta/dissociazione
   const [locali, setLocali] = React.useState(ACC_LOCALI);
   const [addOpen, setAddOpen] = React.useState(false);
+  // Il ruolo che si ha nel locale aperto adesso (P-194): la testata lo mostra
+  // al posto di un ruolo fisso dell'account, che non esiste — le sedi di un
+  // ristorante ereditano il ruolo del ristorante.
+  const ruoloNelLocaleAttivo = (() => {
+    const suo = locali.find(l => l.id === localeAttivo.id)
+      || locali.find(l => l.soggetto && window.byupSediDi && window.byupSediDi(l.soggetto).some(sd => sd.id === localeAttivo.id));
+    const id = (suo && suo.role) || 'titolare';
+    return (window.PN_RUOLI_LABEL || {})[id] || id;
+  })();
   const [dissocia, setDissocia] = React.useState(null); // locale da dissociare
   // Perché si esce (P-193): l'uscita volontaria è un gesto della persona e ha
   // la sua causale, che finisce nel registro delle attività a suo nome.
@@ -100,7 +109,7 @@ function AccDatiGenerali() {
   const inviaRichiesta = (dir) => {
     setLocali(prev => [...prev, {
       id: dir.id, name: dir.name, city: dir.city, addr: dir.addr,
-      role: 'Manager', pending: true,
+      role: 'cameriere', pending: true,
       cover: 'linear-gradient(135deg, #64748B, #94A3B8)',
       logo: dir.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
     }]);
@@ -216,7 +225,9 @@ function AccDatiGenerali() {
           </button>
           <div>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT}}>{datiSalvati.nome} {datiSalvati.cognome}</div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ACC_DATI.ruolo} · {localeAttivo.nome}</div>
+            {/* Il ruolo è quello che si ha NEL LOCALE ATTIVO (P-194): la
+                stessa persona può essere titolare qui e cameriere altrove. */}
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{ruoloNelLocaleAttivo} · {localeAttivo.nome}</div>
           </div>
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
@@ -352,9 +363,11 @@ function AccDatiGenerali() {
                 }}>{loc.logo}</div>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
-                  {/* Nel dato resta Manager (mai Owner per questa via); a schermo
-                      dice cosa sei: un collaboratore. */}
-                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{loc.role === 'Manager' ? 'Collaboratore' : loc.role}</div>
+                  {/* I ruoli sono quelli del gestionale (P-194): titolare,
+                      cassa, cameriere — «Owner» e «Manager» non esistono da
+                      nessuna parte. Chi non è titolare entra come collaboratore
+                      per questa via, e il ruolo dice quale. */}
+                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'titolare' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{(window.PN_RUOLI_LABEL || {})[loc.role] || loc.role}</div>
                 </div>
               </div>
 

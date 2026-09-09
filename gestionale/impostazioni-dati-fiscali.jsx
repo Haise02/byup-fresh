@@ -1022,8 +1022,9 @@ const ADE_CAUSE = [
 //      «Attiva». Finché non lo fa: «In attesa di Byup».
 //   3. l'ACCREDITAMENTO come esercente lo fa l'esercente stesso dal portale
 //      (D-123): la riga dice che cos'è, porta i passi e la spunta datata con
-//      cui lo dichiara. Se il riscontro dirà che con la delega possiamo
-//      accreditarlo noi, la riga torna «In attesa di Byup».
+//      cui lo dichiara. Compiuto l'atto, la riga SPARISCE — non torna «In
+//      attesa di Byup» (P-194): quel ritorno era la vecchia ipotesi, che
+//      D-123 ha chiuso decidendo che l'accreditamento è dell'esercente.
 // Chi ha già due delegati sul portale non deve revocarne una: con «Faccio da
 // me» fa lui le due cose, le dichiara con la data, e le righe vanno in ambra —
 // dichiarato non è verificato, e la differenza resta visibile.

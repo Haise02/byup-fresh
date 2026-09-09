@@ -60,7 +60,9 @@ const BYUP_KDS_ATTIVO_KEY = 'byup_kds_attivo';
 // utente e password — si collega con un codice che il titolare approva.
 // «Monitor cucina principale» nasce sulla board per TAVOLO: è il monitor
 // completo del servizio di sala, e la board per tavolo è quella che il
-// servizio di sala vuole — uscite, marcia, una portata alla volta. Il Pub
+// servizio di sala vuole — le uscite di ogni tavolo, nell'ordine in cui la
+// sala le ha mandate: tutto il tavolo insieme, o le portate che ha scelto
+// (P-194: non è la cucina a richiamare la successiva). Il Pub
 // resta su «Monitor pizza», dove la board per PIATTO è la cosa giusta: in un
 // locale ad alta rotazione vuoi vedere «sei carbonare», non sei tavoli.
 // Le due visualizzazioni restano tutte e due nel prodotto e si scelgono
@@ -309,7 +311,10 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
   const items = [
     { id: 'panoramica',   label: 'Panoramica',        icon: 'grid' },
     modules.sala         && { id: 'sala',         label: 'Sala',              icon: 'place-table',       area: 'sala' },
-    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-register', area: 'vendita' },
+    // L'id è la CHIAVE DI NAVIGAZIONE (PN_PAGES, qui sopra); l'area è il
+    // permesso, e si chiama come nel modello (P-194): sono due cose diverse
+    // che prima portavano lo stesso nome.
+    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-register', area: 'vendita_diretta' },
     modules.prenotazioni && { id: 'prenotazioni', label: 'Prenotazioni',      icon: 'time-calendar',     area: 'sala' },
     { id: 'cucina',       label: 'Cucina',             icon: 'food-flame',        area: 'cucina' },
     { id: 'statistiche',  label: 'Statistiche',        icon: 'chart-bar',         area: 'statistiche' },

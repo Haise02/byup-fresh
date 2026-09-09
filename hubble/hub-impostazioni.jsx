@@ -1,9 +1,10 @@
 // Hubble · Impostazioni — recapiti e domini di invio, catalogo delle proprietà.
 //
 // Vivono nel menu del profilo e non nella barra: si toccano una volta al mese,
-// e stavano occupando lo spazio del lavoro di tutti i giorni. Insieme a loro,
-// lì dentro, è finita anche «Sicurezza e sistemi» — che è la stessa specie di
-// cosa: amministrazione, non operatività.
+// e stavano occupando lo spazio del lavoro di tutti i giorni. Nello stesso
+// menu, ma in un altro file, sta «Sicurezza e sistemi» (admin-team.jsx): è la
+// stessa specie di cosa — amministrazione, non operatività — e qui dentro non
+// c'è (P-194).
 
 const { useState: useStateIm, useMemo: useMemoIm } = React;
 

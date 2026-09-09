@@ -43,7 +43,7 @@ const ROLES = [
     desc: 'Prende ordini e incassa al bancone',
     color: PN.BLUE, bg: PN.BLUE_SOFT,
     icon: 'receipt',
-    areas: ['vendita','sala'],
+    areas: ['vendita_diretta','sala'],
   },
   {
     id: 'titolare',
@@ -61,7 +61,7 @@ const ROLES = [
     color: '#0F766E', bg: '#CCFBF1',
     icon: 'crown',
     locked: true,
-    areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
+    areas: ['panoramica','sala','vendita_diretta','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
   },
   {
     id: 'cameriere',
@@ -101,8 +101,13 @@ const DEVICE_TYPES = [
 const KDS_VIEWS = [
   { id: 'pub', label: 'Visualizzazione Pub', short: 'Pub', icon: 'bolt',
     desc: 'Tutte le righe escono insieme' },
+  // Non è la cucina a scandire le portate (P-194): la comanda parte da SALA,
+  // e chi la manda sceglie se mandare tutto il tavolo o una o più portate. Il
+  // monitor da ristorante è quello che le tiene divise per tavolo e per
+  // portata, così quello che arriva si legge nell'ordine in cui è stato
+  // mandato.
   { id: 'ristorante', label: 'Visualizzazione Ristorante', short: 'Ristorante', icon: 'split',
-    desc: 'Le righe partono una portata alla volta' },
+    desc: 'Le righe restano divise per tavolo e per portata' },
 ];
 
 // «Vendita diretta» è la cassa del locale: era una sezione del gestionale che
@@ -111,7 +116,7 @@ const KDS_VIEWS = [
 const ALL_AREAS = [
   { id: 'panoramica', label: 'Panoramica', icon: 'stats' },
   { id: 'sala', label: 'Sala e prenotazioni', icon: 'utensils' },
-  { id: 'vendita', label: 'Vendita diretta', icon: 'receipt' },
+  { id: 'vendita_diretta', label: 'Vendita diretta', icon: 'receipt' },
   { id: 'cucina', label: 'Cucina', icon: 'chef' },
   { id: 'app', label: 'App cameriere', icon: 'phone' },
   { id: 'statistiche', label: 'Statistiche', icon: 'stats' },

@@ -58,12 +58,16 @@ function normalizzaNomeTavolo(name) {
   return m ? `Tavolo ${m[1]}` : name;
 }
 
+// Il tetto dei coperti di un tavolo, in un posto solo (P-194): due controlli
+// della stessa schermata dicevano venti e trenta, e chi provava a passare da
+// ventuno trovava il «+» spento in un punto e vivo nell'altro.
+const TAVOLO_COPERTI_MAX = 30;
+
 const TAVOLI_INIT = Array.from({length: 8}).map((_, i) => ({
   id: i + 1,
   name: `Tavolo ${i+1}`,
   coperti: [2,4,2,6,4,2,4,8][i],
   disabled: i === 1, // tavolo 2 disattivato
-  shape: ['round','square','rect','round','square','round','rect','rect'][i],
   pos: [
     {x:1.5,y:1},{x:3.5,y:1},{x:5.5,y:1},{x:7.5,y:1},
     {x:1.5,y:3.5},{x:3.5,y:3.5},{x:5.5,y:3.5},{x:7.5,y:3.5},
@@ -412,7 +416,7 @@ function ImpSalaTavoli() {
     }
     const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
     const name = nextGlobalTavoloName(sale);
-    const newT = { id: newId, name, coperti: 4, shape: 'square', disabled: false, pos };
+    const newT = { id: newId, name, coperti: 4, disabled: false, pos };
     setTavoli(prev => [...prev, newT]);
     setCreatingTable(newId);
   };
@@ -426,7 +430,6 @@ function ImpSalaTavoli() {
       id: baseId + 1 + i,
       name,
       coperti: config.coperti,
-      shape: config.shape || 'square',
       disabled: false,
       pos: {
         x: Math.min(9, (basePos?.x ?? 4) + (i + 1) * 0.7),
@@ -833,7 +836,7 @@ function ImpSalaTavoli() {
                     // Crea tavolo a posizione di default e apri popover
                     const center = { x: 4, y: 2.5 };
                     const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
-                    setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, shape: 'square', disabled: false, pos: center }]);
+                    setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, disabled: false, pos: center }]);
                     setCreatingTable(newId);
                   }}>
                     Aggiungi tavolo
@@ -936,7 +939,7 @@ function ImpSalaTavoli() {
                     <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                       const center = { x: 4, y: 2.5 };
                       const newId = Math.max(0, ...tavoli.map(x => x.id)) + 1;
-                      setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, shape: 'square', disabled: false, pos: center }]);
+                      setTavoli(prev => [...prev, { id: newId, name: nextGlobalTavoloName(sale), coperti: 4, disabled: false, pos: center }]);
                       setCreatingTable(newId);
                     }}>
                       Aggiungi tavolo
@@ -1043,7 +1046,7 @@ function ImpSalaTavoli() {
           onUpdate={(patch) => updateTavolo(creatingTable, patch)}
           onCreateMore={(count) => {
             const t = tavoli.find(x => x.id === creatingTable);
-            if (t) createMoreTavoli(count, {coperti: t.coperti, shape: t.shape}, t.pos);
+            if (t) createMoreTavoli(count, {coperti: t.coperti}, t.pos);
           }}
           onClose={() => setCreatingTable(null)}
           onDelete={() => { deleteTavolo(creatingTable); setCreatingTable(null); }}
@@ -1426,7 +1429,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
               borderLeft:`1px solid ${PN.BORDER}`, borderRight:`1px solid ${PN.BORDER}`,
               padding:'4px 0',
             }}>{t.coperti}</span>
-            <button onClick={(e) => { e.stopPropagation(); onUpdate({coperti: Math.min(20, t.coperti + 1)}); }} style={{
+            <button onClick={(e) => { e.stopPropagation(); onUpdate({coperti: Math.min(TAVOLO_COPERTI_MAX, t.coperti + 1)}); }} style={{
               width: 28, height: 28, border:'none', background: PN.WHITE,
               cursor:'pointer', fontSize: 16, color: PN.TEXT,
             }}>+</button>
@@ -1563,7 +1566,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                       value={tavolo.coperti}
                       onChange={e => {
                         const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
-                        onUpdate({coperti: isNaN(n) ? 1 : Math.max(1, Math.min(30, n))});
+                        onUpdate({coperti: isNaN(n) ? 1 : Math.max(1, Math.min(TAVOLO_COPERTI_MAX, n))});
                       }}
                       onFocus={e => e.target.select()}
                       style={{
@@ -1575,7 +1578,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                       }}
                     />
                     <button
-                      onClick={() => onUpdate({coperti: Math.min(30, tavolo.coperti + 1)})}
+                      onClick={() => onUpdate({coperti: Math.min(TAVOLO_COPERTI_MAX, tavolo.coperti + 1)})}
                       title="Aumenta"
                       style={{
                         width: 26, border:'none', background:'transparent',
@@ -2093,14 +2096,14 @@ function ImportPlanModal({ onClose, onImport }) {
   // Mock generato dall'AI
   const generated = {
     tavoli: [
-      { id: 101, name: 'Tavolo 1', coperti: 2, shape: 'round', disabled: false, pos: {x: 1, y: 1} },
-      { id: 102, name: 'Tavolo 2', coperti: 4, shape: 'square', disabled: false, pos: {x: 3, y: 1} },
-      { id: 103, name: 'Tavolo 3', coperti: 4, shape: 'square', disabled: false, pos: {x: 5, y: 1} },
-      { id: 104, name: 'Tavolo 4', coperti: 6, shape: 'rect', disabled: false, pos: {x: 7, y: 1} },
-      { id: 105, name: 'Tavolo 5', coperti: 2, shape: 'round', disabled: false, pos: {x: 1.5, y: 3} },
-      { id: 106, name: 'Tavolo 6', coperti: 4, shape: 'square', disabled: false, pos: {x: 3.5, y: 3} },
-      { id: 107, name: 'Tavolo 7', coperti: 4, shape: 'square', disabled: false, pos: {x: 5.5, y: 3} },
-      { id: 108, name: 'Tavolo 8', coperti: 8, shape: 'rect', disabled: false, pos: {x: 7.5, y: 3} },
+      { id: 101, name: 'Tavolo 1', coperti: 2, disabled: false, pos: {x: 1, y: 1} },
+      { id: 102, name: 'Tavolo 2', coperti: 4, disabled: false, pos: {x: 3, y: 1} },
+      { id: 103, name: 'Tavolo 3', coperti: 4, disabled: false, pos: {x: 5, y: 1} },
+      { id: 104, name: 'Tavolo 4', coperti: 6, disabled: false, pos: {x: 7, y: 1} },
+      { id: 105, name: 'Tavolo 5', coperti: 2, disabled: false, pos: {x: 1.5, y: 3} },
+      { id: 106, name: 'Tavolo 6', coperti: 4, disabled: false, pos: {x: 3.5, y: 3} },
+      { id: 107, name: 'Tavolo 7', coperti: 4, disabled: false, pos: {x: 5.5, y: 3} },
+      { id: 108, name: 'Tavolo 8', coperti: 8, disabled: false, pos: {x: 7.5, y: 3} },
     ],
     furniture: [
       { id: 'fai-1', kind: 'kitchen', label:'Cucina', x: 0.2, y: 4.4, w: 2.5, h: 1.4, color:'#7c2436', textColor:'#FFF' },

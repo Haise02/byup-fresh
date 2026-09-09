@@ -432,10 +432,10 @@ window.pnEtichettaSenza = (t) => {
 
 // ─── Tipologia dell'articolo (P-108 · D-105, che rivede D-16) ──────────────
 // Chi batte un articolo fuori menù, e chi compila un piatto del menù, non
-// sceglie un'aliquota né un profilo IVA: dichiara CHE COSA vende, fra cinque
-// tipologie di un dizionario di piattaforma (item_kinds del modello,
-// governato da Hubble, qui mockato), e il profilo IVA discende dalla
-// tipologia e dal modo di consumo dell'ordine — al banco o al tavolo
+// sceglie un'aliquota: dichiara CHE COSA vende, fra cinque tipologie di un
+// dizionario di piattaforma (item_kinds del modello, governato da Hubble, qui
+// mockato), e l'aliquota discende dalla tipologia e dal modo di consumo
+// dell'ordine — al banco o al tavolo
 // (somministrazione, voce 121 Tab. A parte III DPR 633/72: tutto al 10%)
 // oppure da asporto (cessione: la legge elenca i prodotti uno per uno).
 // Le cinque voci sono raggruppamenti nostri, non categorie di legge: per
@@ -443,8 +443,9 @@ window.pnEtichettaSenza = (t) => {
 // arricchisce la spiegazione senza rilascio, e non si chiede al ristoratore
 // di interpretare la tabella. La prima è la proposta per tutti (P-126: la
 // preselezione di sede non esiste) e chi batte la cambia con un tocco.
-// Sulla riga d'ordine si congela il profilo (vat_rate_profiles, ERD v11)
-// risolto da tipologia × modo; al cambio di modo si ricalcola da solo. La
+// Sulla riga d'ordine si congela l'ALIQUOTA risolta da tipologia × modo; al
+// cambio di modo si ricalcola da sola. Non c'è più una tabella di profili
+// (D-126): l'aliquota è un numero sulla tipologia, con la sua decorrenza. La
 // formulazione precedente (P-11) chiedeva l'aliquota e la ricavava da due
 // spunte con una regola sbagliata per acqua e birra.
 // DIZIONARIO GOVERNATO DA HUBBLE (P-164 · D-112; ridisegno del 6 settembre
@@ -457,9 +458,8 @@ window.pnEtichettaSenza = (t) => {
 // un altro è una voce a sé — e i nomi di prima (PN_TIPOLOGIE_ARTICOLO,
 // PN_TIPOLOGIA_DEFAULT, pnTipologia…) leggono dal registro, così chi crea un
 // articolo propone queste voci, in quest'ordine, con questa descrizione.
-// Sulla riga d'ordine si congela il profilo risolto da voce × modo
-// (vat_rate_profiles): cambia il numero, cambia il profilo, e la riga scritta
-// prima resta col suo. Una voce può portare un cambio programmato
+// Sulla riga d'ordine si congela l'aliquota risolta da voce × modo: cambia il
+// numero nel registro, e la riga scritta prima resta con quello che aveva. Una voce può portare un cambio programmato
 // (`locale.prossima = { aliquota, dal }`, P-174 · D-126): non riguarda il
 // gestionale, che legge il numero in vigore — quando la data arriva, il
 // numero in vigore È quello, e Hubble ha già riscritto il registro. Quello che qui sotto è una costante è il SEME.
@@ -653,11 +653,14 @@ window.PN_SERVIZI_MAP = PN_SERVIZI.reduce((m, v) => { m[v.id] = v; return m; }, 
 // conti non è chi apparecchia. Chi non ce l'ha non vede la sezione nella
 // colonna e, arrivandoci da un rimando, trova il cancello.
 const PN_RUOLI_AREE = {
-  titolare:  ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
-  cassa:     ['vendita','sala'],
+  titolare:  ['panoramica','sala','vendita_diretta','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
+  cassa:     ['vendita_diretta','sala'],
   cameriere: ['app'],
 };
 const PN_RUOLI_LABEL = { titolare: 'Titolare', cassa: 'Cassa', cameriere: 'Cameriere' };
+// Le etichette servono anche al Profilo, che mostra il ruolo del locale
+// attivo (P-194): un posto solo dove i tre ruoli hanno un nome.
+window.PN_RUOLI_LABEL = PN_RUOLI_LABEL;
 // I ruoli che il locale si crea da sé vivono in un registro condiviso
 // (byup_ruoli_custom): li scrive Impostazioni → Personale e li legge chi deve
 // sapere cosa quel ruolo apre. Senza un posto comune le spunte restavano nella
@@ -970,6 +973,10 @@ const PN_AUDIT_TIPI = {
   // La conferma del menù importato (P-184 · D-137): da lì il contenuto è una
   // dichiarazione del ristoratore, allergeni compresi, e ne risponde lui.
   menu_confermato: 'ha confermato il menù importato',
+  // La revoca di un dispositivo (P-194): si scrive quando si disconnette un
+  // monitor o un tablet dalla sua scheda in Personale. L'evento si scriveva
+  // già e nel dizionario non c'era: a registro compariva il codice.
+  device_revoked: 'ha disconnesso il dispositivo',
   // L'uscita volontaria da un locale (P-193): è un gesto della PERSONA, non
   // del locale — chi esce lo decide da sé e ne resta traccia a suo nome, con
   // la causale che ha scelto. Toglierla dal locale sarebbe un'altra cosa, e
@@ -1000,9 +1007,8 @@ window.byupScriviAuditEvento = function (type, from, to, by) {
 // distinte — un gesto, N record.
 // Non si firma per un soggetto che non si rappresenta: chi è collaboratore lo
 // vede in elenco, spento, con scritto perché.
-// CODA REGISTRATA, già nota: il mock dei ruoli in Profilo → I tuoi locali usa
-// Owner/Manager mentre il gestionale usa Titolare/Cassa/Cameriere. Qui vale il
-// secondo; l'allineamento del mock è una coda sua.
+// I ruoli sono gli stessi ovunque (P-194): titolare, cassa, cameriere. Il
+// Profilo → I tuoi locali usava Owner/Manager, e la coda è chiusa.
 const PN_SOGGETTI = [
   { id: 'sf-cp', denominazione: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901', forma: 'societa', ruolo: 'titolare',
     sedi: [{ id: 'cp', nome: 'Cacio e Pepe', citta: 'Roma · Trastevere' }, { id: 'co', nome: 'Cacio e Pepe · Ostiense', citta: 'Roma · Ostiense' }] },
