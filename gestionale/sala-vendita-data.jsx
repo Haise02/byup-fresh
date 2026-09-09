@@ -103,6 +103,17 @@ const SALA_ASPORTO_CONTI = [
   // e al suo posto c'è Uber Eats, la cui documentazione è in raccolta.
   { id:'asp-6', codice:'7K2F9', cliente:'Federica Colombo', ritiro:'20:20', fonte:'ubereats', asporto:true, pagato:true, totale:42.50,
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00},{nome:'Acqua minerale',qty:2,prezzo:2.50,tipologia:'acqua_birra'}] },
+  // Due conti nati AL BANCO, uno per coda: senza di loro «Porta a un tavolo»
+  // (P-192 · D-146) non si vede mai aprendo la pagina, perché è il gesto di un
+  // ordine del banco e in coda c'erano solo asporti. Il primo è un conto
+  // sospeso — ordinato al banco, pagherà dopo — e sta in «Da saldare»; il
+  // secondo è pagato e aspetta di essere ritirato, e sta in «Da consegnare».
+  // `asporto:false`: sono ordini al banco, non da portar via — ed è esattamente
+  // la condizione di chi poi si siede.
+  { id:'asp-8', codice:'#1246', cliente:'Giorgio Sala', ritiro:null, fonte:'banco', asporto:false, pagato:false, banco:'B-3', totale:18.50, inCucina:true, codiceRitiro:'482913',
+    items:[{nome:'Tagliere misto',qty:1,prezzo:14.00},{nome:'Birra media',qty:1,prezzo:4.50,tipologia:'acqua_birra',hasAlcohol:true}] },
+  { id:'asp-9', codice:'#1247', cliente:null, ritiro:null, fonte:'banco', asporto:false, pagato:true, banco:'B-4', totale:11.00, inCucina:true, codiceRitiro:'701244',
+    items:[{nome:'Pasta carbonara',qty:1,prezzo:11.00}] },
   { id:'asp-7', codice:'4821', cliente:'Andrea Fabbri', ritiro:'20:35', fonte:'deliveroo', asporto:true, pagato:true, totale:31.50,
     items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Spritz',qty:1,prezzo:6.50,tipologia:'bibite_alcolici_confezionati',hasAlcohol:true},{nome:'Panna cotta',qty:1,prezzo:5.50}] },
 ];

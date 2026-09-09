@@ -1264,8 +1264,11 @@ function SaPortaTavoloModal({ ordine, onClose, onScegli }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Liberi davvero: niente tavoli uniti (non sono entità autonome) e niente
+  // tavoli SPENTI — `attivo: false` è il tavolo tolto per la stagione (D-141),
+  // che in sala non c'è e non può ricevere niente.
   const liberi = (window.SALA_TAVOLI || [])
-    .filter(t => t.state === 'libero' && !t.mergedWith)
+    .filter(t => t.state === 'libero' && !t.mergedWith && t.attivo !== false)
     .sort((a, b) => a.id - b.id);
 
   return (
