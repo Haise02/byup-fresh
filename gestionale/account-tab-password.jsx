@@ -25,6 +25,24 @@ const acTerminaHover = {
 };
 
 function AccPasswordSicurezza() {
+  // I tre pulsanti della sicurezza fanno qualcosa (P-193): premuti, cambiano
+  // lo stato della pagina invece di restare fermi. Non è vezzo — un pulsante
+  // che non risponde chi sviluppa lo legge come decorazione, e la sicurezza
+  // dell'account è l'ultimo posto dove lasciare quel dubbio.
+  const [pwdStato, setPwdStato] = React.useState('idle'); // idle | corso | fatto
+  const aggiornaPassword = () => {
+    if (pwdStato !== 'idle') return;
+    setPwdStato('corso');
+    setTimeout(() => {
+      setPwdStato('fatto');
+      setTimeout(() => setPwdStato('idle'), 2600);
+    }, 900);
+  };
+  // Le sessioni sono uno stato: chiuderne una la toglie dall'elenco.
+  const [sessioni, setSessioni] = React.useState(ACC_SESSIONI);
+  const termina = (i) => setSessioni(prev => prev.filter((_, idx) => idx !== i));
+  const terminaAltre = () => setSessioni(prev => prev.filter(x => x.current));
+
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 18}}>
       <AcCard title="Password" subtitle="Aggiorna la password dell'account.">
@@ -34,12 +52,12 @@ function AccPasswordSicurezza() {
           <AcInput label="Nuova password" type="password" placeholder="Almeno 8 caratteri"/>
           <AcInput label="Conferma nuova password" type="password" placeholder="Ripeti la password"/>
         </div>
-        <button style={{
+        <button onClick={aggiornaPassword} className="pn-btn-feedback" style={{
           padding:'11px 20px', borderRadius: 999,
-          background: PN.TEXT, color: PN.WHITE, border:'none',
-          fontSize: 15, fontWeight: 600, cursor:'pointer',
-          fontFamily:'inherit',
-        }}>Aggiorna password</button>
+          background: pwdStato === 'fatto' ? PN.GREEN : PN.TEXT, color: PN.WHITE, border:'none',
+          fontSize: 15, fontWeight: 600, cursor: pwdStato === 'idle' ? 'pointer' : 'default',
+          fontFamily:'inherit', transition:'background 200ms ease',
+        }}>{pwdStato === 'corso' ? 'Aggiornamento…' : pwdStato === 'fatto' ? '✓ Password aggiornata' : 'Aggiorna password'}</button>
       </AcCard>
 
       <AcCard title="Autenticazione a due fattori" subtitle="Aggiungi un secondo livello di sicurezza.">
@@ -65,7 +83,7 @@ function AccPasswordSicurezza() {
 
       <AcCard title="Sessioni attive" subtitle="Dispositivi e browser collegati.">
         <div style={{display:'flex', flexDirection:'column', gap: 0}}>
-          {ACC_SESSIONI.map((s,i) => (
+          {sessioni.map((s,i) => (
             <div key={i} style={{
               display:'flex', alignItems:'center', gap: 14,
               padding:'14px 0',
@@ -102,7 +120,7 @@ function AccPasswordSicurezza() {
                   ordinaria, non un'emergenza. Stesso trattamento del logout
                   in account-tab-dati.jsx, che e' la stessa azione. */}
               {!s.current && (
-                <button {...acTerminaHover} style={{
+                <button {...acTerminaHover} onClick={() => termina(i)} className="pn-btn-feedback" style={{
                   padding:'7px 14px', borderRadius: 999,
                   background: AC_TERM_REST.bg, color: AC_TERM_REST.ink,
                   border:`1px solid ${AC_TERM_REST.bd}`,
@@ -115,7 +133,7 @@ function AccPasswordSicurezza() {
             </div>
           ))}
         </div>
-        <button {...acTerminaHover} style={{
+        <button {...acTerminaHover} onClick={terminaAltre} className="pn-btn-feedback" style={{
           marginTop: 14,
           padding:'10px 18px', borderRadius: 999,
           background: AC_TERM_REST.bg, color: AC_TERM_REST.ink,

@@ -30,8 +30,6 @@ function AccDatiGenerali() {
   const [fotoHover, setFotoHover] = React.useState(false);
   // Preferenze locali — modificabili.
   const [lingua, setLingua] = React.useState('Italiano');
-  const [fuso, setFuso] = React.useState('Europe/Rome (UTC+1)');
-  const [valuta, setValuta] = React.useState('EUR (€)');
   // Dati personali modificabili: draft (a video) vs salvati; le modifiche
   // vanno confermate con "Salva modifiche" o scartate con "Annulla".
   const [datiSalvati, setDatiSalvati] = React.useState({
@@ -96,6 +94,9 @@ function AccDatiGenerali() {
   const [locali, setLocali] = React.useState(ACC_LOCALI);
   const [addOpen, setAddOpen] = React.useState(false);
   const [dissocia, setDissocia] = React.useState(null); // locale da dissociare
+  // Perché si esce (P-193): l'uscita volontaria è un gesto della persona e ha
+  // la sua causale, che finisce nel registro delle attività a suo nome.
+  const [causaUscita, setCausaUscita] = React.useState(null);
   const inviaRichiesta = (dir) => {
     setLocali(prev => [...prev, {
       id: dir.id, name: dir.name, city: dir.city, addr: dir.addr,
@@ -127,11 +128,26 @@ function AccDatiGenerali() {
     if (window.byupWriteLocale) byupWriteLocale({ id, nome, forma: soggetto.forma });
     window.location.href = `byup Restaurant Onboarding.html?sede=catena&nome=${encodeURIComponent(nome)}&sedeId=${encodeURIComponent(id)}`;
   };
+  // Le causali dell'uscita: poche e chiuse, perché servono a chi legge il
+  // registro dopo — non è un questionario.
+  const AC_CAUSALI_USCITA = [
+    { id: 'fine_rapporto', label: 'Non lavoro più qui' },
+    { id: 'errore',        label: 'Mi hanno collegato per sbaglio' },
+    { id: 'ruolo',         label: 'Il mio ruolo è cambiato' },
+    { id: 'altro',         label: 'Altro' },
+  ];
   const confermaDissocia = () => {
     const loc = dissocia;
     setLocali(prev => prev.filter(l => l.id !== loc.id));
+    // L'uscita volontaria si registra a nome di chi la compie, con la causale.
+    // L'annullo di una richiesta non è un'uscita: non c'era ancora nulla.
+    if (!loc.pending) {
+      const causale = (AC_CAUSALI_USCITA.find(c => c.id === causaUscita) || {}).label || null;
+      if (window.byupScriviAuditEvento) window.byupScriviAuditEvento('membership_left', loc.name, causale);
+    }
     setDissocia(null);
-    setDatiToast(loc.pending ? `✓ Richiesta a ${loc.name} annullata` : `✓ ${loc.name} dissociato dal tuo account`);
+    setCausaUscita(null);
+    setDatiToast(loc.pending ? `✓ Richiesta a ${loc.name} annullata` : `✓ Sei uscito da ${loc.name}`);
     setTimeout(() => setDatiToast(null), 2800);
   };
   const apriGestionale = (loc) => {
@@ -428,7 +444,8 @@ function AccDatiGenerali() {
                       </>
                     ) : active ? '✓ In uso' : 'Passa a questo locale'}
                   </button>
-                  {/* Dissocia — link testuale discreto, come "Rimuovi" nel carrello */}
+                  {/* Uscire dal locale (P-193): link discreto, come "Rimuovi" nel
+                      carrello. È un gesto della persona, e porta la sua causale. */}
                   <button
                     onClick={(e) => { e.stopPropagation(); if (!active) setDissocia(loc); }}
                     style={{
@@ -441,7 +458,7 @@ function AccDatiGenerali() {
                     }}
                     onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
                     onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
-                  >Dissocia</button>
+                  >Esci dal locale</button>
                 </>
               )}
             </div>
@@ -474,14 +491,20 @@ function AccDatiGenerali() {
         </div>
       </AcCard>
 
-      <AcCard title="Lingua e regione" subtitle="Preferenze locali.">
-        <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr 1fr'), gap: 14}}>
-          <AcSelect label="Lingua" value={lingua} onChange={setLingua}
+      {/* La lingua è dell'account (P-193 · D-141): è la persona a leggere, e
+          due persone dello stesso locale possono leggere in due lingue. Fuso e
+          valuta no, e non si chiedono: il fuso lo porta l'orologio del
+          dispositivo, la valuta è della sede e del prestatore dei pagamenti —
+          chiederli qui vorrebbe dire lasciar impostare due cose che poi il
+          sistema ignora. */}
+      <AcCard title="Lingua" subtitle="In che lingua leggi il gestionale.">
+        <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 14}}>
+          <AcSelect label="Lingua dell'interfaccia" value={lingua} onChange={setLingua}
             options={['Italiano','English','Español','Français','Deutsch']}/>
-          <AcSelect label="Fuso orario" value={fuso} onChange={setFuso}
-            options={['Europe/Rome (UTC+1)','Europe/London (UTC+0)','Europe/Paris (UTC+1)','Europe/Madrid (UTC+1)','Europe/Berlin (UTC+1)','Europe/Athens (UTC+2)']}/>
-          <AcSelect label="Valuta" value={valuta} onChange={setValuta}
-            options={['EUR (€)','USD ($)','GBP (£)','CHF (Fr)']}/>
+        </div>
+        <div style={{fontSize: 13, color: PN.MUTED, marginTop: 10, lineHeight: 1.5}}>
+          Il fuso orario lo prende dall'orologio di questo dispositivo; la valuta è quella
+          della sede e del conto con cui incassi, e non si cambia da qui.
         </div>
       </AcCard>
 
@@ -577,7 +600,7 @@ function AccDatiGenerali() {
               </div>
               <div style={{flex: 1}}>
                 <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
-                  {dissocia.pending ? 'Annullare la richiesta?' : `Dissociare ${dissocia.name}?`}
+                  {dissocia.pending ? 'Annullare la richiesta?' : `Uscire da ${dissocia.name}?`}
                 </div>
                 <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
                   {dissocia.pending
@@ -586,6 +609,30 @@ function AccDatiGenerali() {
                 </div>
               </div>
             </div>
+
+            {/* La causale (P-193): chi esce dice perché, e resta scritto a suo
+                nome nel registro delle attività. Ritirare una richiesta non è
+                un'uscita — lì non si chiede niente. */}
+            {!dissocia.pending && (
+              <div style={{display:'flex', flexDirection:'column', gap: 6}}>
+                <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>Perché esci</div>
+                {AC_CAUSALI_USCITA.map(c => {
+                  const on = causaUscita === c.id;
+                  return (
+                    <label key={c.id} style={{
+                      display:'flex', alignItems:'center', gap: 10, padding:'9px 12px', cursor:'pointer',
+                      borderRadius: 10, background: on ? PN.PINK_BG_SOFT : 'rgba(255,255,255,0.7)',
+                      border:`1px solid ${on ? 'rgba(255, 90, 95, 0.35)' : PN.BORDER_HAIR}`,
+                      fontSize: 14.5, color: PN.TEXT, fontWeight: on ? 600 : 500,
+                    }}>
+                      <input type="radio" name="ac-causa-uscita" checked={on} onChange={() => setCausaUscita(c.id)}
+                        style={{margin: 0, accentColor: PN.PINK}}/>
+                      {c.label}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
             <div style={{display:'flex', gap: 8}}>
               <button
                 onClick={() => setDissocia(null)}
@@ -597,16 +644,23 @@ function AccDatiGenerali() {
                 }}>
                 Annulla
               </button>
-              <button
-                onClick={confermaDissocia}
-                style={{
-                  flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: '#0F1115', color: '#fff',
-                  border: '1px solid rgba(15,17,21,0.5)',
-                  fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                }}>
-                {dissocia.pending ? 'Annulla richiesta' : 'Dissocia'}
-              </button>
+              {(() => {
+                const pronto = dissocia.pending || !!causaUscita;
+                return (
+                  <button
+                    onClick={pronto ? confermaDissocia : undefined}
+                    disabled={!pronto}
+                    style={{
+                      flex: 1, padding: '11px 14px', borderRadius: 999,
+                      background: pronto ? '#0F1115' : 'rgba(255,255,255,0.75)',
+                      color: pronto ? '#fff' : PN.MUTED_SOFT,
+                      border: `1px solid ${pronto ? 'rgba(15,17,21,0.5)' : 'rgba(15,17,21,0.12)'}`,
+                      fontSize: 14.5, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+                    }}>
+                    {dissocia.pending ? 'Annulla richiesta' : 'Esci dal locale'}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

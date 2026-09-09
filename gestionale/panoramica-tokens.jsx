@@ -970,6 +970,11 @@ const PN_AUDIT_TIPI = {
   // La conferma del menù importato (P-184 · D-137): da lì il contenuto è una
   // dichiarazione del ristoratore, allergeni compresi, e ne risponde lui.
   menu_confermato: 'ha confermato il menù importato',
+  // L'uscita volontaria da un locale (P-193): è un gesto della PERSONA, non
+  // del locale — chi esce lo decide da sé e ne resta traccia a suo nome, con
+  // la causale che ha scelto. Toglierla dal locale sarebbe un'altra cosa, e
+  // la scrive il titolare.
+  membership_left: 'è uscito dal locale',
 };
 window.PN_AUDIT_TIPI = PN_AUDIT_TIPI;
 window.byupReadAuditEventi = function () {
