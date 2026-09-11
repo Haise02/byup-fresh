@@ -878,6 +878,14 @@ Sotto quello che è già stato incassato non si scende mai, e vale per tutti e d
 
 **In un elenco operativo, quello che è finito scende in fondo.** Le righe già saldate stanno sotto le altre: in cima resta il lavoro da fare, e scorrendo un conto lungo non ci sono buche spente da saltare per arrivare alla prossima riga da spuntare. In modifica non ci sono proprio: una riga pagata non risponde a nessuno dei tre gesti di quella modalità, e mostrarla sarebbe l'unica cosa lì dentro che non si può toccare.
 
+## Una sezione che non ha niente da dire non esiste — 11 set 2026
+
+La scheda «Buoni pasto» della Contabilità c'era sempre, e per la maggioranza dei locali — quelli che i buoni non li prendono — era una stanza vuota portata dietro per tutta la vita del prodotto: apri, leggi «finché non c'è una convenzione qui non c'è nulla da riscontrare», chiudi. Adesso **compare solo se c'è un accordo**: almeno una convenzione, anche terminata, o almeno un buono accettato — perché chiuso un accordo quello che è già passato resta da riscontrare e da fatturare. Un collegamento vecchio a `?tab=buoni` non lascia più la pagina su una scheda che non c'è: ripiega su Conti.
+
+**Una stanza vuota non è un buon cartello.** L'obiezione ovvia è che la scheda, anche vuota, insegnava la strada — «si dichiara in Impostazioni → Integrazioni». Ma la strada è una sola e sta da un'altra parte: chi vuole cominciare passa comunque da lì, quindi la scheda pagava con una presenza permanente un'informazione che serve una volta sola. Il cartello sta invece **dove si compie il gesto**: dichiarata la prima convenzione, la card di Integrazioni dice in una riga che il riepilogo mensile vive in Contabilità → Buoni pasto, e ci porta. E la linguetta compare senza ricaricare la pagina, perché le due schermate parlano già dallo stesso registro (`byup-buoni-change`).
+
+La regola generalizza: **quando una funzione dipende da un accordo o da una configurazione che il locale può non avere, la sua sezione segue quella condizione**, e la scoperta si appoggia alla schermata dove la condizione si crea — non a un contenitore vuoto che la annuncia per sempre.
+
 ## Il Kitchen Monitor parla la lingua dei bottoni del gestionale — 11 set 2026
 
 Vale per la board per tavolo della Cucina, visualizzazione Ristorante (`kds-tavoli.jsx`), e le tre cose sono la stessa cosa vista da tre lati: un comando si deve riconoscere, una cosa toccabile si deve vedere che lo è, e un cambiamento si deve vedere accadere.

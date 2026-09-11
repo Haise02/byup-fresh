@@ -22,6 +22,37 @@ function ContabilitaApp() {
     const d = params.get('fiscData'), st = params.get('fiscStato');
     return d ? { data: d, stato: st || null } : null;
   });
+  // ── LA SCHEDA DEI BUONI ESISTE SOLO SE C'È UN ACCORDO ──────────────────
+  // Senza convenzione non si accetta un buono, quindi non c'è niente da
+  // riscontrare: la linguetta sarebbe una stanza vuota che ogni locale che i
+  // buoni non li prende — la maggioranza — si porta dietro per sempre. E non
+  // serve nemmeno a insegnare la strada, perché la strada è una sola e sta
+  // da un'altra parte: l'accordo si dichiara in Impostazioni → Integrazioni,
+  // e di lì si passa comunque.
+  // Le accettazioni valgono quanto le convenzioni: chiuso un accordo, quello
+  // che è già passato resta da riscontrare e da fatturare, e la scheda deve
+  // restare raggiungibile finché c'è.
+  const buoniInCasa = () => {
+    const conv = window.byupReadConvenzioniBuoni ? window.byupReadConvenzioniBuoni() : [];
+    const acc  = window.byupBuoniAccettazioni ? window.byupBuoniAccettazioni() : [];
+    return conv.length > 0 || acc.length > 0;
+  };
+  const [buoni, setBuoni] = useState(buoniInCasa);
+  React.useEffect(() => {
+    // Si dichiara una convenzione in un'altra scheda del browser, o in questa
+    // stessa sessione: la linguetta compare senza ricaricare la pagina.
+    const f = () => setBuoni(buoniInCasa());
+    window.addEventListener('byup-buoni-change', f);
+    window.addEventListener('storage', f);
+    return () => {
+      window.removeEventListener('byup-buoni-change', f);
+      window.removeEventListener('storage', f);
+    };
+  }, []);
+  // Un collegamento vecchio — o una convenzione terminata mentre la si
+  // guardava — non deve lasciare la pagina su una scheda che non c'è.
+  const tabVero = (tab === 'buoni' && !buoni) ? 'conti' : tab;
+
   const [cassaOpen, setCassaOpen] = useState(false);
   const [newCost, setNewCost] = useState(false);
   const [share, setShare] = useState(false);
@@ -106,11 +137,12 @@ function ContabilitaApp() {
               {id:'costi', label:'Costi', icon:'commerce-price-tag'},
               {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
               {id:'fatture', label:'Fatture', icon:'commerce-register'},
-              // I buoni pasto (P-173 · D-124): il riepilogo per emittente e periodo.
-              {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'},
+              // I buoni pasto (P-173 · D-124): il riepilogo per emittente e
+              // periodo. C'è solo per chi i buoni li prende davvero.
+              buoni ? {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'} : null,
               {id:'export', label:'Export', icon:'download'},
-            ].map(t => (
-              <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
+            ].filter(Boolean).map(t => (
+              <PnSectionTab key={t.id} id={t.id} active={tabVero === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
             ))}
             <span style={{flex: 1}}/>
             {/* Nel regime della Soluzione apre la console fiscale (P-96) in una
@@ -132,14 +164,14 @@ function ContabilitaApp() {
           </div>
 
           {/* Tab content */}
-          {tab==='buoni' && <ContBuoniPasto/>}
-          {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
+          {tabVero==='buoni' && <ContBuoniPasto/>}
+          {tabVero==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
             onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
-          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} onFiscClear={() => setContiFisc(null)}/>}
-          {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
-          {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
-          {tab==='fatture' && <ContFatture/>}
-          {tab==='export' && <ContExport openShare={() => setShare(true)}/>}
+          {tabVero==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} onFiscClear={() => setContiFisc(null)}/>}
+          {tabVero==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
+          {tabVero==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
+          {tabVero==='fatture' && <ContFatture/>}
+          {tabVero==='export' && <ContExport openShare={() => setShare(true)}/>}
         </div>
 
         <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)} onSave={c => window.ccAggiungiCosto && window.ccAggiungiCosto(c)}/>

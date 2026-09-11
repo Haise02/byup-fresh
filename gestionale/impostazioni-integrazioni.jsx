@@ -1028,6 +1028,15 @@ function ImpBuoniPastoCard() {
           <ImpButton variant="ghost" onClick={() => window.byupTerminaConvenzioneBuoni(c.id)}>Termina</ImpButton>
         </div>
       ))}
+      {/* La scheda «Buoni pasto» della Contabilità nasce da qui: prima di una
+          convenzione non esiste, e chi dichiara la prima non ha modo di sapere
+          che da quel momento c'è. Una riga sola, e solo quando serve. */}
+      {attive.length > 0 && (
+        <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 10 }}>
+          Il riepilogo mensile per emittente — titoli, facciale, sconto, netto atteso —
+          sta in <a href="byup Contabilita.html?tab=buoni" style={{ color: PN.WINE, fontWeight: 700, textDecoration: 'none' }}>Contabilità → Buoni pasto</a>.
+        </div>
+      )}
       {tutte.filter(c => c.valid_to).length > 0 && (
         <div style={{ fontSize: 12.5, color: PN.MUTED_SOFT || PN.MUTED, marginTop: 6 }}>{tutte.filter(c => c.valid_to).length} {tutte.filter(c => c.valid_to).length === 1 ? 'convenzione terminata resta' : 'convenzioni terminate restano'} a registro: i riepiloghi dei periodi passati si ricostruiscono con lo sconto di allora.</div>
       )}
