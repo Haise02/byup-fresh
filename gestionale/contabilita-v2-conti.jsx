@@ -1842,9 +1842,16 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           background: PN.PINK_BG_SOFT, border:`1px solid ${PN.PINK_SOFT}`,
         }}>
           <span style={{color: PN.PINK_DARK, display:'flex'}}><Ic.receipt size={16}/></span>
+          {/* Da dove sei arrivato cambia la frase, perché cambia la domanda.
+              Da Cassa stai guardando UNA GIORNATA: la data è il soggetto. Dal
+              numero della scheda stai guardando QUELLO CHE TI RESTA, che non
+              ha una data — e scriverci «del » seguito dal vuoto era il modo
+              più veloce per far sembrare rotta una schermata che funziona. */}
           <span style={{flex:1, fontSize: C.T_SM, color: PN.TEXT}}>
-            Documenti <b>{FISC_ETICHETTA[fisc.stato] || ''}</b> del{' '}
-            <b>{fisc.data ? fisc.data.split('-').reverse().join('/') : ''}</b> — dal riepilogo di Cassa
+            {fisc.da === 'segnalazione'
+              ? <React.Fragment>Documenti <b>{FISC_ETICHETTA[fisc.stato] || ''}</b> ancora da gestire — è quello che segnala il numero in Contabilità</React.Fragment>
+              : <React.Fragment>Documenti <b>{FISC_ETICHETTA[fisc.stato] || ''}</b> del{' '}
+                  <b>{fisc.data ? fisc.data.split('-').reverse().join('/') : ''}</b> — dal riepilogo di Cassa</React.Fragment>}
           </span>
           <button onClick={() => onFiscClear && onFiscClear()}
             onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; }}
@@ -1869,7 +1876,9 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
         }}>
           <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
-            Nessun documento {FISC_ETICHETTA_UNO[fisc.stato] || ''} in questa giornata
+            {fisc.da === 'segnalazione'
+              ? 'Non resta nessun documento ' + (FISC_ETICHETTA_UNO[fisc.stato] || '')
+              : 'Nessun documento ' + (FISC_ETICHETTA_UNO[fisc.stato] || '') + ' in questa giornata'}
           </div>
           <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4}}>
             {fisc.stato === 'scartato'
@@ -2013,6 +2022,11 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
               // La riga aperta resta marcata sotto al foglio: chiudendolo si
               // vede subito da dove si è tornati.
               const isAperto = !!contoAperto && contoAperto.id === conto.id;
+              // Quanti documenti di QUESTO conto sono ancora da sistemare: è
+              // l'ultimo anello della catena che parte dal numero nel menù —
+              // menù, scheda, riga — e senza di lui, arrivati qui, bisognava
+              // aprire i conti uno per uno per scoprire quale fosse.
+              const daGestire = (conto.payments || []).filter(p => docInfo(p).aperto).length;
               return (
                 <React.Fragment key={conto.id}>
                   <div
@@ -2053,6 +2067,19 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                         transition:'color .15s',
                       }}><PnI.ChevronRight size={11}/></span>
                       {conto.tavolo}
+                      {/* Il pallino del menù, nella misura di una riga: dice
+                          che è QUESTO il conto da aprire. Un punto e non una
+                          pastiglia col numero — la cifra la porta già la
+                          scheda, e qui serve solo il bersaglio. */}
+                      {daGestire > 0 && (
+                        <span data-conto-da-gestire={daGestire}
+                          title={daGestire === 1 ? 'Un documento scartato, ancora da gestire'
+                            : daGestire + ' documenti scartati, ancora da gestire'}
+                          style={{
+                            width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+                            background: PN.PINK, boxShadow: '0 0 0 3px ' + PN.PINK_BG_SOFT,
+                          }}/>
+                      )}
                     </span>
                     <span style={{display:'inline-flex', alignItems:'center', gap:6, minWidth:0}}>
                       {conto.riferimento ? (

@@ -14,6 +14,19 @@ function ContabilitaApp() {
   const contoApri = params.get('conto') || null;
 
   const [tab, setTab] = useState(urlTab);
+  // ── IL NUMERO E' UN INDIRIZZO ───────────────────────────────────────────
+  // Toccare una scheda che porta un numero non la apre e basta: ci atterra
+  // PUNTATI su quello che l'ha acceso — in Conti, i documenti scartati e non
+  // ancora gestiti. Vale anche se quella scheda è già quella aperta, che è il
+  // caso più frequente di tutti: Conti è la scheda predefinita, e un numero
+  // che non si può toccare perché «ci sei già» sarebbe un numero muto.
+  // Dal punto si torna indietro con la riga «Mostra tutti i conti», che è la
+  // stessa via d'uscita del rimando che arriva da Cassa.
+  const vaiA = (id) => {
+    const ancora = window.byupAncoraContabilita ? window.byupAncoraContabilita(id) : null;
+    if (ancora && id === 'conti') setContiFisc(ancora);
+    setTab(id);
+  };
   // Il filtro arriva dall'URL e non cambia più: non è stato, è una costante.
   const contiFilter = urlFilter;
   // Rimando da Cassa: la giornata e lo stato di trasmissione da mostrare in
@@ -75,10 +88,18 @@ function ContabilitaApp() {
   // accanto agli invii giornalieri del portale.
   const [controllo, setControllo] = useState(params.get('controllo') === '1');
 
-  // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
+  // Scarti fiscali non gestiti: accendono il numero sulla voce Contabilità.
   // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
   // fatto di aver aperto la pagina.
-  const [scartiFisc, setScartiFisc] = useState(() => window.byupScartiAperti ? window.byupScartiAperti() : 0);
+  // Questo stato non si legge: serve a RIDISEGNARE quando un documento viene
+  // sistemato. La cifra vera la dice la mappa qui sotto, che si rifà a ogni
+  // render — e siccome React ridisegna solo se il numero è cambiato davvero,
+  // gestire uno scarto spegne il numero senza ricaricare la pagina.
+  const [, setScartiFisc] = useState(() => window.byupScartiAperti ? window.byupScartiAperti() : 0);
+  // La stessa cifra spaccata per scheda: la produce `byupContabilitaDaFare`,
+  // così il numero del menù e i numeri delle linguette non possono divergere —
+  // è la stessa funzione a dirli tutti e due.
+  const daFare = window.byupContabilitaDaFare ? window.byupContabilitaDaFare() : { totale: 0 };
   React.useEffect(() => {
     const agg = () => setScartiFisc(window.byupScartiAperti ? window.byupScartiAperti() : 0);
     window.addEventListener('byup-fisc-change', agg);
@@ -97,7 +118,9 @@ function ContabilitaApp() {
   return (
     <div className="frame" style={{position:'relative'}}>
       <GlassMeshSubstrate tone="neutral"/>
-      <PnSidebar active="contabilita" badges={{contabilita: scartiFisc}}/>
+      {/* Il numero del menù e i numeri delle linguette escono dalla stessa
+          mappa: non possono dire due cose diverse. */}
+      <PnSidebar active="contabilita" badges={{contabilita: daFare.totale}}/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
         {/* Body */}
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'20px 28px 32px', background: C.SURF}}>
@@ -142,7 +165,8 @@ function ContabilitaApp() {
               buoni ? {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'} : null,
               {id:'export', label:'Export', icon:'download'},
             ].filter(Boolean).map(t => (
-              <PnSectionTab key={t.id} id={t.id} active={tabVero === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
+              <PnSectionTab key={t.id} id={t.id} active={tabVero === t.id} onClick={vaiA}
+                label={t.label} icon={t.icon} badge={daFare[t.id] || undefined}/>
             ))}
             <span style={{flex: 1}}/>
             {/* Nel regime della Soluzione apre la console fiscale (P-96) in una

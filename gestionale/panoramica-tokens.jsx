@@ -295,7 +295,10 @@ Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_B
 // underline rosa). Le pillole restano ai FILTRI (ruoli, Mensile/Annuale):
 // sono un linguaggio da scelta, non da navigazione.
 // Vive qui nei token perché è l'unico file caricato da tutte le pagine.
-function PnSectionTab({ id, active, onClick, label, icon, hint }) {
+// `badge`: quante cose da fare ci sono DENTRO questa scheda. È la stessa
+// cifra che accende la voce nel menù, spaccata su chi la produce: il numero
+// nel menù dice che c'è qualcosa in quella sezione, questo dice dove.
+function PnSectionTab({ id, active, onClick, label, icon, hint, badge }) {
   return (
     <button onClick={() => onClick(id)}
       onMouseEnter={e => { if (!active) { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = '#F4F5F7'; } }}
@@ -319,6 +322,18 @@ function PnSectionTab({ id, active, onClick, label, icon, hint }) {
       {icon && <Icon name={icon} size={14}/>}
       {label}
       {hint && <span style={{fontSize: 13, fontWeight: 500, opacity: 0.6}}>{hint}</span>}
+      {/* Il corallo pieno del menù, nella misura di una scheda: è lo stesso
+          segno, e chi l'ha visto lampeggiare là lo ritrova qui senza doverlo
+          imparare due volte. */}
+      {badge ? (
+        <span style={{
+          minWidth: 19, height: 19, padding: '0 5px', borderRadius: 999,
+          display: 'inline-grid', placeItems: 'center',
+          background: PN.PINK, color: PN.WHITE,
+          fontSize: 11.5, fontWeight: 800, lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}>{badge}</span>
+      ) : null}
     </button>
   );
 }

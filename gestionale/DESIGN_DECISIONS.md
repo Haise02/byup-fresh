@@ -878,6 +878,18 @@ Sotto quello che è già stato incassato non si scende mai, e vale per tutti e d
 
 **In un elenco operativo, quello che è finito scende in fondo.** Le righe già saldate stanno sotto le altre: in cima resta il lavoro da fare, e scorrendo un conto lungo non ci sono buche spente da saltare per arrivare alla prossima riga da spuntare. In modifica non ci sono proprio: una riga pagata non risponde a nessuno dei tre gesti di quella modalità, e mostrarla sarebbe l'unica cosa lì dentro che non si può toccare.
 
+## Un numero che segnala deve anche indirizzare — 11 set 2026
+
+Il numero che pulsa su una voce del menù dice che lì dentro c'è qualcosa da fare, e poi ti lascia solo: aperta la Contabilità sono sette schede, e nessuna dice «sono io». **La regola è che ogni cifra si spacca su chi la produce, fino alla riga**, e la catena è sempre la stessa: *menù → scheda → riga*. Impostazioni lo faceva già — il 2 si divide fra Dati fiscali e Integrazioni, e dentro la pagina porta alla scheda giusta (`byupAttivazioniDaFare`, `byupAncoraAttivazione`); ora è così anche per la Contabilità, con la stessa forma, e la forma è il punto: una sezione nuova che avrà pendenze deve solo dichiarare la propria mappa.
+
+**La somma non può divergere, perché è la stessa funzione a dirla.** `byupContabilitaDaFare()` restituisce quante ne ha ogni scheda e il totale; il menù legge il totale, le linguette leggono le voci. Non ci sono due conteggi da tenere allineati a mano, e quando uno scarto viene gestito il numero scende nello stesso istante nel menù, sulla linguetta e nella riga, senza ricaricare la pagina.
+
+**Oggi la risposta è una sola, e non è un caso**: i documenti scartati dall'Agenzia stanno tutti in Conti, perché lo stato di trasmissione è del *pagamento* e Conti è la casa del pagamento — Cassa li aggrega per giornata e rimanda di là. La mappa serve comunque: dice che sono tutti lì, che è esattamente l'informazione che mancava.
+
+**Il numero è un indirizzo, non un'etichetta.** Toccare una scheda che porta una cifra non la apre e basta: ci atterra *puntati* su quello che l'ha accesa — in Conti, i documenti scartati ancora da gestire — e vale anche quando quella scheda è già aperta, che è il caso più frequente visto che Conti è la predefinita: un numero che non si può toccare perché «ci sei già» sarebbe un numero muto. Si torna indietro con la stessa riga d'uscita del rimando che arriva da Cassa, e la banda cambia frase a seconda di dove sei arrivato: da Cassa il soggetto è la giornata, dalla segnalazione è quello che ti resta — scrivere «del » seguito dal vuoto era il modo più veloce per far sembrare rotta una schermata che funziona.
+
+**L'ultimo anello è la riga.** Nella lista, il conto che porta un documento da sistemare ha il pallino corallo del menù ridotto alla misura di una riga: un punto e non una pastiglia col numero, perché la cifra l'ha già data la scheda e qui serve solo il bersaglio. Senza, arrivati alla lista filtrata bisognava aprire i conti uno per uno per scoprire quale fosse.
+
 ## Una sezione che non ha niente da dire non esiste — 11 set 2026
 
 La scheda «Buoni pasto» della Contabilità c'era sempre, e per la maggioranza dei locali — quelli che i buoni non li prendono — era una stanza vuota portata dietro per tutta la vita del prodotto: apri, leggi «finché non c'è una convenzione qui non c'è nulla da riscontrare», chiudi. Adesso **compare solo se c'è un accordo**: almeno una convenzione, anche terminata, o almeno un buono accettato — perché chiuso un accordo quello che è già passato resta da riscontrare e da fatturare. Un collegamento vecchio a `?tab=buoni` non lascia più la pagina su una scheda che non c'è: ripiega su Conti.

@@ -306,6 +306,32 @@ window.byupScartiAperti = function () {
   return ccDocumenti().filter(({ p }) => docInfo(p).aperto).length;
 };
 
+// ─── LA MAPPA DELLE SEGNALAZIONI ───────────────────────────────────────────
+// Il numero che pulsa sulla voce «Contabilità» del menù dice che c'è qualcosa
+// da fare, e basta: aperta la pagina, sette schede e nessuna che dica «sono
+// io». Questa funzione lo SPACCA su chi lo produce, come
+// `byupAttivazioniDaFare` fa per Impostazioni con Dati fiscali e Integrazioni.
+//
+// Oggi la risposta è una sola, e non è un caso: i documenti scartati
+// dall'Agenzia stanno tutti in CONTI, perché lo stato di trasmissione è del
+// PAGAMENTO e Conti è la casa del pagamento — Cassa li aggrega per giornata e
+// rimanda di là. Se un domani nascerà una pendenza di un'altra scheda (un
+// costo scaduto, una fattura da emettere) si aggiunge qui la sua riga: la
+// somma di questa mappa E' il numero del menù, e le due cose non possono
+// divergere perché è la stessa funzione a produrle.
+window.byupContabilitaDaFare = function () {
+  const conti = window.byupScartiAperti();
+  return { conti: conti, totale: conti };
+};
+// Dove porta il numero: la scheda, e il punto dentro la scheda. Il rimando ha
+// la stessa forma di quello che Cassa passa a Conti — giornata e stato — ma
+// senza giornata, perché qui la domanda non e' «cos'e' successo il 14» ma
+// «cosa mi resta da sistemare».
+window.byupAncoraContabilita = function (scheda) {
+  if (scheda !== 'conti' || !window.byupScartiAperti()) return null;
+  return { data: null, stato: 'scartato', da: 'segnalazione' };
+};
+
 // La ritrasmissione manuale NON chiude lo scarto: mette in volo un tentativo.
 // Il pallino resta finché l'esito non c'è — mentire qui sarebbe peggio che non
 // avere il pallino. La nota si conserva su ENTRAMBE le azioni.
