@@ -208,9 +208,35 @@ function ImpIntegrazioni() {
       <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore. I telefoni che incassano si vedono in Impostazioni → Personale: si registrano da soli quando chi è in sala entra in Byup Staff.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
       </ImpCard>
-      {/* I buoni pasto (P-173 · D-124): con quali emittenti il locale è
-          convenzionato. Senza una convenzione la tessera in cassa non compare. */}
-      <ImpBuoniPastoCard/>
+      {/* ── I BUONI PASTO SONO SOSPESI (11 set 2026) ────────────────────────
+          Qui c'era la card delle convenzioni (P-173 · D-124): con quali
+          emittenti il locale è convenzionato. Non si monta più, e con lei si
+          spegne tutta la catena — senza convenzione la tessera in cassa non
+          compare, la scheda in Contabilità non compare, il riepilogo non ha
+          righe. Un interruttore solo, perché tutto era già appeso a quello.
+
+          Perché: accettare i buoni di un emittente terzo è una transazione che
+          avviene sui SUOI strumenti — la sua app, il suo terminale, o un POS
+          bancario abilitato a quel circuito dopo che l'emittente lo ha
+          autorizzato. Nessuno dei cinque espone un'interfaccia applicativa con
+          cui un gestionale in cloud possa accettare un buono, e una pagina in
+          https non può nemmeno parlare a una scatola in sala (è lo stesso muro
+          del contenuto misto che la D-109 ha aggirato per le stampanti).
+          Quindi il gestionale poteva soltanto REGISTRARE a mano l'esito di una
+          cosa avvenuta altrove: si torna sul punto quando il buono pasto sarà
+          il NOSTRO, che essendo digitale nasce dentro queste schermate invece
+          di dover essere raccontato a posteriori.
+
+          Cosa NON si tocca, ed è deliberato: il modello e il lato fiscale
+          restano. Un buono incassato è non riscosso al dieci per cento col
+          riferimento «TICKET», è un credito e non contante nella chiusura di
+          giornata, e `payments.method` vale `meal_voucher`. Quella catena vale
+          identica il giorno in cui il buono lo emettiamo noi — per il documento
+          un buono è un buono — e toglierla adesso vorrebbe dire rifarla dopo
+          tenendo nel frattempo l'ERD disallineato.
+
+          `ImpBuoniPastoCard` resta nel file, non montata: è sospesa, non
+          cancellata. Si riaccende rimettendo questa riga. */}
 
       {/* BLOCCO 2 — Stampanti (P-128): il popup «Aggiungi stampante»
           sostituisce la sezione Impostazioni → Stampanti. */}
@@ -977,7 +1003,12 @@ function IntCollegaModal({ onClose, onGenera }) {
 
 window.ImpIntegrazioni = ImpIntegrazioni;
 
-// ─── Buoni pasto: le convenzioni (P-173 · D-124) ────────────────────────────
+// ─── Buoni pasto: le convenzioni (P-173 · D-124) — SOSPESA, NON MONTATA ────
+// Dall'11 settembre 2026 questa card non si monta: il perché sta al suo posto
+// nel corpo della pagina, dove c'era la riga che la montava. Non è codice
+// morto da ripulire — è il punto da cui i buoni pasto si riaccendono, e ci si
+// torna quando il buono sarà il nostro. Se un giorno lo si toglie davvero, va
+// tolto insieme a tutto il resto della catena, non da solo.
 // venue_meal_voucher_agreements: la convenzione è della sede, la firma il
 // locale con l'emittente, e qui se ne conservano i termini che servono a
 // calcolare il netto atteso e a sorvegliare le decadenze: emittente, codice
