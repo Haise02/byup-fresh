@@ -627,10 +627,14 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
       // In arrivo resta un gruppo — non c'è nessun gesto da promettere.
       role={attivabile ? 'button' : 'group'}
       tabIndex={attivabile ? 0 : undefined}
-      onClick={attivabile ? (() => onBumpPorzione(p)) : undefined}
+      // La carta passa SE STESSA insieme alla porzione: e' da qui che parte il
+      // volo verso la fascia, e il board non ha altro modo di sapere quale
+      // delle due carte gemelle e' stata toccata.
+      onClick={attivabile ? (e => onBumpPorzione(p, e.currentTarget)) : undefined}
       onKeyDown={attivabile ? (e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBumpPorzione(p); }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBumpPorzione(p, e.currentTarget); }
       }) : undefined}
+      data-kds2-volo={riga.id}
       title={attivabile ? ('Avvia · ' + nome + ' · ' + kds2Identita(p.source)) : undefined}
       aria-label={ariaEtichetta}
       data-kds2-interattivo=""
@@ -1378,6 +1382,18 @@ function Kds2Orologio({ size = 20 }) {
 // Minuti e secondi, come su un forno. La cifra secca («7») diceva un numero
 // senza dire di che grandezza; `00:07` si legge come tempo anche di sfuggita e
 // senza etichetta accanto.
+/** Chi ha chiesto meno animazioni al sistema non vede nessun volo: la carta
+ *  sparisce e la scheda compare, come prima. */
+const kds2Moto = () => !(typeof window !== 'undefined' && window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/** Quanto e' rimpicciolita la pagina intorno. Dentro il gestionale il frame sta
+ *  sotto uno `zoom`: i rettangoli si misurano in pixel di schermo e le
+ *  trasformazioni si scrivono in pixel di layout, e senza dividere per questo
+ *  numero il volo scavalca il bersaglio. */
+const kds2Scala = el => (el && el.offsetWidth
+  ? el.getBoundingClientRect().width / el.offsetWidth : 1);
+
 function kds2MmSs(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
@@ -1416,7 +1432,9 @@ function Kds2Annulla({ voci, onRipristina }) {
           trentina di pixel, e ogni pixel qui è tolto ai piatti da fare. In
           orizzontale la fascia si allunga, ma quello è spazio che c'era già. */}
       {voci.map(v => (
-        <div key={v.id} style={{
+        /* `data-kds2-annulla`: e' l'indirizzo a cui atterra la carta che hai
+           appena avviato, e il punto da cui riparte se la richiami. */
+        <div key={v.id} data-kds2-annulla={v.id} style={{
           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
           padding: '6px 6px 6px 14px', borderRadius: 12,
           background: K.RIGA, border: '1px solid ' + K.BRAND_BORDO,
@@ -1595,20 +1613,165 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   // nella CTA — e non scorrere via a destra man mano che si lavora.
   function registra(testo, tolte) {
     seq.current += 1;
-    setPronti(s => [{
-      id: 'v' + seq.current, testo, tolte, scadenza: Date.now() + UNDO_MS,
-    }].concat(s));
+    const id = 'v' + seq.current;
+    setPronti(s => [{ id, testo, tolte, scadenza: Date.now() + UNDO_MS }].concat(s));
+    return id;   // chi l'ha chiamata deve sapere dove far atterrare la carta
   }
 
-  function bumpPorzione(p) {
+  // ══════════════════════════════════════════════════════════════════════
+  // IL PIATTO CHE PARTE, E QUELLO CHE TORNA
+  //
+  // Toccare una carta la fa sparire dal board e comparire nella fascia in
+  // fondo, quella col conto alla rovescia. Erano due fatti simultanei e
+  // slegati: la carta svaniva sotto il dito e da qualche parte, in basso,
+  // spuntava una scheda. Chi ha premuto non vedeva NIENTE andare da qui a li',
+  // e la fascia — che e' l'unica via per tornare indietro, e dura dieci
+  // secondi — la si scopriva solo se si stava gia' guardando in basso.
+  //
+  // Adesso il piatto SCENDE: il calco della carta che hai toccato si stacca,
+  // scivola fino alla sua scheda nella fascia, si rimpicciolisce e ci entra
+  // dentro. E' lo stesso gesto della mano che posa il piatto al passe, ed e'
+  // anche il modo piu' economico per insegnare dove si va a riprenderlo.
+  // Premendo «Annulla» il movimento si inverte: la carta risale dalla scheda
+  // al suo posto in lista, che e' quello di prima perche' la sua attesa non si
+  // e' mai fermata.
+  // Le carte sotto, che si spostano perche' una se n'e' andata o e' tornata,
+  // scivolano anche loro invece di saltare (tecnica FLIP).
+  // Chi ha chiesto meno animazioni al sistema non vede niente di tutto questo.
+  const pista = React.useRef(null);
+  const volo = React.useRef(null);
+  const [voli, setVoli] = React.useState(0);
+
+  /** Si chiama PRIMA di cambiare i dati: dopo, dove stavano le carte non lo sa
+   *  piu' nessuno. */
+  function misuraVolo(dati) {
+    if (!kds2Moto() || !pista.current) return;
+    const righeRect = {};
+    pista.current.querySelectorAll('[data-kds2-volo]').forEach(el => {
+      righeRect[el.getAttribute('data-kds2-volo')] = el.getBoundingClientRect();
+    });
+    volo.current = Object.assign({ righe: righeRect }, dati);
+    setVoli(n => n + 1);
+  }
+
+  React.useLayoutEffect(() => {
+    const v = volo.current;
+    volo.current = null;
+    const p0 = pista.current;
+    if (!v || !p0) return;
+    const s = kds2Scala(p0) || 1;
+    const cr = p0.getBoundingClientRect();
+    // Da pixel di schermo a coordinate della lista, che e' l'unico sistema in
+    // cui si puo' posare un calco: la pagina puo' essere zoomata e la lista
+    // puo' essere scorsa.
+    const qui = r => ({
+      x: (r.left - cr.left) / s + p0.scrollLeft, y: (r.top - cr.top) / s + p0.scrollTop,
+      w: r.width / s, h: r.height / s,
+    });
+    // Il volo si ancora al LATO SINISTRO, non al centro. La scheda d'arrivo sta
+    // in fondo a sinistra, e una carta larga quanto lo schermo che punta il
+    // proprio centro su quel punto esce dal bordo sinistro della lista e ci si
+    // taglia contro per mezzo viaggio. Ancorata a sinistra, la carta si
+    // rimpicciolisce verso il suo lato sinistro e quel lato non lascia mai la
+    // pista: in verticale invece si allineano i centri, che e' quello che fa
+    // sembrare la carta «entrata» nella scheda e non appoggiata sopra.
+    const mira = (a, b) => ({
+      dx: b.x - a.x,
+      dy: (b.y + b.h / 2) - (a.y + a.h / 2),
+    });
+    const giro = voli;
+
+    // ── 1. Le carte rimaste: scivolano dal posto di prima ──────────────────
+    const nate = [];
+    p0.querySelectorAll('[data-kds2-volo]').forEach(el => {
+      const prima = v.righe[el.getAttribute('data-kds2-volo')];
+      if (!prima) { nate.push(el); return; }
+      const o = el.getBoundingClientRect();
+      const dx = (prima.left - o.left) / s, dy = (prima.top - o.top) / s;
+      if (!dx && !dy) return;
+      el.__volo = giro;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 400ms cubic-bezier(.2,.8,.25,1)';
+        el.style.transform = '';
+        setTimeout(() => { if (el.__volo === giro) el.style.transition = ''; }, 440);
+      });
+    });
+
+    // ── 2. GIU': il calco della carta toccata entra nella sua scheda ───────
+    if (v.verso === 'giu' && v.calco && v.da) {
+      const scheda = p0.querySelector('[data-kds2-annulla="' + v.id + '"]');
+      const a = qui(v.da);
+      const b = scheda ? qui(scheda.getBoundingClientRect())
+                       : { x: a.x, y: a.y + 220, w: a.w, h: a.h };
+      const c = v.calco;
+      c.removeAttribute('data-kds2-volo');
+      Object.assign(c.style, {
+        position: 'absolute', left: a.x + 'px', top: a.y + 'px',
+        width: a.w + 'px', height: a.h + 'px', margin: '0',
+        pointerEvents: 'none', zIndex: '45', transformOrigin: 'center center',
+        transition: 'transform 420ms cubic-bezier(.35,.85,.4,1), opacity 420ms cubic-bezier(.6,0,1,1)',
+      });
+      c.style.transformOrigin = 'left center';
+      p0.appendChild(c);
+      // Lo stato di PARTENZA va calcolato prima di scrivere quello d'arrivo:
+      // un elemento appena nato non ha ancora uno stile computato, e senza
+      // questa lettura il browser fonde i due stati in uno solo — la carta si
+      // ritrova arrivata senza aver attraversato niente. Vale per il calco
+      // come per la carta che risale: sono tutti e due elementi nuovi.
+      void c.offsetWidth;
+      requestAnimationFrame(() => {
+        const m = mira(a, b);
+        c.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(0.42)';
+        c.style.opacity = '0.06';
+      });
+      setTimeout(() => { if (c.parentNode) c.parentNode.removeChild(c); }, 470);
+    }
+
+    // ── 3. SU': la carta tornata risale dalla scheda che l'ha richiamata ───
+    if (v.verso === 'su' && v.da && nate.length) {
+      const a = qui(v.da);
+      nate.forEach(el => {
+        const o = qui(el.getBoundingClientRect());
+        const m = mira(o, a);   // al contrario: da dove viene, non dove va
+        el.__volo = giro;
+        el.style.transition = 'none';
+        el.style.transformOrigin = 'left center';
+        el.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(0.42)';
+        el.style.opacity = '0.1';
+        el.style.zIndex = '6';
+        void el.offsetWidth;
+        requestAnimationFrame(() => {
+          el.style.transition = 'transform 420ms cubic-bezier(.2,.8,.25,1), opacity 300ms ease-out';
+          el.style.transform = '';
+          el.style.opacity = '';
+          setTimeout(() => {
+            if (el.__volo !== giro) return;
+            el.style.transition = ''; el.style.zIndex = ''; el.style.transformOrigin = '';
+          }, 460);
+        });
+      });
+    }
+  }, [voli]);
+
+  function bumpPorzione(p, carta) {
     // Nessun «1» davanti al nome. Serviva a dire «una di quelle due», quando il
     // gesto poteva mandarne via anche più d'una; ora ne esce sempre uno, e la
     // cifra faceva solo sì che due tocchi sullo stesso piatto lasciassero in
     // fascia due voci scritte in modo diverso.
-    registra(
+    const id = registra(
       p.dishName + ' · ' + kds2Identita(p.source),
       [Object.assign({}, p, { quantity: 1 })]
     );
+    // Il calco si prende ADESSO, dalla carta che il dito ha toccato: fra un
+    // istante quella carta non c'e' piu'. Di due gemelle sparisce l'ultima —
+    // sono identiche, quindi a partire dev'essere quella che hai premuto.
+    misuraVolo({
+      verso: 'giu', id,
+      da: carta ? carta.getBoundingClientRect() : null,
+      calco: carta ? carta.cloneNode(true) : null,
+    });
     setPorzioni(kds2BumpUna(porzioni, p.id));
   }
 
@@ -1631,6 +1794,9 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   // Dalla fascia, entro i dieci secondi: torna con la SUA attesa — il piatto
   // non ha mai smesso di aspettare, il tocco era sbagliato lui.
   function ripristina(voce) {
+    const scheda = pista.current
+      && pista.current.querySelector('[data-kds2-annulla="' + voce.id + '"]');
+    misuraVolo({ verso: 'su', da: scheda ? scheda.getBoundingClientRect() : null });
     rimettiInProduzione(voce.tolte);
     setPronti(s => s.filter(v => v.id !== voce.id));
   }
@@ -1678,8 +1844,11 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       {/* UN SOLO contenitore che scorre, per qualunque numero di righe: niente
           scroll annidato, niente colonne — la posizione in lista è la priorità,
           e con due colonne «più in alto» smetterebbe di voler dire «prima». */}
-      <div className="pn-scroll" style={{
+      <div className="pn-scroll" ref={pista} style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
+        // Riferimento per i calchi che volano: sono posati dentro questo
+        // riquadro, in coordinate sue, cosi' seguono lo scorrimento.
+        position: 'relative',
         // Dentro la card della Cucina il margine laterale è già quello della
         // card: sommarci anche il proprio disallineerebbe le righe dalla barra
         // che le sovrasta.
