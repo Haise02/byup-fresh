@@ -874,6 +874,22 @@ Sotto quello che è già stato incassato non si scende mai, e vale per tutti e d
 
 **In un elenco operativo, quello che è finito scende in fondo.** Le righe già saldate stanno sotto le altre: in cima resta il lavoro da fare, e scorrendo un conto lungo non ci sono buche spente da saltare per arrivare alla prossima riga da spuntare. In modifica non ci sono proprio: una riga pagata non risponde a nessuno dei tre gesti di quella modalità, e mostrarla sarebbe l'unica cosa lì dentro che non si può toccare.
 
+## Il Kitchen Monitor parla la lingua dei bottoni del gestionale — 11 set 2026
+
+Vale per la board per tavolo della Cucina, visualizzazione Ristorante (`kds-tavoli.jsx`), e le tre cose sono la stessa cosa vista da tre lati: un comando si deve riconoscere, una cosa toccabile si deve vedere che lo è, e un cambiamento si deve vedere accadere.
+
+**Un prodotto ha un bottone primario solo.** Le CTA di sezione — «Manda tutto», «Tutto pronto» — erano bianche con la sola icona colorata, per non fare dieci rettangoli accesi su sette card. Adesso sono il primario del gestionale: `PN.BTN_BRAND`, testo bianco, filo vinaccia, `INSET_HIGHLIGHT_BRAND` e l'ombra corallo. Il ritorno accanto è il neutro `PN.BTN_NEUTRAL`, cioè la stessa coppia che la Sala mette in fondo a ogni foglio. Il rumore lo tiene a bada la regola — una primaria per sezione, mai sul contenuto — non il grigio: chi arriva dalla Sala non deve reimparare che cos'è un comando.
+
+**Una cosa che si può toccare ha un contorno.** I piatti si sono sempre potuti scegliere, e non lo diceva niente: erano testo dentro un elenco. Ora ogni piatto è una tessera — fondo bianco, filo nel colore del suo stato al 16-18%, angoli tondi — e scelta si accende: velo dello stato, filo pieno, spunta che si apre a sinistra spingendo il nome, e la parola **SELEZIONATO**. La parola non è un doppione del colore: in cucina gli schermi sono tarati come capita e si guardano di sbieco, e una parola non si discute.
+
+**Un cambiamento di stato si vede accadere, o non è successo.** I due gesti del mucchio finivano in un fotogramma, e chi premeva doveva rileggere la card per sapere se aveva funzionato — che è il lavoro che il monitor dovrebbe risparmiare, e che al secondo dubbio si paga con un piatto mandato due volte. Adesso le righe scivolano davvero dal posto vecchio al posto nuovo (tecnica FLIP, la stessa del fissaggio), con un alone del colore dello stato d'arrivo che si spegne da solo. La direzione non è una regola ma un fatto: giù verso i pronti, su verso la marcia, perché «in preparazione» sta in cima alla card. Quando lo stato d'arrivo è **chiuso** — i pronti lo sono quasi sempre — non c'è una riga dove atterrare, e allora vola il calco della riga vecchia, che scende fino all'intestazione, si rimpicciolisce e ci sparisce dentro mentre quella si accende: il piatto non è svanito, è entrato lì.
+
+**Una sezione che si svuota si congeda, non sparisce.** Lo stato rimasto senza piatti si riduce a una riga alta 46 con l'icona dell'azione che l'ha svuotato e la frase che dice com'è rimasto — «Niente sul fuoco», «Niente in attesa» — e dopo mezzo secondo si chiude animando l'altezza, così quello che sta sotto sale accompagnato. Le card sotto, che si spostano perché quella sopra si è accorciata, scivolano anche loro.
+
+Due note tecniche che non sono dettagli. La prima: dentro il gestionale il frame sta sotto uno `zoom`, quindi i rettangoli si misurano in pixel di schermo e le trasformazioni si scrivono in pixel di layout — ogni FLIP divide per la scala misurata (`scalaDi`), o il volo scavalca il bersaglio del 10%. La seconda: l'involucro che vola non porta stile gestito da React, perché la board gli scrive addosso `transform` e `box-shadow` mentre l'orologio fa ri-renderizzare tutto ogni secondo.
+
+Chi ha chiesto meno animazioni al sistema non vede niente di tutto questo: lo stato cambia e basta.
+
 ---
 
 ## Convenzione style inline

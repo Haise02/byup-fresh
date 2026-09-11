@@ -29,6 +29,19 @@
 // fuoco NON si separano in blocchi diversi: fanno una sezione sola, e a
 // distinguerle e' il cronometro di ogni riga.
 //
+// ── OGNI PIATTO E' UNA TESSERA, E SI VEDE CHE SI PUO' TOCCARE ────────────
+// Le righe non sono testo dentro un elenco: sono tessere con un fondo, un filo
+// e degli angoli: si toccano perche' si vede che sono oggetti. Scelta, la
+// tessera si accende del colore del suo stato e lo dice anche a parole —
+// SELEZIONATO — perche' in cucina gli schermi sono tarati come capita.
+//
+// ── E QUANDO PARTONO, SI VEDONO PARTIRE ──────────────────────────────────
+// I due gesti del mucchio finivano in un fotogramma: premevi, e la card era
+// gia' un'altra. Adesso i piatti scivolano fino allo stato nuovo (o, se quello
+// e' chiuso, ci entrano dentro rimpicciolendosi), e la sezione rimasta vuota
+// si riduce a icona prima di chiudersi. Il perche' per esteso sta al «VOLO DEI
+// PIATTI», dentro la board.
+//
 // ── AVANTI SU TUTTO, INDIETRO SU QUELLO CHE SCEGLI ───────────────────────
 // «Mandiamo i primi» e «tutto pronto» sono gesti da mucchio, e la CTA di
 // sezione parte gia' puntata su tutta la sezione. Tornare indietro no: non si
@@ -89,10 +102,13 @@ const DITO = 44;
 // adesso) al piu' freddo (quello che e' gia' uscito). I nomi restano quelli
 // del gestionale (`ORDINE_STATO_META` in sala-card.jsx), cosi' sala e cucina
 // chiamano le cose allo stesso modo.
+// `vuoto` e' quello che la sezione dice mentre si congeda: quando l'ultimo
+// piatto se ne va, la sezione non sparisce di colpo — si riduce a una riga con
+// l'icona dell'azione che l'ha svuotata e questa frase, poi si chiude.
 const STATO = {
-  marcia: { ink:'#E8402E', velo:'#FEF1EF', nome:'In preparazione' },
-  attesa: { ink:'#F97316', velo:'#FFF4EC', nome:'In attesa' },
-  pronto: { ink:'#1DA35C', velo:'#EDFAF2', nome:'Pronti' },
+  marcia: { ink:'#E8402E', velo:'#FEF1EF', nome:'In preparazione', vuoto:'Niente sul fuoco' },
+  attesa: { ink:'#F97316', velo:'#FFF4EC', nome:'In attesa',       vuoto:'Niente in attesa' },
+  pronto: { ink:'#1DA35C', velo:'#EDFAF2', nome:'Pronti',          vuoto:'Niente di pronto' },
 };
 const ORDINE_STATI = ['marcia', 'attesa', 'pronto'];
 
@@ -100,15 +116,17 @@ const ORDINE_STATI = ['marcia', 'attesa', 'pronto'];
 // no: stessi stati, stessi comandi, stesso tutto.
 const TIPO = { asporto:'Asporto', delivery:'Delivery', banco:'Banco' };
 
-// ── IL SECONDARIO E' DI MARCA, IL PRIMARIO NO ───────────────────────────
+// ── DOVE STA IL MARCHIO ─────────────────────────────────────────────────
 // Grigi, fili e fondi non sono neutri: sono tarati sulla famiglia corallo del
 // marchio (`PN.PINK` #FF5A5F, `PN.WINE` #B53338). Nessuno di questi valori e'
 // acceso — stanno tutti sotto il 6% di saturazione — ma insieme danno alla
 // pagina una temperatura, e quella temperatura e' byup invece che «grigio di
 // sistema».
-// La regola: il marchio sta nei fondi e nei contorni, MAI sul contenuto. I
-// nomi dei piatti e i colori di stato restano quello che sono, perche' li' il
-// colore e' informazione e il marchio sarebbe rumore.
+// Il corallo pieno esce una volta sola per sezione, e sta sul COMANDO: e' il
+// bottone primario del gestionale (`PN.BTN_BRAND`), lo stesso che la Sala
+// mette in fondo a ogni foglio. Sul contenuto non arriva mai: i nomi dei
+// piatti e i colori di stato restano quello che sono, perche' li' il colore e'
+// informazione e il marchio sarebbe rumore.
 const UI = {
   fondo:   '#F7F5F5',
   card:    '#FFFFFF',
@@ -118,10 +136,32 @@ const UI = {
   testo:   '#16181D',
   tempo:   '#403A3B',
   muto:    '#8C8587',
-  // Il vinaccia del marchio per l'azione secondaria: e' di casa, ed e'
-  // abbastanza scuro da non confondersi col rosso dell'«in preparazione».
-  secondo: PN.WINE,
 };
+
+/** Il colore di uno stato annacquato. Serve per fili, veli e aloni, dove il
+ *  colore pieno urlerebbe: il rosso dell'«in preparazione» al 18% dice che la
+ *  tessera c'e' senza aggiungere un'altra macchia rossa alla card. */
+const tinta = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+};
+
+// Su un monitor appeso il passaggio del mouse o non esiste o resta acceso dopo
+// il tocco: la pagina si dichiara touch (`__BYUP_TOUCH_SURFACE`, la stessa
+// bandiera dei token) e le tessere non provano nemmeno a reagire all'hover.
+const TOCCO = typeof window !== 'undefined' && window.__BYUP_TOUCH_SURFACE === true;
+
+/** Chi ha chiesto meno animazioni al sistema non ne vede nessuna: niente volo
+ *  dei piatti, niente congedo delle sezioni. Lo stato cambia e basta. */
+const MOTO = () => !(typeof window !== 'undefined' && window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/** Quanto e' rimpicciolita la pagina intorno. Dentro il gestionale tutto il
+ *  frame sta dentro uno `zoom`, quindi i rettangoli si misurano in pixel di
+ *  schermo mentre le trasformazioni si scrivono in pixel di layout: senza
+ *  dividere per questo numero ogni volo scavalcherebbe il bersaglio. */
+const scalaDi = el => (el && el.offsetWidth
+  ? el.getBoundingClientRect().width / el.offsetWidth : 1);
 
 /** Solo minuti. I secondi erano nel riferimento visivo, ma su questo schermo
  *  non decidono niente: nessuno agisce diversamente a 06:18 o a 06:45, e due
@@ -172,50 +212,61 @@ const finito = t => vive(t).length === 0 && daFare(t).length === 0;
 
 // ─── Pezzi ────────────────────────────────────────────────────────────────
 
-/** CTA di sezione: outline nel colore dello stato, icona e testo, larghezza
- *  piena. E' il bottone del riferimento — «Segna tutto pronto», «Manda in
- *  preparazione» — e agisce su TUTTA la sezione, oppure solo sui piatti scelti
- *  se ne hai toccato qualcuno. */
-/** CTA di sezione. NEUTRA e COMPATTA, e sono due decisioni separate.
+/** CTA di sezione: icona e testo, in fondo alla sezione. E' il bottone che
+ *  manda avanti il lavoro — «Manda tutto», «Tutto pronto» — e agisce su TUTTA
+ *  la sezione, oppure solo sui piatti scelti se ne hai toccato qualcuno.
  *
- *  Neutra: era un rettangolo contornato nel colore dello stato, e su sette card
- *  facevano dieci rettangoli colorati per circa 190.000 px² — trenta volte
- *  l'area del nome di un piatto, su cui il bottone agisce. Un bottone pero' si
- *  trova per POSIZIONE e FORMA: e' l'unico rettangolo pieno della card ed e'
- *  sempre in fondo alla sua sezione. Il colore li' era ridondante, e una
- *  ridondanza pagata dieci volte diventa rumore. Resta come accento sulla sola
- *  icona, che e' abbastanza per dire di che azione si tratta.
+ *  ── PERCHE' NON E' PIU' NEUTRA ──────────────────────────────────────────
+ *  Era bianca con la sola icona colorata, e la ragione era buona: dieci
+ *  rettangoli accesi su sette card facevano piu' rumore del lavoro. Solo che
+ *  il resto del gestionale ha UN bottone primario — gradiente corallo, testo
+ *  bianco, filo vinaccia, riflesso in cima (`PN.BTN_BRAND` nei token) — e la
+ *  cucina era l'unica schermata che ne usava un altro. Due grammatiche di
+ *  bottone dentro lo stesso prodotto costano piu' di dieci rettangoli
+ *  colorati: chi arriva dalla Sala deve reimparare che cos'e' un comando.
+ *  Il rumore lo tiene a bada la REGOLA, non il grigio: il corallo sta su UNA
+ *  primaria per sezione e non tocca mai il contenuto — i nomi dei piatti e i
+ *  colori di stato restano quello che sono.
  *
- *  Compatta: larghezza automatica invece che piena. Cosi' smette di sembrare
- *  una barra che taglia la card in due, e l'area scende di due terzi.
+ *  Due toni, gli stessi del gestionale:
+ *    marca   gradiente corallo, testo bianco — manda avanti
+ *    neutro  gradiente bianco, testo scuro — «Indietro», che e' un ripensamento
+ *  La gerarchia adesso la fa il COLORE invece della sola forma, ed e' la
+ *  stessa coppia che il gestionale mette in fondo a ogni foglio.
  *
- *  Quello che NON cambia: resta un bottone pieno, alto 52, nello stesso posto
- *  di sempre. Non si e' perso un solo gesto. */
-function Cta({ ink, children, onClick, icona, stretto, pieno }) {
+ *  Quello che NON cambia: altezza 52, stesso posto in fondo alla sezione, e la
+ *  larghezza che dice su cosa agisce. Non si e' perso un gesto. */
+function Cta({ children, onClick, icona, pieno, neutro }) {
   return (
     <button type="button" onClick={onClick} style={{
       // LA LARGHEZZA DICE LO SCOPO.
       // Senza selezione il bottone agisce su TUTTA la sezione, e si prende
       // tutta la riga: la sua estensione coincide con quella su cui agisce.
-      // Appena scegli dei piatti si stringe a 186 — misura fissa, uguale per
+      // Appena scegli dei piatti si stringe a 178 — misura fissa, uguale per
       // «Tutto pronto» e «Manda tutto» — e nello spazio che libera compare
       // «Indietro». Il gesto di selezionare produce quindi due segnali in una
       // volta: il bottone si restringe (agisce su meno) e si fa avanti il
       // ritorno (adesso ha senso).
-      // 186 e' il numero che fa stare CTA + stacco + «Indietro» dentro una card
+      // 178 e' il numero che fa stare CTA + stacco + «Indietro» dentro una card
       // da 360, che e' la piu' stretta che ammettiamo.
-      flex: stretto ? '0 0 56px' : (pieno ? '1 1 auto' : '0 0 186px'), height: 52,
-      padding: stretto ? 0 : '0 14px', maxWidth:'100%',
+      flex: neutro ? '0 1 auto' : (pieno ? '1 1 auto' : '0 0 178px'), height: 52,
+      padding: neutro ? '0 14px' : '0 16px', maxWidth:'100%',
       display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10,
-      // Piu' staccata dal fondo: la card e' bianca e la banda calda e' quasi
-      // bianca, quindi un bottone bianco con un filo chiaro ci spariva dentro.
-      // Ora ha un fondo grigio pieno, un bordo piu' deciso e una sua ombra —
-      // resta neutro di colore, ma smette di essere trasparente.
-      borderRadius: 10, border: '1px solid ' + PN.BORDER_MED,
-      background: 'linear-gradient(180deg, #FFFFFF 0%, #EFECEC 100%)',
-      boxShadow: PN.INSET_HIGHLIGHT + ', 0 1px 2px rgba(16,18,22,0.10)',
-      color: UI.testo, fontFamily:'inherit', fontSize: 16, fontWeight: 700,
+      borderRadius: 12,
+      border: '1px solid ' + (neutro ? PN.BORDER_LIGHT : 'rgba(180, 30, 35, 0.40)'),
+      background: neutro ? PN.BTN_NEUTRAL : PN.BTN_BRAND,
+      // Il riflesso in cima e' quello dei bottoni del gestionale; sotto, il
+      // corallo si porta la propria ombra colorata, che e' quello che lo stacca
+      // dal velo caldo della sezione «in preparazione».
+      boxShadow: neutro
+        ? PN.INSET_HIGHLIGHT + ', 0 1px 2px rgba(16,18,22,0.08)'
+        : PN.INSET_HIGHLIGHT_BRAND + ', 0 2px 10px rgba(255, 90, 95, 0.28)',
+      color: neutro ? UI.testo : PN.WHITE,
+      fontFamily:'inherit', fontSize: neutro ? 15 : 16, fontWeight: 700,
       letterSpacing:'0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+      // Passaggio del mouse e pressione non si scrivono qui: li da' il foglio
+      // condiviso dei token (`pn-btn-feedback`), lo stesso di ogni bottone del
+      // gestionale — e su un monitor touch quel foglio lascia solo la pressione.
     }}>
       {icona}{children}
     </button>
@@ -268,45 +319,107 @@ const IcoIndietro = ({ c }) => (
     strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
 );
 
-/** Riga piatto: pallino nel colore dello stato, quantita' e nome, tempo a
- *  destra. Il tempo e' allineato a destra e tabellare, cosi' le cifre stanno
- *  incolonnate e la differenza fra 02:30 e 08:20 si vede senza leggerle. */
-function Riga({ piatto: x, ink, tempo, scelto, onTocca, minore, tenue }) {
+/** La spunta della scelta: cerchio pieno nel colore dello stato con la
+ *  bandierina bianca dentro. Piena e non contornata perche' deve leggersi da
+ *  due metri, che e' la distanza da cui si guarda un monitor appeso. */
+const IcoSpunta = ({ c, d }) => (
+  <svg width={d} height={d} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" fill={c}/>
+    <path d="m7 12.4 3.2 3.2L17 8.6" stroke="#FFFFFF" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+/** Riga piatto — una TESSERA, non una riga di testo.
+ *
+ *  Quantita' e nome a sinistra, tempo a destra, allineato e tabellare, cosi'
+ *  le cifre stanno incolonnate e la differenza fra 2' e 8' si vede senza
+ *  leggerle.
+ *
+ *  ── PERCHE' HA UN CONTORNO ──────────────────────────────────────────────
+ *  Si e' sempre potuto toccare un piatto per sceglierlo, e non lo diceva
+ *  niente: era testo nudo dentro un elenco, e la selezione la scoprivi per
+ *  sbaglio. Adesso ogni piatto sta dentro la sua tessera — fondo bianco, filo
+ *  sottile nel colore del suo stato, angoli tondi — e una tessera si vede che
+ *  e' un pezzo a se'; un pezzo a se' si tocca. Il filo a riposo e' il colore
+ *  dello stato al 16%: dice «qui c'e' un oggetto» senza aggiungere un colore
+ *  in piu' a quelli che gia' significano qualcosa.
+ *
+ *  Scelta, si ACCENDE: velo dello stato, filo pieno, spunta che si apre a
+ *  sinistra spingendo il nome, e la parola SELEZIONATO. La parola non e' un
+ *  doppione del colore: in cucina gli schermi sono tarati come capita e si
+ *  guardano di sbieco, e una parola non si discute.
+ *  Toccare non cambia mai niente: sceglie soltanto. */
+function Riga({ piatto: x, ink, velo, tempo, scelto, onTocca, minore, tenue, volo }) {
+  const [sopra, setSopra] = React.useState(false);
+  const filo = scelto ? ink : (sopra ? tinta(ink, 0.40) : tinta(ink, minore ? 0.10 : 0.18));
   return (
-    <div onClick={onTocca} style={{
-      display:'flex', alignItems:'flex-start', gap: minore ? 10 : 12,
-      minHeight: DITO, cursor:'pointer',
-      padding: minore ? '6px 4px' : '8px 4px', borderRadius:8,
-      background: scelto ? STATO_VELO(ink) : 'transparent',
-      boxShadow: scelto ? 'inset 0 0 0 1.5px ' + ink : 'none',
+    /* IL GUSCIO DEL VOLO.
+       Questo involucro non porta stile che cambi da un render all'altro, ed e'
+       apposta: e' il pezzo che la board afferra per animare lo spostamento fra
+       le sezioni (`data-volo`), e le scrive addosso `transform` e `box-shadow`
+       senza che React glieli riscriva sopra al battito dell'orologio. */
+    <div data-volo={volo} style={{
+      position:'relative', borderRadius: 12, marginBottom: minore ? 5 : 7,
     }}>
-      <div style={{ flex:1, minWidth:0 }}>
-        {/* Tre gradini, e scendono sia di CORPO che di inchiostro:
-              sul fuoco   19px nero pieno
-              in attesa   17,5px grigio scuro
-              gia' usciti 16,5px grigio
-            Nessuno e' nascosto, ma l'occhio sa in che ordine guardarli — e
-            l'attesa smette di pesare quanto il lavoro che stai facendo. */}
-        <div style={{ fontSize: minore ? 16.5 : (tenue ? 17.5 : 19), fontWeight:500, lineHeight:1.35,
-                      color: minore ? UI.muto : (tenue ? '#514748' : UI.testo) }}>
-          <span style={{ fontWeight:700 }}>{x.qty}&times;</span> {x.nome}
+      <div onClick={onTocca}
+        onMouseEnter={TOCCO ? undefined : () => setSopra(true)}
+        onMouseLeave={TOCCO ? undefined : () => setSopra(false)}
+        style={{
+          display:'flex', alignItems:'flex-start', gap: minore ? 9 : 11,
+          minHeight: DITO, cursor:'pointer',
+          padding: minore ? '7px 10px' : '9px 12px', borderRadius: 12,
+          background: scelto ? velo : (minore ? 'rgba(255,255,255,0.66)' : UI.card),
+          border: '1px solid ' + filo,
+          boxShadow: scelto
+            ? 'inset 0 0 0 1px ' + ink + ', 0 3px 10px ' + tinta(ink, 0.20)
+            : (sopra ? '0 3px 10px rgba(16,18,22,0.10)' : '0 1px 2px rgba(16,18,22,0.05)'),
+          transition:'background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out',
+        }}>
+        {/* La spunta si apre a scorrimento invece di comparire e basta: il nome
+            che scivola di venti pixel e' un movimento, e un movimento si vede
+            anche con la coda dell'occhio mentre stai guardando altrove. */}
+        <span style={{
+          width: scelto ? (minore ? 19 : 22) : 0, opacity: scelto ? 1 : 0,
+          flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center',
+          marginTop: minore ? 1 : 2,
+          transition:'width 150ms ease-out, opacity 150ms ease-out',
+        }}>
+          <IcoSpunta c={ink} d={minore ? 19 : 22}/>
+        </span>
+        <div style={{ flex:1, minWidth:0 }}>
+          {/* Tre gradini, e scendono sia di CORPO che di inchiostro:
+                sul fuoco   19px nero pieno
+                in attesa   17,5px grigio scuro
+                gia' usciti 16,5px grigio
+              Nessuno e' nascosto, ma l'occhio sa in che ordine guardarli — e
+              l'attesa smette di pesare quanto il lavoro che stai facendo. */}
+          <div style={{ fontSize: minore ? 16.5 : (tenue ? 17.5 : 19), fontWeight:500, lineHeight:1.35,
+                        color: minore ? UI.muto : (tenue ? '#514748' : UI.testo) }}>
+            <span style={{ fontWeight:700 }}>{x.qty}&times;</span> {x.nome}
+          </div>
+          {((x.nota && !minore) || scelto) && (
+            <div style={{ marginTop:2, display:'flex', alignItems:'center', gap:8,
+                          flexWrap:'wrap', fontSize: minore ? 13 : 14.5,
+                          fontWeight:600, color:UI.muto }}>
+              {x.nota && !minore && <span>{x.nota}</span>}
+              {scelto && (
+                <span style={{ fontSize: minore ? 11 : 12, fontWeight:800,
+                               letterSpacing:'0.08em', textTransform:'uppercase', color: ink }}>
+                  Selezionato
+                </span>
+              )}
+            </div>
+          )}
         </div>
-        {x.nota && !minore && (
-          <div style={{ marginTop:2, fontSize:14.5, fontWeight:600, color:UI.muto }}>{x.nota}</div>
-        )}
+        <span style={{ fontSize: minore ? 15.5 : (tenue ? 16.5 : 18), fontWeight:500,
+                       color: minore ? UI.muto : (tenue ? '#75696B' : UI.tempo),
+                       marginTop: minore ? 5 : 6,
+                       fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{tempo}</span>
       </div>
-      <span style={{ fontSize: minore ? 15.5 : (tenue ? 16.5 : 18), fontWeight:500,
-                     color: minore ? UI.muto : (tenue ? '#75696B' : UI.tempo),
-                     marginTop: minore ? 6 : 7,
-                     fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{tempo}</span>
     </div>
   );
 }
-function STATO_VELO(ink) {
-  const k = Object.keys(STATO).find(x => STATO[x].ink === ink);
-  return k ? STATO[k].velo : 'transparent';
-}
-
 /**
  * Una sezione di stato: etichetta in maiuscoletto colorato col conteggio, la
  * freccia che ruota, le righe, e in fondo la CTA.
@@ -357,7 +470,12 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
        superficie al 3% di saturazione invece che con un'etichetta accesa —
        un fondo si vede con la coda dell'occhio e non compete coi nomi dei
        piatti, che restano la cosa piu' scura della card. */
-    <div style={{
+    /* `data-sezione` non e' decorazione: e' l'indirizzo a cui la board manda i
+       piatti quando volano da uno stato all'altro. Se la sezione d'arrivo e'
+       chiusa — i pronti lo sono quasi sempre — il piatto non ha una riga dove
+       atterrare, e allora atterra QUI, sull'intestazione, che per un attimo si
+       accende per dire che l'ha preso. */
+    <div data-sezione={tid + ':' + stato} style={{
       borderTop: primo ? 'none' : '1px solid ' + (vivo ? 'rgba(232,64,46,0.16)' : UI.filo),
       borderBottom: vivo ? '1px solid rgba(232,64,46,0.16)' : 'none',
       padding: minore ? '10px 16px 12px' : '12px 16px 14px',
@@ -426,7 +544,8 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
               costava piu' spazio di quanto ne facesse risparmiare all'occhio.
               I piatti restano nell'ordine in cui sono stati ordinati. */}
           {piatti.map(x => (
-            <Riga key={x.id} piatto={x} ink={m.ink} tempo={tempoDi(x)} scelto={ha(x.id)}
+            <Riga key={x.id} piatto={x} ink={m.ink} velo={m.velo} tempo={tempoDi(x)}
+              scelto={ha(x.id)} volo={tid + ':' + x.id}
               minore={minore} tenue={!vivo && !minore}
               onTocca={() => onScegli(tid, stato, [x.id])}/>
           ))}
@@ -439,35 +558,29 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
               indietro perche' QUEL piatto non doveva partire. Quindi il
               ritorno compare solo dopo che hai toccato qualcosa, e dice su
               quante porzioni agisce.
-              Il secondario NON e' largo quanto il primario e sta 16px piu'
-              sotto: cosi' sotto il CENTRO della primaria — dove il dito punta
+              Il secondario non e' mai largo quanto il primario, e fra i due
+              ci sono 16px: sotto il CENTRO della primaria — dove il dito punta
               e da dove scivola — non c'e' niente da colpire. */}
           {az.tutto ? (
-            /* I due comandi tornano SULLA STESSA RIGA, ed e' possibile solo
-               adesso: quando la primaria era larga quanto la card, il ritorno
-               poteva stare solo sotto — sovrapposto in verticale, a 4px, con
-               conseguenze opposte. Ora che la primaria e' compatta e a destra,
-               stanno affiancati con 16px in mezzo, e sono due FORME diverse:
-               testo nudo contro rettangolo pieno. Il dito che scivola in
-               verticale non trova piu' niente, e in orizzontale c'e' lo stacco
-               piu' il cambio di forma. */
+            /* I due comandi stanno SULLA STESSA RIGA, ed e' possibile solo
+               perche' la primaria si stringe: quando era larga quanto la card,
+               il ritorno poteva stare solo sotto — sovrapposto in verticale, a
+               4px, con conseguenze opposte. Affiancati con 16px in mezzo si
+               distinguono per COLORE e per PESO: corallo pieno con testo bianco
+               contro bianco con testo scuro, che e' la stessa coppia che il
+               gestionale mette in fondo a ogni foglio. Il dito che scivola in
+               verticale non trova piu' niente da colpire. */
             <div style={{ marginTop:12, display:'flex', justifyContent:'space-between',
                           alignItems:'center', gap:16 }}>
               {az.indietro && scelti.length > 0
-                ? <button type="button" onClick={() => onIndietro(tid, stato, scelti)}
-                  style={{
-                    height: DITO, padding:'0 10px', flexShrink:0,
-                    background:'transparent', border:'none',
-                    display:'inline-flex', alignItems:'center', gap:7,
-                    color:UI.secondo, fontFamily:'inherit', fontSize:14.5, fontWeight:600, cursor:'pointer',
-                  }}>
-                  <span style={{ fontSize:16, lineHeight:1 }}>&#8592;</span>
-                  {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
-                </button>
+                ? <Cta neutro onClick={() => onIndietro(tid, stato, scelti)}
+                    icona={<IcoIndietro c={UI.testo}/>}>
+                    {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
+                  </Cta>
                 : <span/>}
-              <Cta ink={m.ink} pieno={!scelti.length}
+              <Cta pieno={!scelti.length}
                 onClick={() => onAvanti(tid, stato, scelti.length ? scelti : ids)}
-                icona={stato === 'marcia' ? <IcoPronto c={m.ink}/> : <IcoMarcia c={m.ink}/>}>
+                icona={stato === 'marcia' ? <IcoPronto c={PN.WHITE}/> : <IcoMarcia c={PN.WHITE}/>}>
                 {scelti.length
                   ? <React.Fragment>{az.avanti} <span style={{ fontWeight:800 }}>{n}</span></React.Fragment>
                   : az.tutto}
@@ -475,14 +588,53 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
             </div>
           ) : az.indietro && scelti.length > 0 && (
             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}>
-              <Cta ink={UI.secondo} onClick={() => onIndietro(tid, stato, scelti)}
-                icona={<IcoIndietro c={UI.secondo}/>}>
+              <Cta neutro onClick={() => onIndietro(tid, stato, scelti)}
+                icona={<IcoIndietro c={UI.testo}/>}>
                 {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
               </Cta>
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * ── IL CONGEDO DI UNA SEZIONE ────────────────────────────────────────────
+ * Quando l'ultimo piatto di uno stato se ne va, la sezione non puo' sparire e
+ * basta: quella e' la fine del gesto piu' importante dello schermo — «mandato
+ * tutto», «tutto pronto» — e farla avvenire in un fotogramma vuol dire non
+ * farla vedere. Chi ha premuto si ritrova una card diversa e deve rileggerla
+ * per capire cos'e' successo.
+ *
+ * Quindi la sezione si RIDUCE A ICONA: da elenco diventa una riga alta 46 con
+ * il cerchio dell'azione che l'ha svuotata — la spunta se i piatti sono usciti,
+ * la freccia se sono partiti — e la frase che dice com'e' rimasta. Resta li'
+ * mezzo secondo, il tempo di essere letta con la coda dell'occhio, poi si
+ * chiude su se stessa e la card si ricompone.
+ * L'altezza si anima davvero: quello che sta sotto sale accompagnato invece di
+ * saltare su di colpo.
+ */
+function Congedo({ stato, chiuso }) {
+  const m = STATO[stato];
+  const Ico = stato === 'marcia' ? IcoPronto : (stato === 'attesa' ? IcoMarcia : IcoIndietro);
+  return (
+    <div style={{
+      height: chiuso ? 0 : 46, opacity: chiuso ? 0 : 1, overflow:'hidden',
+      transition:'height 320ms cubic-bezier(.4,0,.2,1), opacity 240ms ease-out',
+      borderTop:'1px solid ' + UI.filo, background: m.velo,
+      display:'flex', alignItems:'center', gap:10, padding:'0 16px',
+    }}>
+      <span style={{
+        width:26, height:26, flexShrink:0, borderRadius:999, display:'grid',
+        placeItems:'center', background: UI.card,
+        boxShadow:'inset 0 0 0 1px ' + tinta(m.ink, 0.30),
+      }}><Ico c={m.ink}/></span>
+      <span style={{ fontSize:13, fontWeight:700, letterSpacing:'0.07em',
+                     textTransform:'uppercase', color: m.ink, opacity:0.8 }}>
+        {m.vuoto}
+      </span>
     </div>
   );
 }
@@ -500,8 +652,54 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
   const comuni = { tid:t.id, on, flip, ha, tutti, onScegli, onAvanti, onIndietro };
   const piattiDi = u => u.ids.map(id => t.piatti.find(y => y.id === id)).filter(Boolean);
 
+  // ── CHI C'ERA UN ISTANTE FA ─────────────────────────────────────────────
+  // Serve a sapere quale sezione si e' appena svuotata, e si aggiusta DURANTE
+  // il render, non dopo: se aspettassimo un effetto, la sezione sparirebbe in
+  // una pittura e il congedo comparirebbe nella successiva — cioe' si vedrebbe
+  // la card saltare, che e' esattamente quello che il congedo esiste per
+  // evitare.
+  const presenti = { marcia: v.length > 0, attesa: resto.length > 0, pronto: f.length > 0 };
+  const [visti, setVisti] = React.useState(presenti);
+  const [congedi, setCongedi] = React.useState({});
+  if (ORDINE_STATI.some(s => visti[s] !== presenti[s])) {
+    const prossimi = Object.assign({}, congedi);
+    let cambia = false;
+    ORDINE_STATI.forEach(s => {
+      if (visti[s] && !presenti[s] && MOTO()) { prossimi[s] = 'apre'; cambia = true; }
+      // Tornata a riempirsi prima che il congedo finisse: non si congeda piu'
+      // niente, la sezione e' di nuovo viva.
+      if (presenti[s] && prossimi[s]) { delete prossimi[s]; cambia = true; }
+    });
+    setVisti(presenti);
+    if (cambia) setCongedi(prossimi);
+  }
+  // Due tempi, due effetti separati: se stessero in uno solo, il passaggio da
+  // «apre» a «chiude» farebbe ripartire la pulizia e cancellerebbe il timer
+  // della chiusura prima che scatti.
+  React.useEffect(() => {
+    const apre = ORDINE_STATI.filter(s => congedi[s] === 'apre');
+    if (!apre.length) return;
+    const id = setTimeout(() => setCongedi(c => {
+      const n = Object.assign({}, c);
+      apre.forEach(s => { if (n[s] === 'apre') n[s] = 'chiude'; });
+      return n;
+    }), 620);
+    return () => clearTimeout(id);
+  }, [congedi]);
+  React.useEffect(() => {
+    const chiude = ORDINE_STATI.filter(s => congedi[s] === 'chiude');
+    if (!chiude.length) return;
+    const id = setTimeout(() => setCongedi(c => {
+      const n = Object.assign({}, c);
+      chiude.forEach(s => { if (n[s] === 'chiude') delete n[s]; });
+      return n;
+    }), 360);
+    return () => clearTimeout(id);
+  }, [congedi]);
+
   // Le sezioni si costruiscono nell'ordine degli stati, e compaiono solo se
-  // hanno qualcosa dentro: una card non porta mai un'intestazione vuota.
+  // hanno qualcosa dentro: una card non porta mai un'intestazione vuota — al
+  // massimo, per mezzo secondo, il congedo di quella che si e' appena svuotata.
   const blocchi = [];
   // ── UNA SOLA «IN PREPARAZIONE», SEMPRE ──────────────────────────────────
   // Un tavolo puo' avere due uscite sul fuoco insieme — il risotto partito
@@ -517,9 +715,15 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
       piatti={v.reduce((a, u) => a.concat(piattiDi(u)), [])}
       tempoDi={x => { const u = inUscita(t, x.id); return u ? minuti(ora - u.avvio) : '—'; }}/>
   );
+  else if (congedi.marcia) blocchi.push(
+    <Congedo key="c-marcia" stato="marcia" chiuso={congedi.marcia === 'chiude'}/>
+  );
   if (resto.length) blocchi.push(
     <Sezione {...comuni} key="attesa" chiave="attesa" stato="attesa" piatti={resto}
       apertoDef={false} tempoDi={() => minuti(ora - t.arrivo)}/>
+  );
+  else if (congedi.attesa) blocchi.push(
+    <Congedo key="c-attesa" stato="attesa" chiuso={congedi.attesa === 'chiude'}/>
   );
   if (f.length) blocchi.push(
     /* Sui pronti il tempo diventa l'ORA D'OROLOGIO invece dei minuti che
@@ -530,6 +734,9 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
     <Sezione {...comuni} key="pronto" chiave="pronto" stato="pronto" minore
       piatti={f.reduce((a, u) => a.concat(piattiDi(u)), [])} apertoDef={false}
       tempoDi={x => { const u = inUscita(t, x.id); return u ? orario(u.pronta) : '—'; }}/>
+  );
+  else if (congedi.pronto) blocchi.push(
+    <Congedo key="c-pronto" stato="pronto" chiuso={congedi.pronto === 'chiude'}/>
   );
 
   return (
@@ -764,7 +971,8 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
       const el = nodi.current[k], v = vecchie[k];
       if (!el || !v) return;
       const o = el.getBoundingClientRect();
-      const dx = v.left - o.left, dy = v.top - o.top;
+      const s = scalaDi(el) || 1;
+      const dx = (v.left - o.left) / s, dy = (v.top - o.top) / s;
       if (!dx && !dy) return;
       el.style.transition = 'none';
       el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
@@ -823,9 +1031,170 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
     return Object.assign({}, t, { uscite: nuove });
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // IL VOLO DEI PIATTI
+  //
+  // «Manda tutto» e «Tutto pronto» sono i due gesti per cui questo schermo
+  // esiste, e finivano in un fotogramma solo: premevi, e la card era gia'
+  // un'altra. Chi ha premuto non vedeva la propria azione — doveva RILEGGERE
+  // la card per sapere se aveva funzionato, e rileggere una card e' proprio il
+  // lavoro che il monitor dovrebbe risparmiare. Con i guanti e tre padelle sul
+  // fuoco, quel dubbio si paga con un secondo tocco e un piatto mandato due
+  // volte.
+  //
+  // Adesso i piatti si vedono ANDARE. Si misura dove stava ogni riga prima del
+  // cambio, dopo il cambio la si rimette li' con una trasformazione e la si
+  // lascia scivolare al posto nuovo: il movimento e' quello vero, nessuna riga
+  // finta. La direzione non e' una regola, e' un fatto — verso il basso quando
+  // i piatti vanno ai pronti, verso l'alto quando la marcia se li prende,
+  // perche' «in preparazione» sta in cima alla card.
+  //
+  // Quando la sezione d'arrivo e' CHIUSA — i pronti lo sono quasi sempre — la
+  // riga nuova non esiste e non c'e' niente da far scivolare. Allora vola il
+  // CALCO della riga vecchia, preso un istante prima, che scende fino
+  // all'intestazione dei pronti, si rimpicciolisce e ci sparisce dentro mentre
+  // quella si accende: il piatto non e' svanito, e' entrato li'.
+  //
+  // La sezione che resta vuota non sparisce di colpo: si riduce a icona e poi
+  // si chiude (vedi `Congedo`). E le card sotto, che si spostano perche' questa
+  // e' diventata piu' bassa, scivolano anche loro invece di saltare.
+  // Chi ha chiesto meno animazioni al sistema non vede niente di tutto questo.
+  const volo = React.useRef(null);
+  const [voli, setVoli] = React.useState(0);
+  const pista = React.useRef(null);
+
+  /** Si chiama PRIMA di cambiare i dati: fotografa dove stanno le righe della
+   *  card toccata e le altre card, e si tiene il calco dei piatti che partono. */
+  function misura(tid, ids, verso) {
+    if (!MOTO() || !pista.current) return;
+    const righe = {}, calchi = {};
+    pista.current.querySelectorAll('[data-volo^="' + tid + ':"]').forEach(el => {
+      const k = el.getAttribute('data-volo');
+      righe[k] = el.getBoundingClientRect();
+      if (ids.indexOf(k.slice(tid.length + 1)) >= 0) {
+        const c = el.cloneNode(true);
+        // Il calco non deve mai farsi trovare da una misura successiva: e' una
+        // copia, non un piatto.
+        c.removeAttribute('data-volo');
+        calchi[k] = c;
+      }
+    });
+    const card = {};
+    Object.keys(nodi.current).forEach(k => {
+      const el = nodi.current[k];
+      // La card toccata non si muove — cambia altezza. Animarla insieme alle
+      // sue righe le farebbe fare il doppio della strada.
+      if (el && k !== tid) card[k] = el.getBoundingClientRect();
+    });
+    volo.current = { tid, verso, righe, calchi, card };
+    setVoli(n => n + 1);
+  }
+
+  React.useLayoutEffect(() => {
+    const v = volo.current;
+    volo.current = null;
+    const p0 = pista.current;
+    if (!v || !p0) return;
+    const s = scalaDi(p0) || 1;
+    const cr = p0.getBoundingClientRect();
+    // Da pixel di schermo a coordinate della board: e' l'unico sistema in cui
+    // si puo' posare un calco, perche' la pagina puo' essere zoomata e la
+    // board puo' essere scorsa.
+    const qui = r => ({
+      x: (r.left - cr.left) / s + p0.scrollLeft, y: (r.top - cr.top) / s + p0.scrollTop,
+      w: r.width / s, h: r.height / s,
+    });
+    const arrivo = STATO[v.verso] || STATO.marcia;
+    const sezione = p0.querySelector('[data-sezione="' + v.tid + ':' + v.verso + '"]');
+    // In cucina si preme in fretta e due volte: se parte un secondo volo
+    // mentre il primo e' per aria, la pulizia del primo non deve spegnere il
+    // secondo a meta' strada. Ogni volo lascia il suo numero sull'elemento, e
+    // chi pulisce guarda se quel numero e' ancora il suo.
+    const giro = voli;
+
+    // ── 1. Le righe che sono ancora li': scivolano dal posto di prima ───────
+    Object.keys(v.righe).forEach(k => {
+      const el = p0.querySelector('[data-volo="' + k + '"]');
+      if (!el) return;
+      const o = el.getBoundingClientRect(), r = v.righe[k];
+      const dx = (r.left - o.left) / s, dy = (r.top - o.top) / s;
+      const mosso = !!v.calchi[k];
+      if (!dx && !dy && !mosso) return;
+      el.__volo = giro;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      el.style.zIndex = '6';
+      // Chi ha cambiato stato arriva con un alone del colore dello stato
+      // nuovo, che si spegne da solo: dice «sono io quello che si e' mosso».
+      if (mosso) el.style.boxShadow = '0 0 0 4px ' + tinta(arrivo.ink, 0.34);
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 460ms cubic-bezier(.2,.8,.25,1), box-shadow 520ms ease-out';
+        el.style.transform = '';
+        if (mosso) el.style.boxShadow = '0 0 0 0 ' + tinta(arrivo.ink, 0);
+        setTimeout(() => {
+          if (el.__volo !== giro) return;
+          el.style.transition = ''; el.style.zIndex = ''; el.style.boxShadow = '';
+        }, 560);
+      });
+    });
+
+    // ── 2. I piatti finiti in una sezione chiusa: vola il calco ─────────────
+    let calchi = 0;
+    Object.keys(v.calchi).forEach(k => {
+      if (p0.querySelector('[data-volo="' + k + '"]')) return;   // c'e': l'ha gia' fatto il punto 1
+      calchi++;
+      const c = v.calchi[k], r = qui(v.righe[k]);
+      const d = sezione ? qui(sezione.getBoundingClientRect())
+                        : { x:r.x, y:r.y + 80, w:r.w, h:r.h };
+      Object.assign(c.style, {
+        position:'absolute', left: r.x + 'px', top: r.y + 'px', width: r.w + 'px',
+        margin:'0', pointerEvents:'none', zIndex:'40', transformOrigin:'center center',
+        transition:'transform 440ms cubic-bezier(.3,.7,.4,1), opacity 440ms cubic-bezier(.7,0,1,1)',
+      });
+      p0.appendChild(c);
+      requestAnimationFrame(() => {
+        c.style.transform = 'translate(' + ((d.x + d.w / 2) - (r.x + r.w / 2)) + 'px,'
+          + ((d.y + Math.min(d.h, 46) / 2) - (r.y + r.h / 2)) + 'px) scale(0.7)';
+        c.style.opacity = '0.05';
+      });
+      setTimeout(() => { if (c.parentNode) c.parentNode.removeChild(c); }, 500);
+    });
+
+    // ── 3. L'intestazione che li riceve si accende quando arrivano ──────────
+    if (calchi && sezione) setTimeout(() => {
+      sezione.style.transition = 'none';
+      sezione.style.boxShadow = 'inset 0 0 0 2px ' + tinta(arrivo.ink, 0.50);
+      requestAnimationFrame(() => {
+        sezione.style.transition = 'box-shadow 560ms ease-out';
+        sezione.style.boxShadow = 'inset 0 0 0 2px ' + tinta(arrivo.ink, 0);
+        setTimeout(() => { sezione.style.transition = ''; sezione.style.boxShadow = ''; }, 600);
+      });
+    }, 330);
+
+    // ── 4. Le card sotto, che si spostano perche' questa si e' accorciata ───
+    Object.keys(v.card).forEach(k => {
+      const el = nodi.current[k], r = v.card[k];
+      if (!el || !r) return;
+      const o = el.getBoundingClientRect();
+      const dx = (r.left - o.left) / s, dy = (r.top - o.top) / s;
+      if (!dx && !dy) return;
+      el.__volo = giro;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 420ms cubic-bezier(.2,.8,.25,1)';
+        el.style.transform = '';
+        setTimeout(() => { if (el.__volo === giro) el.style.transition = ''; }, 460);
+      });
+    });
+  }, [voli]);
+
   function avanti(tid, stato, ids) {
     const s = { tid, stato, ids };
     if (!s.tid || !s.ids.length) return;
+    // Prima si fotografa, poi si scrive: dopo, dove stavano le righe non lo sa
+    // piu' nessuno.
+    misura(s.tid, s.ids, s.stato === 'attesa' ? 'marcia' : 'pronto');
     if (s.stato === 'attesa') {
       // Un istante solo per tutti: e' quello che DEFINISCE l'uscita.
       scrivi(s.tid, t => Object.assign({}, t, {
@@ -842,6 +1211,8 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   function indietro(tid, stato, ids) {
     const s = { tid, stato, ids };
     if (!s.tid || !s.ids.length) return;
+    // Anche il ritorno vola: e' lo stesso spostamento, al contrario.
+    misura(s.tid, s.ids, s.stato === 'marcia' ? 'attesa' : 'marcia');
     // in preparazione -> in attesa: escono dall'uscita e tornano in elenco.
     // Un'uscita rimasta vuota non esiste piu': senza piatti non e' niente.
     if (s.stato === 'marcia') scrivi(s.tid, t => Object.assign({}, t, {
@@ -882,9 +1253,12 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
 
       )}
 
-      <div className="board"
+      <div className="board" ref={pista}
         style={{
           flex:1, minHeight:0, padding:'10px 12px',
+          // Riferimento per i calchi che volano: sono posati dentro questo
+          // riquadro, in coordinate sue, cosi' seguono lo scorrimento.
+          position:'relative',
           // Si scorre SEMPRE in verticale, e tutte le colonne scorrono insieme:
           // un gesto solo, uguale sul monitor e sul tablet, e niente puo'
           // finire fuori portata.
