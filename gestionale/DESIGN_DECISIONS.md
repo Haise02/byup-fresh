@@ -248,8 +248,8 @@ Canvas 50 particelle, gravità + drift + rotazione, fade-out negli ultimi 600ms,
 ### Phone preview auto-scroll (Step 4)
 Translate Y 0 → -50% in 25s linear infinite, pause-on-hover. Lineare e lentissimo: comunica "anteprima viva" senza distrarre dal contenuto principale. Non è un'animazione di attenzione — è un display.
 
-### Cornice tratteggiata del prezzo (Salda conto → Modifica) — ferma
-Un `<rect>` SVG tratteggiato in rosso brand intorno al prezzo unitario, dentro la modalità «Modifica» del conto e solo lì: a riposo, nella lista normale, non esiste. Un numero fermo in una lista di numeri fermi non dichiara di essere un campo; il tratteggio e il colore lo dicono senza una legenda accanto, che è l'alternativa.
+### Cornice tratteggiata del prezzo (Salda conto → Modifica conto) — ferma
+Un `<rect>` SVG tratteggiato in rosso brand intorno al prezzo unitario, dentro la modalità «Modifica conto» e solo lì: a riposo, nella lista normale, non esiste. Un numero fermo in una lista di numeri fermi non dichiara di essere un campo; il tratteggio e il colore lo dicono senza una legenda accanto, che è l'alternativa.
 
 **Non si muove più.** Il tratteggio girava (`saldaAnts`, `stroke-dashoffset` 0 → −20 in 850ms linear infinite), e su un conto da dieci righe erano dieci cornici in movimento perpetuo intorno ai numeri che si stanno leggendo: un'affordance che non smette mai di animarsi non indica più niente, chiede l'occhio e basta. Il segno statico dice la stessa cosa e sta zitto. Il keyframe se n'è andato con la sua riga di `prefers-reduced-motion`, che ora non ha più niente da spegnere lì.
 
@@ -867,6 +867,10 @@ Adesso «Vai al conto» apre direttamente il saldo, e il saldo è **una finestra
 Da qui una regola generale: **un pulsante non può fare due cose diverse a seconda di cosa ha sotto.** La prima versione metteva tutto sul cestino, che apriva un menù «quante ne togli» sulle righe da più porzioni e cancellava di colpo su quelle da una: due click e un bersaglio da cercare per il gesto più frequente, e soprattutto lo stesso pulsante imprevedibile riga per riga. Se un comando ha bisogno di chiedere qualcosa, la domanda è nel posto sbagliato.
 
 Sotto quello che è già stato incassato non si scende mai, e vale per tutti e due i comandi: il «−» si spegne e lo dice, il cestino riporta la riga a quanto è stato pagato invece di cancellarla. Quelle porzioni sono un incasso, non un refuso.
+
+**Il piede della finestra prende il primario del gestionale — 11 set 2026.** La CTA di destra — «Procedi alla transazione», e in modifica «Salva» — era il tramonto scuro di Vendita diretta, un bordeaux quasi nero ricopiato di là perché lì stava sulle card «Da saldare». Un pulsante non si eredita dalla schermata che l'ha inventato: si eredita dal prodotto. Adesso è `PN.BTN_BRAND` — corallo, testo bianco, filo vinaccia, riflesso in cima e ombra corallo — lo stesso di «Salva modifiche» in Impostazioni e di «Manda tutto» in Cucina, con le misure di questa finestra (21px, 18/38 di imbottitura). Gli angoli scendono da pillola a 14, e li prende anche il bianco accanto: due rettangoli affiancati si leggono come una coppia, una pillola e un rettangolo no. Il passaggio del mouse e la pressione tornano al foglio condiviso `pn-btn-feedback` invece dei gestori inline che schiarivano del 22% e ingrandivano — quella era la lente giusta per uno sfondo scuro, non per il corallo.
+
+**Il pulsante dice su cosa agisce: «Modifica conto», non «Modifica».** In un piede dove l'altra strada è «Procedi alla transazione», un verbo solo non basta a dire che si sta per riscrivere il documento che si ha davanti — e in modifica quel pulsante non c'è più, quindi la parola è l'unico posto dove il suo oggetto può stare.
 
 **Lo stato di lavorazione del piatto sta dove ci si fa la domanda.** «A che punto è?» è una domanda che ci si fa guardando il TAVOLO — «cosa manca ancora a quel sei?» — non mentre si incassa. Le pastiglie vivono nell'elenco «Ordini · N» della card espansa, sopra «Crea ordine», richiudibile e chiuso di default, coi minuti di attesa accanto. Nella finestra del conto rispondevano a una domanda che lì nessuno stava facendo, e rubavano la riga al nome del piatto — che è la cosa da riconoscere quando si sceglie cosa saldare.
 

@@ -177,7 +177,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // finestra sola in due passi: prima COSA si salda — la lista a tutta
   // larghezza, come le righe del monitor di cucina — poi QUANTO e COME. Il
   // conto si corregge dove si legge, dentro il primo passo, entrando in
-  // «Modifica».
+  // «Modifica conto».
   const [passo, setPasso] = React.useState('scegli');  // scegli | pagamento
   // MODIFICA — il conto smette di essere un documento da spuntare e diventa
   // uno da correggere: si tolgono righe, se ne aggiungono, si riscrivono i
@@ -996,7 +996,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               // All'apertura è tutto selezionato — il caso più comune, il
               // tavolo che paga tutto, è a un tocco solo; chi divide il conto
               // toglie invece di dover mettere.
-              // Con «Modifica» la stessa lista cambia mestiere: spariscono le
+              // Con «Modifica conto» la stessa lista cambia mestiere: spariscono le
               // spunte e al loro posto arrivano il cestino, il prezzo
               // riscrivibile e la quantità ORDINATA — tre birre battute per
               // due. Sono due letture della stessa carta, e non possono valere
@@ -1178,8 +1178,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           style={saldaBtnPiede}>Annulla</button>
                         <span style={{flex:1}}/>
                         <button onClick={salvaModifica}
-                          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
                           style={saldaBtnCta(true)}>Salva</button>
                       </React.Fragment>
                     ) : (
@@ -1190,7 +1188,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
                           style={saldaBtnPiede}>
                           <IconMatita/>
-                          Modifica
+                          Modifica conto
                         </button>
                         <span style={{flex:1}}/>
                         {/* Basta che il tavolo debba ancora qualcosa: con la
@@ -1209,7 +1207,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             senza movimenti non c'è nessun registro da aprire, e
                             il pulsante dice l'unica cosa vera che ha da dire.
                             Da porta è una via laterale, non la strada: prende
-                            la faccia smorzata di «Modifica», perché su un conto
+                            la faccia smorzata di «Modifica conto», perché su un conto
                             chiuso niente merita il pieno. */}
                         {(() => {
                           const registro = residuoTavolo <= 0.004 && incassatoTotale > 0.004;
@@ -1219,17 +1217,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                               onClick={() => { if (attivo) setPasso('pagamento'); }}
                               disabled={!attivo}
                               title={registro ? 'Vedi gli incassi di questo conto, e semmai stornali' : undefined}
-                              onMouseEnter={e => {
-                                if (!attivo) return;
-                                if (registro) { e.currentTarget.style.background = '#F5F6F8'; return; }
-                                e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)';
-                              }}
-                              onMouseLeave={e => {
-                                if (registro) { e.currentTarget.style.background = '#fff'; return; }
-                                e.currentTarget.style.filter = ''; e.currentTarget.style.transform = '';
-                              }}
-                              onMouseDown={e => { if (attivo && !registro) e.currentTarget.style.transform = 'scale(0.99)'; }}
-                              onMouseUp={e => { if (attivo && !registro) e.currentTarget.style.transform = 'scale(1.01)'; }}
+                              onMouseEnter={e => { if (registro) e.currentTarget.style.background = '#F5F6F8'; }}
+                              onMouseLeave={e => { if (registro) e.currentTarget.style.background = '#fff'; }}
                               style={registro ? saldaBtnPiede : saldaBtnCta(attivo)}>
                               {residuoTavolo > 0.004
                                 ? 'Procedi alla transazione'
@@ -3140,17 +3129,6 @@ const SALDA_LABEL = {
 // stretta non sembra ordinata — sembra rotta. Adesso il pagamento prende la
 // larghezza che ha, con lo stesso margine di tutto il resto.
 
-// La CTA scura di Vendita diretta, quella sulle card «Da saldare»: stesso
-// gesto, stesso pulsante. I valori sono ricopiati da sala-vendita-diretta.jsx
-// e non importati perché questa finestra vive anche in Contabilità, che quel
-// file non lo carica: leggerlo da lì farebbe esplodere la pagina invece di
-// disegnare un pulsante.
-const SALDA_SUNSET_BG = `
-  radial-gradient(circle at 82% 18%, rgba(255, 96, 102, 0.32), transparent 62%),
-  linear-gradient(180deg, rgba(58, 28, 22, 0.96) 0%, rgba(30, 12, 10, 0.98) 100%)
-`;
-const SALDA_SUNSET_SHADOW = 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)';
-const SALDA_SUNSET_TEXT = '#FFE9E6';
 // IL PIEDE DEL PRIMO PASSO: due angoli, due strade. A destra sta sempre quella
 // che va avanti — «Procedi alla transazione», e in modifica «Salva» — nello stesso
 // punto e con lo stesso peso, perché è lo stesso posto della finestra dove si
@@ -3158,9 +3136,22 @@ const SALDA_SUNSET_TEXT = '#FFE9E6';
 // conto, o rinunciare alle correzioni. Colore acceso e colore spento non
 // bastavano da soli — sono anche agli antipodi, che è la distanza giusta fra
 // «vai avanti» e «lascia perdere».
+//
+// ── IL PRIMARIO E' QUELLO DEL GESTIONALE ────────────────────────────────
+// Era il tramonto scuro di Vendita diretta: un bordeaux quasi nero con dentro
+// un alone corallo, ricopiato di là perché lì stava sulle card «Da saldare».
+// Un pulsante però non si eredita dalla schermata che l'ha inventato: si
+// eredita dal prodotto. Qui adesso c'è il primario di casa — `PN.BTN_BRAND`,
+// testo bianco, filo vinaccia, riflesso in cima e ombra corallo — lo stesso
+// che Impostazioni mette sotto «Salva modifiche» e che la Cucina mette sotto
+// «Manda tutto». Cambiano solo le misure, perché questo è il pulsante finale
+// di una finestra grande e non un comando di riga.
+// Angoli: 14, e li prende anche il bianco accanto. La pillola piena stava bene
+// quando il primario era scuro e massiccio; con due rettangoli affiancati la
+// coppia si legge come una coppia.
 const saldaBtnPiede = {
   display:'inline-flex', alignItems:'center', gap: 10,
-  padding:'18px 30px', borderRadius: 999,
+  padding:'18px 30px', borderRadius: 14,
   background:'#fff', color: SALDA_INK,
   border:`1px solid ${SALDA_BORDO}`,
   fontSize: 19, fontWeight: 700,
@@ -3168,15 +3159,18 @@ const saldaBtnPiede = {
   transition:'background 150ms ease-out',
 };
 const saldaBtnCta = (attivo) => ({
-  padding:'18px 38px', borderRadius: 999,
-  background: attivo ? SALDA_SUNSET_BG : '#EDEFF2',
-  color: attivo ? SALDA_SUNSET_TEXT : '#9CA3AF',
-  border:'1px solid transparent',
-  boxShadow: attivo ? SALDA_SUNSET_SHADOW : 'none',
+  padding:'18px 38px', borderRadius: 14,
+  background: attivo ? PN.BTN_BRAND : '#EDEFF2',
+  color: attivo ? PN.WHITE : '#9CA3AF',
+  border:'1px solid ' + (attivo ? 'rgba(180, 30, 35, 0.40)' : 'transparent'),
+  boxShadow: attivo ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 10px rgba(255, 90, 95, 0.28)` : 'none',
   fontSize: 21, fontWeight: 700, letterSpacing:-0.2,
   cursor: attivo ? 'pointer' : 'not-allowed', fontFamily:'inherit',
   whiteSpace:'nowrap',
-  transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+  // Passaggio del mouse e pressione arrivano dal foglio condiviso dei token
+  // (`pn-btn-feedback`), come per ogni altro bottone del gestionale: il
+  // pulsante non si schiarisce più del 22% né cresce di suo.
+  transition:'background 150ms ease-out, box-shadow 180ms ease-out',
 });
 // La stessa matita che sta accanto alla cifra da incassare: qui dice che il
 // conto si può riscrivere, là che si può riscrivere l'importo.

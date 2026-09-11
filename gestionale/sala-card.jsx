@@ -432,7 +432,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
     if (t.state === 'occupato')  return occupatoSaldato
       ? { label: 'Libera tavolo', onClick: () => onLibera && onLibera(t) }
       // «Vai al conto», non più «Salda ora»: quel pulsante apre il CONTO —
-      // cosa c'è sul tavolo, cosa se ne salda, e dietro «Modifica» le
+      // cosa c'è sul tavolo, cosa se ne salda, e dietro «Modifica conto» le
       // correzioni — e l'incasso è il passo dopo, dentro la stessa finestra.
       // Promettere il saldo su un tasto che porta a un elenco era una
       // promessa sbagliata.
