@@ -15,12 +15,15 @@
 // erano l'ultima intestazione rimasta dentro l'elenco e su una card da 360px
 // separavano spesso due righe con una riga.
 //
+// L'ordine e' quello del PERCORSO del piatto — in attesa, in preparazione,
+// pronti — e la card si legge dall'alto in basso come si legge una comanda.
 // I tre stati non sono pari, e si vede senza leggere:
-//   in preparazione  fondo caldo, nomi in nero, mai comprimibile
-//   in attesa        fondo bianco, nomi un tono piu' chiari, mai comprimibile
-//   pronti           fondo grigio, tutto piu' piccolo, comprimibile e chiuso
-// Le due sezioni di lavoro restano sempre aperte perche' sono il motivo per cui
-// la card esiste; si chiude solo il registro.
+//   in attesa        velo arancio sfumato, nomi un tono piu' chiari
+//   in preparazione  velo rosso pieno, nomi in nero
+//   pronti           fondo grigio, tutto piu' piccolo — e' un registro
+// Una sezione sola resta aperta: aprire uno stadio accorpa gli altri, che
+// pero' non spariscono — accorpati portano il CONTEGGIO, e un numero dice
+// quanto lavoro c'e' li' dentro senza occupare sei righe.
 //
 // L'unita' del LAVORO invece e' l'USCITA: l'insieme che parte insieme perche'
 // deve arrivare in tavola insieme — il secondo di chi non prende il primo parte
@@ -97,20 +100,45 @@ const DITO = 44;
 // minuti mostra 40:12. Sparisce la sentenza, resta la prova.
 
 // ── GLI STATI ────────────────────────────────────────────────────────────
-// Ordine e colori vengono dal riferimento visivo: in preparazione ROSSO, in
-// attesa ARANCIO, pronti VERDE — dal piu' caldo (quello che sta cuocendo
-// adesso) al piu' freddo (quello che e' gia' uscito). I nomi restano quelli
-// del gestionale (`ORDINE_STATO_META` in sala-card.jsx), cosi' sala e cucina
-// chiamano le cose allo stesso modo.
-// `vuoto` e' quello che la sezione dice mentre si congeda: quando l'ultimo
-// piatto se ne va, la sezione non sparisce di colpo — si riduce a una riga con
-// l'icona dell'azione che l'ha svuotata e questa frase, poi si chiude.
+// I colori vengono dal riferimento visivo: in attesa ARANCIO, in preparazione
+// ROSSO, pronti VERDE. I nomi restano quelli del gestionale
+// (`ORDINE_STATO_META` in sala-card.jsx), cosi' sala e cucina chiamano le cose
+// allo stesso modo.
+//
+// ── L'ORDINE SEGUE IL PIATTO, NON LA TEMPERATURA ────────────────────────
+// Prima veniva prima cio' che scottava: in preparazione, poi l'attesa, poi i
+// pronti. Era l'ordine dell'urgenza, e leggeva la card come una classifica.
+// Adesso e' l'ordine del PERCORSO — quello che deve ancora partire, quello sul
+// fuoco, quello uscito — e la card si legge come una storia dall'alto in
+// basso. Ci guadagna anche il gesto: i piatti che mandi scendono verso lo
+// stato successivo invece di risalire, che e' il verso in cui li si pensa.
+//
+// Ogni stato si porta dietro il proprio vestito, e sta qui perche' la sezione
+// non deve conoscere i casi particolari:
+//   ink          il colore dello stato: fili delle tessere, anelli, aloni
+//   testo        lo stesso colore portato dove fa da INCHIOSTRO e deve reggere
+//                il contrasto (l'arancio pieno su fondo chiaro non ci arriva)
+//   velo         il fondo della sezione
+//   scelto       il fondo di una tessera scelta: piu' carico del velo, o su una
+//                sezione gia' tinta la selezione non si vedrebbe piu'
+//   cta          il vestito del comando che manda avanti; `null` = il primario
+//                di marca del gestionale
+//   vuoto        cosa dice la sezione mentre si congeda, quando l'ultimo piatto
+//                se ne va e prima che si chiuda
 const STATO = {
-  marcia: { ink:'#E8402E', velo:'#FEF1EF', nome:'In preparazione', vuoto:'Niente sul fuoco' },
-  attesa: { ink:'#F97316', velo:'#FFF4EC', nome:'In attesa',       vuoto:'Niente in attesa' },
-  pronto: { ink:'#1DA35C', velo:'#EDFAF2', nome:'Pronti',          vuoto:'Niente di pronto' },
+  attesa: { ink:'#F97316', testo:'#C2410C', nome:'In attesa', vuoto:'Niente in attesa',
+    // Sfumato e non pieno: l'attesa e' la sezione piu' lunga della card, e un
+    // fondo uniforme su otto righe pesa quanto il lavoro sul fuoco. Cosi'
+    // invece la tinta si annuncia in cima e si ritira scendendo.
+    velo:'linear-gradient(180deg, #FFF3E9 0%, #FFFBF8 100%)', scelto:'#FFE9D5',
+    cta:{ fondo:'linear-gradient(180deg, #FB8A3C 0%, #EA580C 100%)',
+          bordo:'rgba(154, 52, 18, 0.42)', ombra:'0 2px 10px rgba(234, 88, 12, 0.28)' } },
+  marcia: { ink:'#E8402E', testo:'#E8402E', nome:'In preparazione', vuoto:'Niente sul fuoco',
+    velo:'#FEF1EF', scelto:'#FDE3DF', cta:null },
+  pronto: { ink:'#1DA35C', testo:'#1DA35C', nome:'Pronti', vuoto:'Niente di pronto',
+    velo:'#EDFAF2', scelto:'#DDF3E6', cta:null },
 };
-const ORDINE_STATI = ['marcia', 'attesa', 'pronto'];
+const ORDINE_STATI = ['attesa', 'marcia', 'pronto'];
 
 // Le comande che non stanno a un tavolo. La parola cambia, la struttura sotto
 // no: stessi stati, stessi comandi, stesso tutto.
@@ -234,9 +262,16 @@ const finito = t => vive(t).length === 0 && daFare(t).length === 0;
  *  La gerarchia adesso la fa il COLORE invece della sola forma, ed e' la
  *  stessa coppia che il gestionale mette in fondo a ogni foglio.
  *
+ *  Un'eccezione, e ha una ragione: il comando dell'ATTESA si veste di arancio,
+ *  cioe' del colore del suo stato (`tono`). Li' il corallo sarebbe la terza
+ *  cosa rossa della stessa sezione — filo delle tessere, anello della scelta,
+ *  bottone — e un comando dentro una sezione tinta deve dire a quale sezione
+ *  appartiene prima ancora di dire che e' un comando. Il primario di marca
+ *  resta dov'e' l'azione che chiude il lavoro, «Tutto pronto».
+ *
  *  Quello che NON cambia: altezza 52, stesso posto in fondo alla sezione, e la
  *  larghezza che dice su cosa agisce. Non si e' perso un gesto. */
-function Cta({ children, onClick, icona, pieno, neutro }) {
+function Cta({ children, onClick, icona, pieno, neutro, tono }) {
   return (
     <button type="button" onClick={onClick} style={{
       // LA LARGHEZZA DICE LO SCOPO.
@@ -253,14 +288,15 @@ function Cta({ children, onClick, icona, pieno, neutro }) {
       padding: neutro ? '0 14px' : '0 16px', maxWidth:'100%',
       display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10,
       borderRadius: 12,
-      border: '1px solid ' + (neutro ? PN.BORDER_LIGHT : 'rgba(180, 30, 35, 0.40)'),
-      background: neutro ? PN.BTN_NEUTRAL : PN.BTN_BRAND,
+      border: '1px solid ' + (neutro ? PN.BORDER_LIGHT
+        : (tono ? tono.bordo : 'rgba(180, 30, 35, 0.40)')),
+      background: neutro ? PN.BTN_NEUTRAL : (tono ? tono.fondo : PN.BTN_BRAND),
       // Il riflesso in cima e' quello dei bottoni del gestionale; sotto, il
-      // corallo si porta la propria ombra colorata, che e' quello che lo stacca
-      // dal velo caldo della sezione «in preparazione».
+      // colore si porta la propria ombra, che e' quello che lo stacca dal velo
+      // della sua sezione.
       boxShadow: neutro
         ? PN.INSET_HIGHLIGHT + ', 0 1px 2px rgba(16,18,22,0.08)'
-        : PN.INSET_HIGHLIGHT_BRAND + ', 0 2px 10px rgba(255, 90, 95, 0.28)',
+        : PN.INSET_HIGHLIGHT_BRAND + ', ' + (tono ? tono.ombra : '0 2px 10px rgba(255, 90, 95, 0.28)'),
       color: neutro ? UI.testo : PN.WHITE,
       fontFamily:'inherit', fontSize: neutro ? 15 : 16, fontWeight: 700,
       letterSpacing:'0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
@@ -428,27 +464,28 @@ function Riga({ piatto: x, ink, velo, tempo, scelto, onTocca, minore, tenue, vol
  * un tipo nuovo a ogni render, e React lo smonta e rimonta da capo — qui
  * sarebbe successo a ogni battito dell'orologio.
  */
-function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
-                   tid, on, flip, ha, tutti, onScegli, onAvanti, onIndietro }) {
+function Sezione({ stato, piatti, tempoDi, aperto, onApri, primo, minore,
+                   tid, ha, onScegli, agito, onAvanti, onIndietro }) {
   const m = STATO[stato];
-  const bk = 'b:' + chiave;
-  // «In preparazione» non si chiude mai. E' il lavoro sul fuoco ADESSO: se lo
-  // si puo' nascondere, prima o poi qualcuno lo nasconde — e da quel momento
-  // la card mostra tutto tranne l'unica cosa per cui esiste. Le altre due
-  // sezioni si chiudono perche' una e' futuro e l'altra e' passato.
-  // Le due sezioni di LAVORO non si chiudono mai: quello che stai facendo e
-  // quello che devi fare sono il motivo per cui la card esiste, e una cosa che
-  // si puo' nascondere prima o poi viene nascosta. Si chiudono solo i pronti,
-  // che sono un registro.
-  const fisso = stato !== 'pronto';
-  // «Fisse allo stesso modo» non vuol dire «pari»: il fondo caldo ce l'ha solo
-  // cio' che sta sul fuoco, e in attesa i nomi scendono di un tono.
-  const vivo = stato === 'marcia';
-  const aperto = fisso || on(bk, apertoDef !== false);
+  // ── UNA APERTA PER VOLTA ────────────────────────────────────────────────
+  // Prima le due sezioni di lavoro erano fisse e non si chiudevano, per non
+  // permettere a nessuno di nascondere cio' che sta sul fuoco. Il prezzo era
+  // che una card lunga restava lunga: su un tavolo da otto, fra attesa e fuoco
+  // ci sono quindici righe e sullo schermo ne entrano tre card.
+  // Adesso si apre lo stadio che si sta guardando e gli altri si accorpano —
+  // e chiudersi non significa piu' sparire, perche' un'intestazione accorpata
+  // porta il CONTEGGIO: «IN ATTESA 6» dice tutto quello che serve sapere senza
+  // occupare sei righe. Il rischio di prima non si ripresenta: quello che non
+  // vedi te lo dice comunque un numero.
+  // Lo stadio aperto lo decide la card, non la sezione: e' l'unico modo perche'
+  // aprire uno chiuda gli altri.
   const ids = piatti.map(x => x.id);
   const az = AZIONI[stato];
   const scelti = ids.filter(ha);
   const n = scelti.length ? somma(piatti.filter(x => ha(x.id))) : somma(piatti);
+  // Quante tessere resterebbero qui dentro dopo l'azione: serve alla card per
+  // sapere se questa sezione ha ancora un motivo per restare aperta.
+  const restano = scelti.length ? ids.length - scelti.length : 0;
 
   return (
     /* I PRONTI NON SONO UNA TERZA SEZIONE ALLA PARI.
@@ -457,29 +494,28 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
        antipasti del 23 sono usciti. Con lo stesso peso tipografico delle altre
        due rivendicava la stessa attenzione, che e' falso.
        Quindi scende su un fondo grigio, in coda alla card, con la tipografia
-       spenta: si legge come un'appendice, non come un pari. Il pallino verde
-       resta, cosi' lo stato e' ancora riconoscibile a colpo d'occhio, e i tempi
-       ci sono tutti — si toglie il rilievo, non il contenuto. */
-    /* ── TRE STATI, TRE TEMPERATURE DI FONDO ────────────────────────────
-       In preparazione ha un velo CALDO, l'attesa resta sul bianco della card,
-       i pronti stanno sul grigio. Letta dall'alto in basso la card fa una
-       scala di temperatura che coincide col significato: quello che scotta,
-       quello che deve ancora arrivare, quello che e' freddo e archiviato.
-       Serve a una cosa precisa: anche con tutte le tendine aperte, quello che
-       stai cucinando ADESSO si trova senza leggere una parola. E lo fa con una
-       superficie al 3% di saturazione invece che con un'etichetta accesa —
-       un fondo si vede con la coda dell'occhio e non compete coi nomi dei
-       piatti, che restano la cosa piu' scura della card. */
+       spenta: si legge come un'appendice, non come un pari. I tempi ci sono
+       tutti — si toglie il rilievo, non il contenuto. */
+    /* ── OGNI STADIO PORTA IL SUO COLORE, CON DUE PESI DIVERSI ───────────
+       L'attesa ha un velo arancio SFUMATO — si annuncia in cima e si ritira
+       scendendo — e il fuoco un velo rosso pieno. Non e' una svista che siano
+       diversi: l'attesa e' la sezione piu' lunga della card, e una tinta
+       uniforme su otto righe peserebbe quanto il lavoro sul fuoco, che invece
+       deve restare la cosa piu' calda della card.
+       Serve a una cosa precisa: da due metri, senza leggere una parola, si
+       vede dove finisce quello che aspetta e comincia quello che cuoce. E lo
+       fa con superfici sotto il 4% di saturazione invece che con etichette
+       accese — un fondo si legge con la coda dell'occhio e non compete coi
+       nomi dei piatti, che restano la cosa piu' scura della card. */
     /* `data-sezione` non e' decorazione: e' l'indirizzo a cui la board manda i
        piatti quando volano da uno stato all'altro. Se la sezione d'arrivo e'
        chiusa — i pronti lo sono quasi sempre — il piatto non ha una riga dove
        atterrare, e allora atterra QUI, sull'intestazione, che per un attimo si
        accende per dire che l'ha preso. */
     <div data-sezione={tid + ':' + stato} style={{
-      borderTop: primo ? 'none' : '1px solid ' + (vivo ? 'rgba(232,64,46,0.16)' : UI.filo),
-      borderBottom: vivo ? '1px solid rgba(232,64,46,0.16)' : 'none',
+      borderTop: primo ? 'none' : '1px solid ' + (minore ? UI.filo : tinta(m.ink, 0.14)),
       padding: minore ? '10px 16px 12px' : '12px 16px 14px',
-      background: minore ? UI.archivio : (vivo ? m.velo : 'transparent'),
+      background: minore ? UI.archivio : m.velo,
     }}>
       {/* L'INTESTAZIONE FA UNA COSA SOLA: apre e chiude. Tutta, freccia
           compresa.
@@ -490,9 +526,8 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
           Quella selezione non serviva comunque: la CTA agisce gia' su tutta la
           sezione quando non hai scelto niente. Era un doppione che intralciava
           il gesto piu' innocuo che c'e'. */}
-      <div onClick={fisso ? undefined : () => flip(bk, apertoDef !== false)}
-        style={{ display:'flex', alignItems:'center', minHeight:34,
-                 cursor: fisso ? 'default' : 'pointer' }}>
+      <div onClick={onApri}
+        style={{ display:'flex', alignItems:'center', minHeight:34, cursor:'pointer' }}>
         <div style={{ flex:1, minWidth:0, display:'flex',
               alignItems:'center', gap:9, padding:'4px 0' }}>
           {/* «IN» piu' spento della parola che conta: l'occhio prende
@@ -505,34 +540,37 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
               cio' che sta sul fuoco — e dove serve a premere, cioe' il
               contorno delle CTA. Un fondo si legge con la coda dell'occhio, un
               pallino da 9px no. */}
-          {/* Una parola accesa per card, e sta sulla sola sezione che dice
-              cosa stai cucinando ADESSO. Le altre due restano grigie: con tre
-              etichette colorate per card si annullerebbero a vicenda e nessuna
-              direbbe piu' «guarda qui». */}
+          {/* Le due sezioni di lavoro portano il proprio colore, i pronti no:
+              sono un registro, e un registro non si annuncia. */}
           <span style={{ fontSize: minore ? 12 : 13, fontWeight:700, letterSpacing:'0.07em',
-                         textTransform:'uppercase', color: vivo ? m.ink : UI.muto,
+                         textTransform:'uppercase', color: minore ? UI.muto : m.testo,
                          opacity: minore ? 0.85 : 0.62 }}>
             {m.nome.split(' ')[0]}
           </span>
-          <span style={{ fontSize: minore ? 12 : 13, fontWeight: vivo ? 800 : 700,
+          <span style={{ fontSize: minore ? 12 : 13, fontWeight: minore ? 700 : 800,
                          letterSpacing:'0.07em', textTransform:'uppercase',
-                         color: vivo ? m.ink : UI.muto, opacity: minore ? 0.85 : 1 }}>
+                         color: minore ? UI.muto : m.testo, opacity: minore ? 0.85 : 1 }}>
             {m.nome.split(' ').slice(1).join(' ') || ''}
           </span>
-          <span style={{ fontSize: minore ? 13 : 15, fontWeight:700,
-                         color: minore ? UI.muto : UI.testo, fontVariantNumeric:'tabular-nums' }}>
-            {somma(piatti)}
-          </span>
+          {/* IL NUMERO SOLO DA CHIUSA. Aperta, la sezione ha le sue righe
+              sotto: il conteggio ripeteva una cosa che si vede — e sul fuoco
+              si conta quello che si ha davanti, non quello che c'e' scritto.
+              Accorpata invece e' l'unica cosa che resta a dire quanto lavoro
+              c'e' li' dentro, e allora e' la cifra a portare tutto il peso. */}
+          {!aperto && (
+            <span style={{ fontSize: minore ? 13 : 15, fontWeight:800,
+                           color: minore ? UI.muto : UI.testo, fontVariantNumeric:'tabular-nums' }}>
+              {somma(piatti)}
+            </span>
+          )}
         </div>
-        {!fisso && (
-          <div style={{ width:52, height:40, flexShrink:0, display:'grid', placeItems:'center' }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={UI.tempo}
-              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out' }}>
-              <path d="m6 9 6 6 6-6"/>
-            </svg>
-          </div>
-        )}
+        <div style={{ width:52, height:40, flexShrink:0, display:'grid', placeItems:'center' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={UI.tempo}
+            strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out' }}>
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </div>
       </div>
 
       {aperto && (
@@ -544,9 +582,9 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
               costava piu' spazio di quanto ne facesse risparmiare all'occhio.
               I piatti restano nell'ordine in cui sono stati ordinati. */}
           {piatti.map(x => (
-            <Riga key={x.id} piatto={x} ink={m.ink} velo={m.velo} tempo={tempoDi(x)}
+            <Riga key={x.id} piatto={x} ink={m.ink} velo={m.scelto} tempo={tempoDi(x)}
               scelto={ha(x.id)} volo={tid + ':' + x.id}
-              minore={minore} tenue={!vivo && !minore}
+              minore={minore} tenue={stato === 'attesa'}
               onTocca={() => onScegli(tid, stato, [x.id])}/>
           ))}
 
@@ -562,24 +600,31 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
               ci sono 16px: sotto il CENTRO della primaria — dove il dito punta
               e da dove scivola — non c'e' niente da colpire. */}
           {az.tutto ? (
-            /* I due comandi stanno SULLA STESSA RIGA, ed e' possibile solo
-               perche' la primaria si stringe: quando era larga quanto la card,
-               il ritorno poteva stare solo sotto — sovrapposto in verticale, a
-               4px, con conseguenze opposte. Affiancati con 16px in mezzo si
-               distinguono per COLORE e per PESO: corallo pieno con testo bianco
-               contro bianco con testo scuro, che e' la stessa coppia che il
-               gestionale mette in fondo a ogni foglio. Il dito che scivola in
-               verticale non trova piu' niente da colpire. */
+            /* ── LA PRIMARIA SI STRINGE SOLO SE DEVE FAR POSTO ──────────────
+               Si stringeva ogni volta che sceglievi qualcosa, anche dove il
+               ritorno non esiste: in attesa non si torna indietro — non c'e'
+               niente prima — e il bottone si rimpiccioliva per lasciare spazio
+               a nessuno. Un comando che cambia misura senza che cambi niente
+               intorno non racconta niente, dà solo la sensazione che la
+               schermata si muova da sola.
+               Adesso la misura la detta la compagnia: se il ritorno c'è la
+               primaria si fa da parte e restano i 16px di stacco fra le due,
+               se non c'è resta larga quanto la sezione.
+               E larga quanto la SEZIONE vuol dire allineata alle tessere:
+               prima, con la casella vuota del ritorno e lo stacco che la
+               seguiva, il bottone partiva sedici pixel più a destra del bordo
+               delle righe — un disallineamento piccolo e continuo, ripetuto su
+               ogni card della board. */
             <div style={{ marginTop:12, display:'flex', justifyContent:'space-between',
-                          alignItems:'center', gap:16 }}>
-              {az.indietro && scelti.length > 0
-                ? <Cta neutro onClick={() => onIndietro(tid, stato, scelti)}
-                    icona={<IcoIndietro c={UI.testo}/>}>
-                    {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
-                  </Cta>
-                : <span/>}
-              <Cta pieno={!scelti.length}
-                onClick={() => onAvanti(tid, stato, scelti.length ? scelti : ids)}
+                          alignItems:'center', gap: (az.indietro && scelti.length > 0) ? 16 : 0 }}>
+              {az.indietro && scelti.length > 0 && (
+                <Cta neutro onClick={() => { agito(stato, restano); onIndietro(tid, stato, scelti); }}
+                  icona={<IcoIndietro c={UI.testo}/>}>
+                  {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
+                </Cta>
+              )}
+              <Cta pieno={!(az.indietro && scelti.length > 0)} tono={m.cta}
+                onClick={() => { agito(stato, restano); onAvanti(tid, stato, scelti.length ? scelti : ids); }}
                 icona={stato === 'marcia' ? <IcoPronto c={PN.WHITE}/> : <IcoMarcia c={PN.WHITE}/>}>
                 {scelti.length
                   ? <React.Fragment>{az.avanti} <span style={{ fontWeight:800 }}>{n}</span></React.Fragment>
@@ -588,7 +633,7 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
             </div>
           ) : az.indietro && scelti.length > 0 && (
             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}>
-              <Cta neutro onClick={() => onIndietro(tid, stato, scelti)}
+              <Cta neutro onClick={() => { agito(stato, restano); onIndietro(tid, stato, scelti); }}
                 icona={<IcoIndietro c={UI.testo}/>}>
                 {az.indietro} <span style={{ fontWeight:800 }}>{n}</span>
               </Cta>
@@ -641,15 +686,9 @@ function Congedo({ stato, chiuso }) {
 
 // ─── Card tavolo ──────────────────────────────────────────────────────────
 function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa }) {
-  const [tog, setTog] = React.useState({});
-  const on   = (k, def) => (tog[k] === undefined ? def : tog[k]);
-  const flip = (k, def) => setTog(o => Object.assign({}, o, { [k]: !on(k, def) }));
-
   const v = vive(t), f = fatte(t), resto = daFare(t);
   const mio = sel.tid === t.id ? sel : { stato:null, ids:[] };
   const ha  = id => mio.ids.indexOf(id) >= 0;
-  const tutti = ids => ids.length > 0 && ids.every(ha);
-  const comuni = { tid:t.id, on, flip, ha, tutti, onScegli, onAvanti, onIndietro };
   const piattiDi = u => u.ids.map(id => t.piatti.find(y => y.id === id)).filter(Boolean);
 
   // ── CHI C'ERA UN ISTANTE FA ─────────────────────────────────────────────
@@ -659,6 +698,37 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
   // la card saltare, che e' esattamente quello che il congedo esiste per
   // evitare.
   const presenti = { marcia: v.length > 0, attesa: resto.length > 0, pronto: f.length > 0 };
+
+  // ── QUALE STADIO E' APERTO ──────────────────────────────────────────────
+  // Uno solo, e aprirne uno chiude gli altri. Di suo la card apre IL FUOCO:
+  // e' il lavoro di adesso, ed e' l'unico che ha dei cronometri che corrono —
+  // le altre due sezioni accorpate dicono comunque quanto c'e' dentro col loro
+  // numero. Se sul fuoco non c'e' niente si apre l'attesa, e se non c'e'
+  // nemmeno quella il registro dei pronti.
+  // `undefined` vuol dire «nessuno l'ha ancora toccata»: finche' e' cosi'
+  // l'apertura segue il servizio invece di restare ferma dove l'ha lasciata un
+  // tocco di dieci minuti fa. `null` vuol dire «chiuse tutte», ed e' una scelta
+  // legittima: la card diventa tre righe e sullo schermo ne entrano il doppio.
+  const auto = presenti.marcia ? 'marcia' : (presenti.attesa ? 'attesa' : (presenti.pronto ? 'pronto' : null));
+  const [scelto, setScelto] = React.useState(undefined);
+  const espanso = scelto === undefined ? auto
+    : (scelto && presenti[scelto] ? scelto : (scelto === null ? null : auto));
+  const apri = s => setScelto(espanso === s ? null : s);
+  // AGIRE IN UNA SEZIONE LA SCEGLIE. Chi manda un piatto quasi sempre ne manda
+  // un altro dalla stessa lista: se dopo l'azione le resta qualcosa dentro,
+  // quella sezione resta aperta. Senza questa riga la card, che finche' nessuno
+  // tocca le intestazioni segue il servizio, si riapriva sul fuoco appena il
+  // primo piatto ci arrivava — e l'attesa si accorpava sotto le mani di chi
+  // stava ancora mandando. Se invece la sezione si svuota, la card torna a
+  // decidere da se' e apre quello che e' appena partito.
+  const agito = (stato, restano) => setScelto(restano > 0 ? stato : undefined);
+
+  // Si costruisce QUI e non prima: dentro c'e' `agito`, e questi file Babel li
+  // compila con `var` — dichiarato piu' sopra, sarebbe entrato nell'oggetto
+  // come `undefined` e il bottone avrebbe fallito solo al tocco, che e' il
+  // momento peggiore per accorgersene.
+  const comuni = { tid:t.id, ha, onScegli, agito, onAvanti, onIndietro };
+
   const [visti, setVisti] = React.useState(presenti);
   const [congedi, setCongedi] = React.useState({});
   if (ORDINE_STATI.some(s => visti[s] !== presenti[s])) {
@@ -710,20 +780,26 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
   // in ordine di partenza, e ognuno col suo cronometro.
   // Il modello non cambia: le uscite restano distinte nei dati (ognuna col suo
   // `started_at`), e dichiarandone pronta una parte `spacca` divide solo quella.
+  // ── PRIMA CHI ASPETTA, POI CHI CUOCE ────────────────────────────────────
+  // L'ordine e' quello del percorso del piatto, non quello dell'urgenza: si
+  // legge dall'alto in basso come si legge una comanda, e i piatti che mandi
+  // scendono verso lo stadio successivo invece di risalire.
+  if (resto.length) blocchi.push(
+    <Sezione {...comuni} key="attesa" stato="attesa" piatti={resto} primo
+      aperto={espanso === 'attesa'} onApri={() => apri('attesa')}
+      tempoDi={() => minuti(ora - t.arrivo)}/>
+  );
+  else if (congedi.attesa) blocchi.push(
+    <Congedo key="c-attesa" stato="attesa" chiuso={congedi.attesa === 'chiude'}/>
+  );
   if (v.length) blocchi.push(
-    <Sezione {...comuni} key="marcia" chiave="marcia" stato="marcia"
+    <Sezione {...comuni} key="marcia" stato="marcia"
       piatti={v.reduce((a, u) => a.concat(piattiDi(u)), [])}
+      aperto={espanso === 'marcia'} onApri={() => apri('marcia')}
       tempoDi={x => { const u = inUscita(t, x.id); return u ? minuti(ora - u.avvio) : '—'; }}/>
   );
   else if (congedi.marcia) blocchi.push(
     <Congedo key="c-marcia" stato="marcia" chiuso={congedi.marcia === 'chiude'}/>
-  );
-  if (resto.length) blocchi.push(
-    <Sezione {...comuni} key="attesa" chiave="attesa" stato="attesa" piatti={resto}
-      apertoDef={false} tempoDi={() => minuti(ora - t.arrivo)}/>
-  );
-  else if (congedi.attesa) blocchi.push(
-    <Congedo key="c-attesa" stato="attesa" chiuso={congedi.attesa === 'chiude'}/>
   );
   if (f.length) blocchi.push(
     /* Sui pronti il tempo diventa l'ORA D'OROLOGIO invece dei minuti che
@@ -731,8 +807,9 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
        sparito — ma e' il numero giusto per una cosa chiusa: alla domanda «gli
        antipasti sono usciti?» si risponde «alle 20:52», non «ventidue minuti
        fa». I minuti servono a chi deve ancora fare qualcosa. */
-    <Sezione {...comuni} key="pronto" chiave="pronto" stato="pronto" minore
-      piatti={f.reduce((a, u) => a.concat(piattiDi(u)), [])} apertoDef={false}
+    <Sezione {...comuni} key="pronto" stato="pronto" minore
+      piatti={f.reduce((a, u) => a.concat(piattiDi(u)), [])}
+      aperto={espanso === 'pronto'} onApri={() => apri('pronto')}
       tempoDi={x => { const u = inUscita(t, x.id); return u ? orario(u.pronta) : '—'; }}/>
   );
   else if (congedi.pronto) blocchi.push(
