@@ -1382,6 +1382,20 @@ function Kds2Orologio({ size = 20 }) {
 // Minuti e secondi, come su un forno. La cifra secca («7») diceva un numero
 // senza dire di che grandezza; `00:07` si legge come tempo anche di sfuggita e
 // senza etichetta accanto.
+// ── I TEMPI DEL VOLO ──────────────────────────────────────────────────────
+// Un volo che dura meno di trecento millisecondi non si vede, uno che ne dura
+// più di cinquecento si aspetta: in cucina il gesto successivo parte subito.
+// `CONSEGNA` è il momento del passaggio di mano — il calco comincia a spegnersi
+// e la scheda ad accendersi — e sta PRIMA della fine, così i due si
+// sovrappongono per un quinto di secondo e l'occhio legge una cosa sola che si
+// trasforma, non due che si danno il cambio.
+const KDS2_VOLO_MS = 460;
+const KDS2_CONSEGNA_MS = 300;
+// Le carte sotto aspettano un soffio prima di richiudere il buco: prima
+// partivano insieme al volo, e con trenta righe che si muovono nello stesso
+// istante la carta che se ne va si perdeva dentro il movimento di tutte.
+const KDS2_SEGUITO_MS = 80;
+
 /** Chi ha chiesto meno animazioni al sistema non vede nessun volo: la carta
  *  sparisce e la scheda compare, come prima. */
 const kds2Moto = () => !(typeof window !== 'undefined' && window.matchMedia
@@ -1693,9 +1707,10 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       el.style.transition = 'none';
       el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
       requestAnimationFrame(() => {
-        el.style.transition = 'transform 400ms cubic-bezier(.2,.8,.25,1)';
+        el.style.transition = 'transform 400ms cubic-bezier(.2,.8,.25,1) '
+          + (v.verso === 'giu' ? KDS2_SEGUITO_MS : 0) + 'ms';
         el.style.transform = '';
-        setTimeout(() => { if (el.__volo === giro) el.style.transition = ''; }, 440);
+        setTimeout(() => { if (el.__volo === giro) el.style.transition = ''; }, 520);
       });
     });
 
@@ -1705,15 +1720,29 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       const a = qui(v.da);
       const b = scheda ? qui(scheda.getBoundingClientRect())
                        : { x: a.x, y: a.y + 220, w: a.w, h: a.h };
+      // La carta non si «sgonfia» a una misura decisa a tavolino: arriva LARGA
+      // QUANTO LA SCHEDA che la riceve, e col suo stesso lato sinistro. Alla
+      // fine del volo i due ingombri coincidono in orizzontale, ed è quello
+      // che fa leggere la scheda come la carta arrivata a destinazione invece
+      // che come una cosa nuova comparsa lì sotto. La larghezza e non
+      // l'altezza perché è la larghezza a dare la silhouette: una carta larga
+      // il triplo posata sopra una scheda stretta si vede che sono due
+      // oggetti, per quanto le si faccia sfumare l'una nell'altra.
+      const k = Math.max(0.18, Math.min(0.7, b.w / a.w));
       const c = v.calco;
       c.removeAttribute('data-kds2-volo');
       Object.assign(c.style, {
         position: 'absolute', left: a.x + 'px', top: a.y + 'px',
         width: a.w + 'px', height: a.h + 'px', margin: '0',
-        pointerEvents: 'none', zIndex: '45', transformOrigin: 'center center',
-        transition: 'transform 420ms cubic-bezier(.35,.85,.4,1), opacity 420ms cubic-bezier(.6,0,1,1)',
+        pointerEvents: 'none', zIndex: '45', transformOrigin: 'left center',
+        // In volo la carta è SOLLEVATA: ombra lunga e morbida, quella che una
+        // cosa in mano proietta sul piano di lavoro. È il segnale che sta
+        // sopra il board e non dentro, ed è anche quello che la distingue
+        // dalle righe bianche su cui passa sopra.
+        boxShadow: '0 22px 44px -18px rgba(15,17,21,0.45), 0 6px 14px -8px rgba(15,17,21,0.25)',
+        transition: 'transform ' + KDS2_VOLO_MS + 'ms cubic-bezier(.45,.02,.2,1),'
+                  + ' box-shadow ' + KDS2_VOLO_MS + 'ms ease-out',
       });
-      c.style.transformOrigin = 'left center';
       p0.appendChild(c);
       // Lo stato di PARTENZA va calcolato prima di scrivere quello d'arrivo:
       // un elemento appena nato non ha ancora uno stile computato, e senza
@@ -1723,33 +1752,73 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       void c.offsetWidth;
       requestAnimationFrame(() => {
         const m = mira(a, b);
-        c.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(0.42)';
-        c.style.opacity = '0.06';
+        c.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(' + k + ')';
+        // Atterrando l'ombra rientra: la carta si è posata.
+        c.style.boxShadow = '0 4px 10px -6px rgba(15,17,21,0.30)';
       });
-      setTimeout(() => { if (c.parentNode) c.parentNode.removeChild(c); }, 470);
+      // Lo spegnimento è un GESTO A SÉ e arriva tardi: la carta resta piena
+      // per tre quarti di viaggio — una cosa che sbiadisce mentre viaggia
+      // sembra sparire, non arrivare — e si spegne solo mentre la scheda si
+      // accende sotto di lei.
+      setTimeout(() => {
+        c.style.transition = 'opacity 140ms ease-in';
+        c.style.opacity = '0';
+      }, KDS2_CONSEGNA_MS);
+      setTimeout(() => { if (c.parentNode) c.parentNode.removeChild(c); }, KDS2_VOLO_MS + 40);
+
+      // ── IL PASSAGGIO DI MANO ─────────────────────────────────────────────
+      // La scheda non c'era già: si accende quando la carta arriva. Finché il
+      // volo è in corso resta invisibile, e questo è il punto — prima il
+      // bersaglio era lì dall'inizio, quindi il volo non consegnava niente e
+      // si leggeva come una decorazione che passava davanti a un fatto già
+      // avvenuto.
+      if (scheda) {
+        scheda.style.transition = 'none';
+        scheda.style.transformOrigin = 'left center';
+        scheda.style.transform = 'scale(' + (0.86) + ')';
+        scheda.style.opacity = '0';
+        void scheda.offsetWidth;
+        setTimeout(() => {
+          // Un soffio oltre l'uno e poi indietro: è il modo in cui una cosa si
+          // posa davvero. Sotto i due centesimi non si vede, sopra i cinque
+          // diventa un rimbalzo da giocattolo.
+          scheda.style.transition = 'transform 300ms cubic-bezier(.2,1.25,.3,1), opacity 180ms ease-out';
+          scheda.style.transform = '';
+          scheda.style.opacity = '';
+          setTimeout(() => {
+            scheda.style.transition = ''; scheda.style.transformOrigin = '';
+          }, 340);
+        }, KDS2_CONSEGNA_MS);
+      }
     }
 
     // ── 3. SU': la carta tornata risale dalla scheda che l'ha richiamata ───
     if (v.verso === 'su' && v.da && nate.length) {
       const a = qui(v.da);
       nate.forEach(el => {
-        const o = qui(el.getBoundingClientRect());
+        const r = el.getBoundingClientRect();
+        const o = qui(r);
         const m = mira(o, a);   // al contrario: da dove viene, non dove va
+        const k = Math.max(0.18, Math.min(0.7, a.w / o.w));
         el.__volo = giro;
         el.style.transition = 'none';
         el.style.transformOrigin = 'left center';
-        el.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(0.42)';
-        el.style.opacity = '0.1';
+        el.style.transform = 'translate(' + m.dx + 'px,' + m.dy + 'px) scale(' + k + ')';
+        el.style.opacity = '0';
         el.style.zIndex = '6';
+        el.style.boxShadow = '0 22px 44px -18px rgba(15,17,21,0.45), 0 6px 14px -8px rgba(15,17,21,0.25)';
         void el.offsetWidth;
         requestAnimationFrame(() => {
-          el.style.transition = 'transform 420ms cubic-bezier(.2,.8,.25,1), opacity 300ms ease-out';
+          el.style.transition = 'transform ' + KDS2_VOLO_MS + 'ms cubic-bezier(.2,.85,.25,1),'
+            + ' opacity 160ms ease-out, box-shadow ' + KDS2_VOLO_MS + 'ms ease-out';
           el.style.transform = '';
           el.style.opacity = '';
+          el.style.boxShadow = '';
           setTimeout(() => {
             if (el.__volo !== giro) return;
-            el.style.transition = ''; el.style.zIndex = ''; el.style.transformOrigin = '';
-          }, 460);
+            el.style.transition = ''; el.style.zIndex = '';
+            el.style.transformOrigin = ''; el.style.boxShadow = '';
+          }, KDS2_VOLO_MS + 60);
         });
       });
     }
