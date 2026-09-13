@@ -16,7 +16,12 @@ function TavoloHubServizio({ t, nav, openModal }) {
   const totale = t.saldo || 0; // quanto deve il tavolo (il dettaglio dei piatti vive nel Conto)
   // Saldato = ha consumato e il conto è a zero: non c'è più nulla da incassare,
   // resta solo da liberare. In quel caso la CTA primaria è "Libera", non "Conto".
+  // «Aggiungi articolo» resta però acceso, e apre una sessione NUOVA
+  // (P-207 · D-169): il saldo chiude la sessione, non interdice il tavolo, e
+  // un tavolo che ha pagato e chiede un caffè non si fa alzare.
   const saldato = t.ordini > 0 && !(totale > 0);
+  // Questa sessione è nata dopo un conto già saldato dallo stesso gruppo.
+  const dopoIlConto = (t.sessione || 1) > 1;
   const cfg = statoConfig(t.stato);
   const isComposto = String(t.n || '').includes('+');
   const [editCop, setEditCop] = React.useState(false); // coperti: modifica inline dal numero
@@ -43,6 +48,18 @@ function TavoloHubServizio({ t, nav, openModal }) {
             <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.6, color: ST.TEXT, lineHeight: 1 }}>
               Tavolo {t.n}
             </div>
+            {/* La sessione nata dopo un conto già pagato lo dice, perché
+                spiega due cose che altrimenti sembrano errori: il totale
+                ripartito da zero e il coperto che non c'è (P-207 · D-169). */}
+            {dopoIlConto && (
+              <div data-dopo-il-conto style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+                padding: '5px 11px', borderRadius: ST.R_PILL,
+                background: ST.SURF_ALT, color: ST.MUTED, fontSize: 12, fontWeight: 700,
+              }}>
+                Ordine nuovo dopo il conto · coperto già pagato
+              </div>
+            )}
             <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 6, display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 6 }}>
               {/* Coperti: tap sul numero → stepper inline (niente menu) */}
               {editCop ? (
@@ -209,7 +226,7 @@ function TavoloHubServizio({ t, nav, openModal }) {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             boxShadow: ST.SH_MD,
           }}>
-            <I.Plus s={18} c="#fff"/> Aggiungi articolo
+            <I.Plus s={18} c="#fff"/> {saldato ? 'Nuovo ordine' : 'Aggiungi articolo'}
           </button>
           {saldato ? (
             <button onClick={() => openModal({ kind: 'conferma-libera', tavolo: t })} style={{

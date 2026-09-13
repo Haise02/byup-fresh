@@ -805,7 +805,15 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
           })}
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <Btn variant="secondary" full onClick={closeModal}>Chiudi</Btn>
-            <Btn variant="primary" full onClick={() => openModal({ kind: 'send-success', tavoloId: modal.tavoloId })}>Crea ordine</Btn>
+            <Btn variant="primary" full onClick={() => {
+              // Come dalla schermata del menù: se il tavolo aveva saldato,
+              // nasce una sessione nuova (P-207 · D-169).
+              const nuova = TavoliStore.nuovoOrdine(modal.tavoloId, modal.cart || []);
+              if (modal.setCart) modal.setCart([]);
+              openModal({ kind: 'send-success', tavoloId: modal.tavoloId, avviso: nuova
+                ? 'Il tavolo aveva saldato: questo è un ordine nuovo, con un conto suo. Il coperto non si riapplica.'
+                : undefined });
+            }}>Crea ordine</Btn>
           </div>
         </div>
       </ModalShell>

@@ -191,7 +191,15 @@ function ScreenMenu({ nav, openModal, tavoloId, cart, setCart }) {
                 <I.ChevDown s={15} c={ST.MUTED} style={{ transform: 'rotate(180deg)' }}/>
               </div>
             </button>
-            <button onClick={() => openModal({ kind: 'send-success', tavoloId })} style={{
+            <button onClick={() => {
+              // L'ordine entra nel conto aperto, o ne apre uno nuovo se il
+              // tavolo aveva già saldato (P-207 · D-169).
+              const nuova = TavoliStore.nuovoOrdine(tavoloId, cart);
+              setCart([]);
+              openModal({ kind: 'send-success', tavoloId, avviso: nuova
+                ? 'Il tavolo aveva saldato: questo è un ordine nuovo, con un conto suo. Il coperto non si riapplica.'
+                : undefined });
+            }} style={{
               flexShrink: 0, height: 46, padding: '0 18px', borderRadius: ST.R_PILL, border: 'none',
               background: ST.PINK_DARK, color: '#fff',
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',

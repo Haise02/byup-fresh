@@ -228,8 +228,47 @@ const TavoliStore = (() => {
   // sul tavolo, ma evento distinto dal no-show (nel gestionale: email/penalità diverse).
   api.cancellaPrenotazione = (id) =>
     api.setLiberi(prev => prev.map(t => t.id === id ? { ...t, stato: 'libero', prenotazione: null } : t));
+  // ── IL TAVOLO SALDATO CHE ORDINA ANCORA (P-207 · D-169) ────────────────
+  // Un tavolo ha pagato e due minuti dopo chiede un caffè: non esiste
+  // ristorante in cui la risposta sia no, e non esiste cameriere che per un
+  // caffè faccia alzare il tavolo e lo rifaccia sedere. Il saldo chiude la
+  // SESSIONE, non interdice il tavolo.
+  // Quindi «Aggiungi articolo» resta dov'è e qui si fissa che cosa produce:
+  //  · se il conto è ancora aperto, le righe entrano in quello;
+  //  · se è stato saldato, NASCE UNA SESSIONE NUOVA. L'ordine appena chiuso ha
+  //    prodotto il suo documento commerciale ed è stato trasmesso: non si
+  //    riapre, non acquista righe e non cambia totale, mai. Il caffè nasce in
+  //    un ordine nuovo, con un proprio conto e un proprio documento — che è
+  //    quello che fa qualunque ristorante, ed è l'unica forma che il fisco
+  //    consenta.
+  // Il tavolo torna da «da liberare» a «occupato» senza passare da «libero»:
+  // il gruppo è lo stesso, quindi niente avviso di preparare il tavolo, niente
+  // domanda sui coperti e NIENTE COPERTO DA RIAPPLICARE — quel gruppo l'ha già
+  // pagato, e richiederglielo sarebbe un addebito doppio.
+  api.nuovoOrdine = (id, righe) => {
+    const voci = Array.isArray(righe) ? righe : [];
+    const pezzi = voci.reduce((n, r) => n + (r.qty || 1), 0);
+    const importo = voci.reduce((s, r) => s + (r.prezzo || 0) * (r.qty || 1), 0);
+    let nuova = false;
+    api.setAttivi(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const saldato = t.ordini > 0 && !(t.saldo > 0);
+      if (!saldato) return { ...t, ordini: (t.ordini || 0) + pezzi, saldo: (t.saldo || 0) + importo, azione: 'Ordine inviato' };
+      nuova = true;
+      return {
+        ...t, stato: 'occupato',
+        sessione: (t.sessione || 1) + 1,
+        ordini: pezzi, saldo: importo, pronti: 0, piattiPronti: [], daInviare: 0,
+        // Il coperto di questa sessione è già stato pagato dalla precedente.
+        copertoGiaPagato: true,
+        azione: 'Ordine dopo il conto',
+      };
+    }));
+    return nuova;
+  };
   // Chiusura forzata: toglie il tavolo dagli occupati e lo mette tra i liberi
-  // in stato "da-pulire" (anche se non saldato).
+  // in stato "da-pulire" (anche se non saldato). Libera davvero: la sessione
+  // successiva è di un gruppo diverso, e lì i coperti si chiedono da capo.
   api.liberaTavolo = (id) => {
     const t = attivi.find(x => x.id === id);
     if (!t) return;
