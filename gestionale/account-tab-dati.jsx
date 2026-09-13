@@ -527,6 +527,12 @@ function AccDatiGenerali() {
         </div>
       </AcCard>
 
+      {/* Accessibilità subito dopo Lingua: sono la stessa famiglia di scelta —
+          in che lingua leggi il gestionale, e quanto grande. Sta nel Profilo e
+          non in Impostazioni perché Impostazioni è del LOCALE e questa è di chi
+          guarda lo schermo. */}
+      <AccAccessibilita/>
+
       {fotoOpen && (
         <AcFotoModal
           foto={foto}
@@ -837,6 +843,159 @@ function AcDangerZone({ titolo, testo, cta, onCta, nota }) {
 }
 
 window.AcDangerZone = AcDangerZone;
+
+// ─── Accessibilità ──────────────────────────────────────────────────────────
+// Quanto è grande il gestionale su questo schermo, e se l'interfaccia si muove.
+//
+// L'anteprima non è una scheda a parte: è l'ELENCO STESSO. Ogni riga è
+// disegnata alla misura che propone — il suo nome e il suo campione di
+// gestionale — quindi le tre righe crescono una dopo l'altra e la differenza
+// si vede leggendo, senza dover immaginare niente e senza una seconda scheda
+// che ripete la stessa cosa più in basso.
+//
+// `zoom: fattore / scalaCorrente` e non `zoom: fattore`: la pagina è già
+// scalata, e senza il rapporto la misura verrebbe moltiplicata due volte.
+function AccAccessibilita() {
+  const { scaleId, scale } = useA11y();
+  const livelli = window.BYUP_SCALE_INFO || [];
+
+  const [moto, setMoto] = React.useState(() => (window.byupGetMoto ? window.byupGetMoto() : 'auto'));
+  const sistemaRiduce = window.byupSistemaRiduce ? window.byupSistemaRiduce() : false;
+  const ridotto = moto === 'si' || (moto === 'auto' && sistemaRiduce);
+  const cambiaMoto = (attivo) => {
+    const v = attivo ? 'si' : 'no';
+    setMoto(v);
+    if (window.byupSetMoto) window.byupSetMoto(v);
+  };
+
+  const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || '');
+  const tastoMod = mac ? '⌘' : 'Ctrl';
+  const tastiera = {
+    display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 7,
+    border: `1px solid ${PN.BORDER}`, background: PN.WHITE,
+    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.TEXT,
+    boxShadow: '0 1px 0 rgba(15,17,21,0.06)',
+  };
+
+  return (
+    <React.Fragment>
+      <AcCard title="Dimensione dell'interfaccia"
+        subtitle="Vale per questo dispositivo: il tablet in cucina e il computer in ufficio possono avere misure diverse. Ogni riga è disegnata alla misura che propone.">
+        <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+          {livelli.map((l, i) => {
+            const on = scaleId === l.id;
+            const rapporto = l.fattore / (scale || 1);
+            return (
+              <button key={l.id} type="button"
+                onClick={() => window.byupSetScale && window.byupSetScale(l.id)}
+                aria-pressed={on}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+                  padding: '14px 16px', borderRadius: 14, textAlign: 'left', width: '100%',
+                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                <span aria-hidden="true" style={{
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: PN.WHITE, display: 'grid', placeItems: 'center',
+                }}>
+                  {on && <span style={{width: 11, height: 11, borderRadius: '50%', background: PN.PINK}}/>}
+                </span>
+
+                <span style={{flex: '1 1 180px', minWidth: 0}}>
+                  {/* Il nome è disegnato alla sua misura: «Molto grande» si
+                      legge grande, ed è metà della spiegazione. */}
+                  <span style={{display: 'block', zoom: rapporto}}>
+                    <span style={{fontSize: 17, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.2}}>{l.nome}</span>
+                  </span>
+                  <span style={{display: 'block', fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 3}}>
+                    {l.descrizione}
+                  </span>
+                </span>
+
+                {/* Un pezzo vero di gestionale, alla misura della riga. */}
+                <span aria-hidden="true" style={{
+                  flexShrink: 0, display: 'block', zoom: rapporto,
+                }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+                    background: PN.WHITE, borderRadius: 10, padding: '8px 10px',
+                    border: `1px solid ${PN.BORDER_HAIR}`, boxShadow: PN.CARD_SHADOW,
+                  }}>
+                    <span style={{
+                      fontSize: 19, fontWeight: 800, color: PN.TEXT,
+                      letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums',
+                    }}>€ 133,00</span>
+                    <span style={{
+                      padding: '6px 11px', borderRadius: 8,
+                      background: PN.BTN_DARK, color: PN.WHITE,
+                      fontSize: 13.5, fontWeight: 700,
+                      boxShadow: PN.INSET_HIGHLIGHT_DARK,
+                    }}>Salda</span>
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{
+          marginTop: 16, fontSize: 14, color: PN.MUTED, lineHeight: 1.6,
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+        }}>
+          <span>Da tastiera, in qualunque schermata:</span>
+          <kbd style={tastiera}>{tastoMod + ' + Alt + +'}</kbd>
+          <span>per ingrandire,</span>
+          <kbd style={tastiera}>{tastoMod + ' + Alt + −'}</kbd>
+          <span>per rimpicciolire.</span>
+        </div>
+      </AcCard>
+
+      <AcCard title="Movimento"
+        subtitle="Alcune parti del gestionale si animano quando qualcosa cambia — una card che entra, un numero che pulsa.">
+        <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Riduci le animazioni</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 3}}>
+              {sistemaRiduce
+                ? 'Il tuo computer chiede già di ridurre il movimento: il gestionale lo segue, e da qui puoi decidere diversamente.'
+                : 'Le transizioni diventano immediate e niente si muove da solo. Colori e stati restano come sono.'}
+            </div>
+          </div>
+          <AccInterruttore checked={ridotto} onChange={cambiaMoto} etichetta="Riduci le animazioni"/>
+        </div>
+      </AcCard>
+    </React.Fragment>
+  );
+}
+
+// L'interruttore del Profilo: 44 x 44 di bersaglio, `role="switch"` con
+// `aria-checked`, e il disegno di sempre — pista 38 x 22, pallina 18.
+function AccInterruttore({ checked, onChange, etichetta }) {
+  return (
+    <button type="button" role="switch" aria-checked={!!checked} aria-label={etichetta}
+      onClick={() => onChange && onChange(!checked)}
+      style={{
+        width: 44, height: 44, padding: 0, flexShrink: 0,
+        border: 'none', background: 'transparent', cursor: 'pointer',
+        display: 'grid', placeItems: 'center',
+      }}>
+      <span aria-hidden="true" style={{
+        display: 'block', width: 38, height: 22, borderRadius: 999,
+        background: checked ? PN.GREEN : PN.BORDER,
+        position: 'relative', transition: 'background .15s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 18, height: 18, borderRadius: '50%', background: PN.WHITE,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left .15s',
+        }}/>
+      </span>
+    </button>
+  );
+}
 
 function AcCard({ title, subtitle, children, danger, aurora, action }) {
   // L2 Aurora soft wash multi-color (pink + lavender + cream mesh).

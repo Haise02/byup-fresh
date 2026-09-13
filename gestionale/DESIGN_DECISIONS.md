@@ -1097,3 +1097,22 @@ solo colore: nel nastro delle sorgenti il bordo è tratteggiato contro pieno, e
 nelle card il nome del piatto è quasi nero e in grassetto contro un secondario
 grigio e più leggero. Se un giorno non bastasse, la strada è il **peso** o
 l'**opacità della tessera intera**, mai un inchiostro più chiaro.
+
+### Dove vive l'accessibilità, e com'è fatta la scelta — 13 settembre 2026
+
+**In Profilo → Dati generali, subito dopo «Lingua».** Non in Impostazioni:
+quelle sono del LOCALE — vetrina, menù, sale, personale, dati fiscali — mentre
+la dimensione dell'interfaccia è di chi sta guardando lo schermo. «Lingua» è
+l'altra impostazione della stessa famiglia (*in che lingua leggi il gestionale*,
+*quanto grande lo leggi*), e le due stanno bene vicine.
+
+**L'anteprima non è una scheda a parte: è l'elenco stesso.** Ogni riga è
+disegnata alla misura che propone — il suo nome e un campione vero di
+gestionale, l'importo da incassare col suo pulsante — quindi le tre righe
+crescono una dopo l'altra e la differenza si vede leggendo. Una seconda scheda
+«le tre misure a confronto» più in basso ripeteva la stessa cosa a distanza di
+uno scroll.
+
+Il rapporto è `zoom: fattore / scalaCorrente`, mai `zoom: fattore`: la pagina è
+già scalata, e senza il rapporto la misura verrebbe moltiplicata due volte —
+a «Molto grande» il campione risultava sei volte il normale.

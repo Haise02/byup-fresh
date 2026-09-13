@@ -51,10 +51,6 @@ const IMP_SEZIONI = [
   { id: 'flussi', label: 'Servizio', icon: 'chart-workflow', area: 'impostazioni' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt', area: 'dati_fiscali' },
   { id: 'integrazioni', label: 'Integrazioni', icon: 'commerce-bank-cards', area: 'impostazioni' },
-  // Senza `area`: la dimensione dei caratteri non è un permesso da concedere.
-  // Chiunque apra il gestionale su questo schermo deve poterla cambiare, anche
-  // il cameriere che non tocca né i conti né il menù.
-  { id: 'accessibilita', label: 'Accessibilità', icon: 'magnifying-glass' },
 ];
 
 // La seconda colonna: stessa cassa del menù globale del gestionale — vetro

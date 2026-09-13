@@ -525,7 +525,7 @@ DUE dimensioni, non quello verticale.
 | **2.4.11** Focus non oscurato | AA | ✅ | 35 `Tab` per combinazione: l'elemento a fuoco è sempre almeno parzialmente in vista, e un ascoltatore di `focusin` lo porta in vista quando un contenitore che scorre lo lascerebbe fuori |
 | **2.5.8** Target size (minimum) | AA | ✅ | **506 bersagli visibili, 2 sotto i 24 px**, ed entrambi sono link di testo in linea, che il criterio esclude |
 | **2.5.5** Target size (enhanced) | AAA (obiettivo) | ✅ sulle azioni primarie | Le 7 azioni primarie e ripetute — salda, procedi alla transazione, manda tutto, tutto pronto, libera tavolo, salva, continua — sono **tutte ≥ 44 × 44** |
-| **EN 301 549 §11.7** | — | ✅ | La scala si inizializza dallo schermo e propone «Grande» una volta sola; «Riduci animazioni» parte da `prefers-reduced-motion` e lo segue finché l'utente non sceglie |
+| **EN 301 549 §11.7** | — | ✅ | La scala si inizializza dallo schermo e propone «Grande» una volta sola; «Riduci animazioni» parte da `prefers-reduced-motion` e lo segue finché l'utente non sceglie. I due controlli stanno in **Profilo → Dati generali**, dopo «Lingua»: Impostazioni è del locale, questa è di chi guarda lo schermo |
 
 ## 9. Il percorso critico a 250%, solo da tastiera
 

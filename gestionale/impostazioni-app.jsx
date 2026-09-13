@@ -36,7 +36,7 @@ function ImpApp() {
   const [active, setActive] = React.useState(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
-      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni', 'accessibilita'].includes(p)) return p;
+      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
       // P-124: ?page=stampanti apriva la sezione che non c'è più; porta al blocco in Integrazioni.
       if (p === 'stampanti') return 'integrazioni';
     } catch (e) {}
@@ -273,7 +273,6 @@ function ImpApp() {
           {active === 'flussi' && <ImpFlussi/>}
           {active === 'fiscali' && <ImpDatiFiscali/>}
           {active === 'integrazioni' && <ImpIntegrazioni/>}
-          {active === 'accessibilita' && window.ImpAccessibilita && <window.ImpAccessibilita/>}
           </React.Fragment>)}
         </div>
 
