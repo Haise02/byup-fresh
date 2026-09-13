@@ -142,9 +142,18 @@ const STATO = {
     velo:'linear-gradient(180deg, #FFF3E9 0%, #FFFBF8 100%)', scelto:'#FFE9D5',
     cta:{ fondo:'linear-gradient(180deg, #FB8A3C 0%, #EA580C 100%)',
           bordo:'rgba(154, 52, 18, 0.42)', ombra:'0 2px 10px rgba(234, 88, 12, 0.28)' } },
-  marcia: { ink:'#E8402E', testo:'#E8402E', nome:'In preparazione', vuoto:'Niente sul fuoco',
+  // `ink` e `testo` erano lo stesso valore, e non potevano esserlo: il primo
+  // RIEMPIE — fili, veli, aloni, bordi — e gli basta il 3:1 di 1.4.11; il
+  // secondo scrive il nome dello stato, e a 13 px chiede 4,5. Sul velo della
+  // sua stessa sezione «In preparazione» si fermava a 3,61 e «Pronti» a 2,91,
+  // che è il peggiore di tutta la board ed è la parola che manda qualcuno a
+  // ritirare il piatto. Le due tinte del testo scendono NELLA LORO FAMIGLIA
+  // finché non tengono su ogni fondo su cui capitano — card bianca, canvas,
+  // velo di sezione, velo della riga scelta — e il riempimento non si tocca,
+  // così a schermo la board resta quella di prima.
+  marcia: { ink:'#E8402E', testo:'#CC3828', nome:'In preparazione', vuoto:'Niente sul fuoco',
     velo:'#FEF1EF', scelto:'#FDE3DF', cta:null },
-  pronto: { ink:'#1DA35C', testo:'#1DA35C', nome:'Pronti', vuoto:'Niente di pronto',
+  pronto: { ink:'#1DA35C', testo:'#177F48', nome:'Pronti', vuoto:'Niente di pronto',
     velo:'#EDFAF2', scelto:'#DDF3E6', cta:null },
 };
 const ORDINE_STATI = ['attesa', 'marcia', 'pronto'];
@@ -172,7 +181,11 @@ const UI = {
   archivio:'#F6F1F1',
   testo:   '#16181D',
   tempo:   '#403A3B',
-  muto:    '#8C8587',
+  // Scurito da #8C8587 il 13 settembre 2026: faceva 3,23:1 sul fondo peggiore
+  // fra quelli su cui capita, e lo porta il testo che dice di CHE tavolo si
+  // tratta — «Sala interna · 4 coperti», «Al dente». Non e decorazione, e su
+  // un monitor appeso a due metri il 4,5 e un minimo, non un lusso.
+  muto:    '#736D6F',
 };
 
 /** Il colore di uno stato annacquato. Serve per fili, veli e aloni, dove il

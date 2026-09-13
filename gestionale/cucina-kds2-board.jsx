@@ -78,11 +78,24 @@ const K = {
   // in entrambi la riga c'è ma non è roba su cui agire adesso.
   //   · comanda ordinata ma NON ancora inviata in cucina dal cameriere
   //   · tutto ciò che un filtro comanda lascia fuori
-  // ⚠ 2,68:1 su bianco e 2,48:1 sul canvas: sotto il minimo di 4,5:1 che questa
-  // schermata si era data. È una scelta esplicita del prodotto, non una svista.
-  // Il grigio neutro più chiaro che passerebbe ovunque è #717171 (4,9:1 su
-  // bianco, 4,5:1 sul canvas): basta cambiare questa riga per rientrare.
-  TESTO_OFF:  '#9E9E9E',
+  //
+  // Era #9E9E9E — 2,68:1 su bianco, 2,48 sul canvas — e il commento che stava
+  // qui diceva che fosse una scelta esplicita e non una svista. Lo era: ma
+  // presa contro «il minimo che questa schermata si era data», cioè uno
+  // standard interno, e nel frattempo il metro è diventato EN 301 549. Il
+  // motivo per cui non regge più non è formale: quel grigio non copre solo
+  // righe da ignorare, copre nomi di piatti a 28 e 32 px, nomi di persone e
+  // cronometri — contenuto, su un monitor guardato da due metri. WCAG esenta
+  // i controlli DISABILITATI, non il testo smorzato.
+  //
+  // #707070 e non il #717171 che il vecchio commento proponeva: quello si
+  // ferma a 4,43 sulla velatura corallo della sorgente selezionata, cioè
+  // proprio sulla riga che stai guardando. Questo passa su tutti e tre i
+  // fondi — bianco 4,80 · canvas 4,50 · velatura 4,50.
+  //
+  // Il salto fra acceso e spento si stringe (da 7,05 a 3,87) ma resta: a
+  // distinguere le due righe è anche il PESO, non il solo colore.
+  TESTO_OFF:  '#707070',
 
   // PN.GREEN su bianco fa 3,3:1 e PN.AMBER 3,2:1: come inchiostro non passano
   // né l'uno né l'altro. Stesse famiglie, scese finché non tengono su OGNI
