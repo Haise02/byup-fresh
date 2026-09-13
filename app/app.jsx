@@ -290,6 +290,13 @@ function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
 }
 
 // ─── Favorite card (compact, horizontal) ────────────────────
+// ── DISTANZE E TEMPI SOLO CON LA POSIZIONE VERA (P-204 · D-163) ───────────
+// Senza permesso non si sostituiscono con un numero preso dal centro della
+// città: sembrerebbe vero e non lo sarebbe. Dove c'era la distanza compare la
+// città, che dice dov'è il locale senza dire quanto dista.
+const byupDistanze = () => !window.ByupPosizione || window.ByupPosizione.distanze();
+const byupCittaNome = () => (window.ByupPosizione ? window.ByupPosizione.citta().nome : null);
+
 function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, closeHour, open, premium, onClick, onUnfav }) {
   // hours can be 'HH:MM – HH:MM' format; split in two
   const [oh, ch] = (hours && hours.includes('–'))
@@ -336,7 +343,7 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
           <span>{type}</span>
           <span>·</span>
           <Icon.Pin size={10}/>
-          <span>{distance}</span>
+          <span>{byupDistanze() ? distance : byupCittaNome()}</span>
         </div>
         <div style={{ fontSize: 11, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, background: open ? '#0a8a3a' : T.primary,
@@ -359,7 +366,8 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
   if (!item) return null;
   const photo = item.photo;
   const tone = item.tone;
-  const place = item.place || [item.cat, item.distance].filter(Boolean).join(' · ');
+  const distanzeOn = byupDistanze();
+  const place = item.place || [item.cat, distanzeOn ? item.distance : byupCittaNome()].filter(Boolean).join(' · ');
   const rating = item.rating || 4.7;
   const price = item.price || '€€';
   const distance = item.distance || '1.2 km';
@@ -414,7 +422,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
           <Tag><Icon.Star size={12}/> {rating}</Tag>
           <Tag>{price}</Tag>
-          <Tag><Icon.Pin size={12}/> {distance}</Tag>
+          <Tag><Icon.Pin size={12}/> {distanzeOn ? distance : byupCittaNome()}</Tag>
           {open
             ? <Tag style={{ color: '#0a8a3a' }}>Aperto · chiude alle {closeAt}{window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(item.title || item.name) ? ' · cucina chiusa' : ''}</Tag>
             : <Tag style={{ color: '#aa2222' }}>Chiuso</Tag>}
@@ -496,12 +504,17 @@ function FilterSheet({ open, onClose, filters, setFilters }) {
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Distanza da te">
-          {dists.map(d => (
-            <SelectChip key={d} label={d} active={filters.distance === d}
-              onClick={() => setFilters(f => ({ ...f, distance: f.distance === d ? null : d }))}/>
-          ))}
-        </FilterGroup>
+        {/* Senza posizione non si filtra per distanza: non c'è da dove
+            misurarla, e l'ordinamento lascia il posto agli altri criteri
+            (P-204 · D-163). */}
+        {byupDistanze() && (
+          <FilterGroup title="Distanza da te">
+            {dists.map(d => (
+              <SelectChip key={d} label={d} active={filters.distance === d}
+                onClick={() => setFilters(f => ({ ...f, distance: f.distance === d ? null : d }))}/>
+            ))}
+          </FilterGroup>
+        )}
 
         <FilterGroup title="Valutazione minima">
           <div style={{ display: 'flex', gap: 4 }}>
@@ -1899,7 +1912,28 @@ function HomeSections({
   onMap, onPosta, onSearch, onFilters,
   onCardClick, onSlotClick, onDisponibili,
   noVenues = false,
+  onCitta,
 }) {
+  // ── IL CANCELLO DI DENSITÀ (P-204 · D-163) ──────────────────────────────
+  // La scoperta non la apre il permesso di posizione: la apre la DENSITÀ. Se
+  // entro il raggio urbano i locali paganti non superano 125, né 150 entro
+  // quello esteso, la sezione di scoperta non compare — misurati dalla
+  // posizione vera quando c'è, dal centro della città scelta quando non c'è.
+  // Sotto soglia la home resta com'è già quando i locali non ci sono, e
+  // ricerca diretta, link e QR continuano a funzionare.
+  const [posizione, setPosizione] = useState(() => (window.ByupPosizione ? {
+    citta: window.ByupPosizione.citta(), distanze: window.ByupPosizione.distanze(), scoperta: window.ByupPosizione.scopertaAperta(),
+  } : { citta: null, distanze: true, scoperta: true }));
+  useEffect(() => {
+    const ri = () => { if (window.ByupPosizione) setPosizione({
+      citta: window.ByupPosizione.citta(), distanze: window.ByupPosizione.distanze(), scoperta: window.ByupPosizione.scopertaAperta(),
+    }); };
+    window.addEventListener('byup-posizione-change', ri);
+    window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-posizione-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
+  const senzaScoperta = noVenues || !posizione.scoperta;
+  const [cittaOpen, setCittaOpen] = useState(false);
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -1966,29 +2000,33 @@ function HomeSections({
         backdropFilter: 'blur(22px) saturate(160%)', WebkitBackdropFilter: 'blur(22px) saturate(160%)',
         paddingTop: topBar ? 12 : 24,
         marginTop: topBar ? 0 : -24,
-        paddingBottom: noVenues ? 18 : 0,
-        boxShadow: noVenues ? 'none' : `0 1px 0 ${T.line}`,
+        paddingBottom: senzaScoperta ? 18 : 0,
+        boxShadow: senzaScoperta ? 'none' : `0 1px 0 ${T.line}`,
       }}>
         {/* Header — saluto umano in Fredoka + città */}
         <div style={{ padding: '8px 22px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', animation: `bkFadeUp 420ms ${BK.EASE_OUT} backwards` }}>
           <div>
-            {!noVenues && (
-              <button onClick={onMap} style={{
-                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                fontFamily: BK.TYPE.sans,
-                fontSize: 13, fontWeight: 700, color: T.textDim, lineHeight: 1.1,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <Icon.Pin size={12}/>
-                Roma centro
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-            )}
+            {/* La freccetta diventa ciò che sembra (P-204 · D-163): apre la
+                scelta della città e mostra quella corrente, non una scritta
+                fissa che portava alla mappa. Resta premibile anche a permesso
+                concesso — chi prepara un viaggio vuole guardare un'altra
+                città — e in quel caso vale il regime di chi non ha la
+                posizione: niente distanze, niente tempi. */}
+            <button data-citta-corrente onClick={() => setCittaOpen(true)} style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontFamily: BK.TYPE.sans,
+              fontSize: 13, fontWeight: 700, color: T.textDim, lineHeight: 1.1,
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              <Icon.Pin size={12}/>
+              {posizione.citta ? posizione.citta.nome : 'Roma'}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
             <div style={{
               fontFamily: BK.TYPE.display, fontSize: 27, fontWeight: 600,
-              color: T.text, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: noVenues ? 0 : 5,
+              color: T.text, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: senzaScoperta ? 0 : 5,
             }}>
               {(() => {
                 const h = new Date().getHours();
@@ -2015,7 +2053,7 @@ function HomeSections({
         </div>
 
         {/* Search — nascosta quando non ci sono locali */}
-        {!noVenues && (
+        {!senzaScoperta && (
           <div style={{ padding: '14px 22px 14px' }}>
             <div onClick={onSearch} style={{
               display: 'flex', alignItems: 'center', gap: 10,
@@ -2049,15 +2087,15 @@ function HomeSections({
         )}
 
         {/* Moment segmented — the spine. Nascosta quando non ci sono locali. */}
-        {!noVenues && <MomentBar moment={moment} setMoment={setMoment}/>}
+        {!senzaScoperta && <MomentBar moment={moment} setMoment={setMoment}/>}
       </div>
       {/* === END STICKY === */}
 
       {/* Offerte in evidenza — subito sotto la ricerca */}
-      {!noVenues && <OfferCarousel onTap={() => (onDisponibili || onSearch)?.()}/>}
+      {!senzaScoperta && <OfferCarousel onTap={() => (onDisponibili || onSearch)?.()}/>}
 
       {/* Hero contextual card + quick filter chips — nascosti quando non ci sono locali */}
-      {!noVenues && (
+      {!senzaScoperta && (
         <>
           <div key={moment} style={{ paddingTop: 18 }}>
             <HeroIntentCard data={md} photo={heroPhoto} moment={moment} onCta={() => (onDisponibili || onSearch)?.()}/>
@@ -2065,8 +2103,8 @@ function HomeSections({
         </>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: noVenues ? '64px 18px 0' : '0 18px' }}>
-        {noVenues ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: senzaScoperta ? '64px 18px 0' : '0 18px' }}>
+        {senzaScoperta ? (
           <div style={{
             background: T.surface, border: `1px dashed ${T.accentBorder}`,
             borderRadius: BK.RADII.card, padding: '26px 20px',
@@ -2077,7 +2115,9 @@ function HomeSections({
               Qui ancora niente…
             </div>
             <div style={{ fontSize: 13, color: T.textDim, lineHeight: 1.45, maxWidth: 280 }}>
-              Stiamo aggiungendo i primi locali nella tua zona — ci sto lavorando 👀 Ti avvisiamo appena potrai cercare e prenotare.
+              Stiamo aggiungendo i primi locali {posizione.citta ? `a ${posizione.citta.nome}` : 'nella tua zona'} — ci sto lavorando 👀
+              Ti avvisiamo appena potrai cercare e prenotare. Intanto puoi cambiare città qui sopra, cercare
+              un locale per nome o inquadrare il QR sul tavolo.
             </div>
             <button
               onClick={() => {
@@ -2119,7 +2159,7 @@ function HomeSections({
 
       {before}
 
-      {!noVenues && (
+      {!senzaScoperta && (
         <>
           {/* Categories — secondary discovery (smaller, scrollable) */}
           <SectionHeader title="Esplora per categoria"/>
@@ -2158,6 +2198,51 @@ function HomeSections({
           <SectionHeader title="Qui intorno"/>
           <MapPreviewCard onOpen={() => onMap?.()}/>
         </>
+      )}
+
+      {/* La scelta della città (P-204 · D-163): le città in cui Byup c'è, col
+          segno di quella corrente. Cambiando città si guarda da lontano, e
+          distanze e tempi non si mostrano. */}
+      {cittaOpen && (
+        <div data-foglio-citta onClick={() => setCittaOpen(false)} style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'flex-end', zIndex: 95, animation: 'fade 0.18s ease',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxHeight: '76%', background: SURF,
+            borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            padding: '18px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+            display: 'flex', flexDirection: 'column',
+            animation: 'slideUp 0.22s cubic-bezier(.2,.9,.3,1.05)',
+          }}>
+            <div style={{ width: 44, height: 4, borderRadius: 2, background: TINT, margin: '0 auto 14px', flexShrink: 0 }}/>
+            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3 }}>Cambia città</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 4, marginBottom: 14, lineHeight: 1.45 }}>
+              {posizione.distanze
+                ? 'Guardando un\'altra città non mostriamo distanze e tempi: da lontano sarebbero numeri finti.'
+                : 'Senza posizione non mostriamo distanze e tempi. Puoi concederla quando vuoi, dalle impostazioni del telefono.'}
+            </div>
+            <div style={{ overflowY: 'auto' }}>
+              {(window.ByupPosizione ? window.ByupPosizione.CITTA : []).map(c => {
+                const on = posizione.citta && posizione.citta.id === c.id;
+                return (
+                  <button key={c.id} data-citta-scelta={c.id}
+                    onClick={() => { window.ByupPosizione.scegliCitta(c.id); setCittaOpen(false); }}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '14px 15px', marginBottom: 8,
+                      borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${on ? PINK : TINT}`, background: SURF,
+                      fontSize: 16, fontWeight: on ? 800 : 600, color: on ? PINK : TEXT,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                    {c.nome}
+                    {on && <span style={{ fontSize: 12, fontWeight: 700 }}>· sei qui</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Popup di conferma "avviso attivato" — variante senza locali */}

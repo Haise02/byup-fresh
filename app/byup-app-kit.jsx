@@ -608,6 +608,24 @@ window.ByupKit = {
       appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, quando, versione: versioneDi(id) });
       avvisa();
     },
+    // La PRESA D'ATTO (P-202 · D-161): attesta che un'informazione è stata
+    // resa, e NON è un consenso. La posizione si legge per stretta necessità
+    // del servizio che la persona ha chiesto — trovare i locali vicini — e il
+    // permesso del sistema operativo è un cancello tecnico, non una base
+    // giuridica. Si registra una volta sola, e NON si revoca: una presa d'atto
+    // è un fatto avvenuto e non si disfa; il permesso resta revocabile dalle
+    // impostazioni del telefono senza che il prodotto debba accorgersene.
+    presaDAtto(id) {
+      const stato = leggi(K_STATO, {});
+      if (stato[id] && stato[id].action === 'acknowledged') return stato[id];
+      const quando = new Date().toISOString();
+      const versione = versioneDi(id);
+      stato[id] = { ok: true, action: 'acknowledged', quando, versione };
+      scrivi(K_STATO, stato);
+      appendi({ id, consent_type: id, action: 'acknowledged', ok: true, quando, versione });
+      avvisa();
+      return stato[id];
+    },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
     // consenso, è la traccia della scelta spontanea — con il valore, così si
     // distingue «scelto» da «preselezionato», che qui non esiste più. La
@@ -675,6 +693,65 @@ window.ByupKit = {
     },
     // «Marketing byup»: accendendolo si accendono tutti e tre; spento, li spegne.
     setMarketingTutti(ok) { ['email', 'messaggi', 'notifiche'].forEach(c => window.ByupConsensi.setMarketing(c, ok)); },
+  };
+})();
+
+// ─── La posizione, la città scelta a mano e il cancello di densità ─────────
+// (P-202/P-204 · D-161, D-163)
+// Il permesso è la prima scelta, e si chiede perché è ciò che rende veri i
+// numeri che il prodotto mostra: distanze e tempi per raggiungere un locale si
+// calcolano dalla posizione VERA della persona. Chi lo nega sceglie la città a
+// mano e continua a usare l'app, ma perde quei numeri — misurati dal centro
+// città sembrerebbero veri e non lo sarebbero, e allora non si mostrano
+// affatto.
+// IL CANCELLO NON LO APRE IL PERMESSO, LO APRE LA DENSITÀ. La scoperta compare
+// solo se entro il raggio urbano ci sono più di 125 locali paganti OPPURE più
+// di 150 entro il raggio esteso (discovery_areas). Con il permesso i locali si
+// contano da dove la persona si trova davvero, senza si contano dal centro
+// della città scelta: cambia il punto da cui parte il raggio, non la regola.
+// Sotto soglia la home resta senza la sezione di scoperta, mentre ricerca
+// diretta, link e QR continuano a funzionare.
+// Le soglie e i raggi sono parametri del team Byup in Hubble e non si toccano
+// da qui.
+(function () {
+  const POS_KEY = 'byup_posizione';
+  const SOGLIA_URBANO = 125, SOGLIA_ESTESO = 150;
+  // Le città in cui Byup è presente, col loro centro e i locali paganti
+  // contati entro i due raggi. Venezia e Palermo stanno SOTTO soglia: senza
+  // almeno una città sotto, il cancello non si vedrebbe mai funzionare.
+  const CITTA = [
+    { id: 'roma',     nome: 'Roma',     centro: { lat: 41.9028, lng: 12.4964 }, urbano: 262, esteso: 310 },
+    { id: 'milano',   nome: 'Milano',   centro: { lat: 45.4642, lng: 9.1900 },  urbano: 188, esteso: 233 },
+    { id: 'firenze',  nome: 'Firenze',  centro: { lat: 43.7696, lng: 11.2558 }, urbano: 131, esteso: 158 },
+    { id: 'napoli',   nome: 'Napoli',   centro: { lat: 40.8518, lng: 14.2681 }, urbano: 118, esteso: 164 },
+    { id: 'venezia',  nome: 'Venezia',  centro: { lat: 45.4408, lng: 12.3155 }, urbano: 41,  esteso: 72 },
+    { id: 'palermo',  nome: 'Palermo',  centro: { lat: 38.1157, lng: 13.3615 }, urbano: 63,  esteso: 96 },
+  ];
+  const leggi = () => { try { const v = JSON.parse(localStorage.getItem(POS_KEY) || 'null'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } };
+  const scrivi = (v) => {
+    try { localStorage.setItem(POS_KEY, JSON.stringify(v)); } catch (e) {}
+    try { window.dispatchEvent(new Event('byup-posizione-change')); } catch (e) {}
+  };
+  window.ByupPosizione = {
+    CITTA, SOGLIA_URBANO, SOGLIA_ESTESO,
+    stato: leggi,
+    // 'concesso' | 'negato' | null (non ancora chiesto)
+    permesso() { return leggi().permesso || null; },
+    concedi() { const v = leggi(); v.permesso = 'concesso'; v.quando = new Date().toISOString(); scrivi(v); },
+    // Negando si sceglie la città: finché non la sceglie vale la prima.
+    nega() { const v = leggi(); v.permesso = 'negato'; v.quando = new Date().toISOString(); scrivi(v); },
+    scegliCitta(id) { const v = leggi(); v.citta = id; scrivi(v); },
+    citta() { const id = leggi().citta; return CITTA.find(c => c.id === id) || CITTA[0]; },
+    // I numeri che dipendono dalla posizione vera: senza permesso non si
+    // mostrano, e non si sostituiscono con una stima presa dal centro città.
+    distanze() { return leggi().permesso === 'concesso'; },
+    // Il cancello: il punto da cui si misura cambia, la soglia no. Con il
+    // permesso vale la città in cui la persona si trova — nel mockup la prima,
+    // che è Roma.
+    scopertaAperta() {
+      const c = leggi().permesso === 'concesso' ? CITTA[0] : window.ByupPosizione.citta();
+      return c.urbano > SOGLIA_URBANO || c.esteso > SOGLIA_ESTESO;
+    },
   };
 })();
 

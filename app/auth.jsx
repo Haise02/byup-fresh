@@ -904,18 +904,143 @@ function IOSAlert({ icon, title, message, actions }) {
   );
 }
 
+// La schermata che PRECEDE l'avviso di sistema (P-202 · D-161). La valutazione
+// d'impatto la dichiara fra le misure, e nel prodotto non esisteva: si passava
+// dritti al prompt del sistema operativo, senza dire a che cosa serve la
+// posizione, che non viene conservata, e che negandola l'app resta usabile.
+//
+// Non è un consenso, ed è la cosa da non fraintendere scrivendo questa
+// schermata: la base giuridica della lettura è la stretta necessità per il
+// servizio che la persona ha chiesto — trovare i locali vicini — e il permesso
+// del sistema operativo è un cancello tecnico. Quindi niente spunte, niente
+// «accetto»: si informa, e basta. Superandola resta una presa d'atto, che
+// attesta che l'informazione è stata resa e non si revoca.
+function AuthPosizioneInfo({ onProsegui, onSalta }) {
+  const riga = { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14 };
+  const pallino = { width: 26, height: 26, borderRadius: 999, flexShrink: 0, background: '#FDF0F4', color: A_PINK, display: 'grid', placeItems: 'center', fontSize: 13 };
+  return (
+    <div data-posizione-info style={{
+      position: 'absolute', inset: 0, zIndex: 90, background: '#fff',
+      display: 'flex', flexDirection: 'column', padding: '64px 26px 28px',
+    }}>
+      <div style={{ fontSize: 25, fontWeight: 800, color: A_TEXT, letterSpacing: -0.4, lineHeight: 1.15 }}>
+        Dove sei, per mostrarti chi c'è vicino
+      </div>
+      <div style={{ fontSize: 14.5, color: A_MUTED, marginTop: 8, marginBottom: 22, lineHeight: 1.5 }}>
+        Fra un attimo il telefono ti chiede il permesso. Prima, tre cose.
+      </div>
+
+      <div style={riga}>
+        <span style={pallino}>◎</span>
+        <span style={{ fontSize: 14.5, color: A_TEXT, lineHeight: 1.5 }}>
+          Serve a mostrarti i <b>locali vicini</b> e quanto distano davvero da te.
+        </span>
+      </div>
+      <div style={riga}>
+        <span style={pallino}>⏱</span>
+        <span style={{ fontSize: 14.5, color: A_TEXT, lineHeight: 1.5 }}>
+          La leggiamo <b>solo mentre cerchi</b>, con l'app aperta, e <b>non la conserviamo</b>.
+        </span>
+      </div>
+      <div style={riga}>
+        <span style={pallino}>✓</span>
+        <span style={{ fontSize: 14.5, color: A_TEXT, lineHeight: 1.5 }}>
+          Se non la concedi <b>l'app resta usabile</b>: scegli la città a mano, e distanze e tempi
+          semplicemente non si mostrano.
+        </span>
+      </div>
+
+      <div style={{ flex: 1 }}/>
+      <button onClick={onProsegui} data-posizione-avanti style={{
+        width: '100%', padding: 16, border: 'none', borderRadius: 16,
+        background: A_PINK, color: '#fff', fontSize: 16, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit',
+      }}>Ho capito, prosegui</button>
+      <button onClick={onSalta} style={{
+        width: '100%', padding: 12, marginTop: 8, background: 'none', border: 'none',
+        color: A_MUTED, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+      }}>Salta</button>
+    </div>
+  );
+}
+
+// La scelta della città, subito dopo il no (P-204 · D-163). Non è una
+// schermata di scuse: dice che l'app funziona lo stesso e che la posizione si
+// può concedere più tardi dalle impostazioni del telefono. L'elenco sono le
+// città in cui Byup c'è davvero, con la ricerca.
+function AuthCitta({ onScelta }) {
+  const [q, setQ] = useStateA('');
+  const citta = (window.ByupPosizione ? window.ByupPosizione.CITTA : []).filter(c =>
+    !q.trim() || c.nome.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div data-scelta-citta style={{
+      position: 'absolute', inset: 0, zIndex: 90, background: '#fff',
+      display: 'flex', flexDirection: 'column', padding: '64px 26px 28px',
+    }}>
+      <div style={{ fontSize: 25, fontWeight: 800, color: A_TEXT, letterSpacing: -0.4, lineHeight: 1.15 }}>
+        In quale città sei?
+      </div>
+      <div style={{ fontSize: 14.5, color: A_MUTED, marginTop: 8, marginBottom: 18, lineHeight: 1.5 }}>
+        Senza posizione l'app funziona lo stesso: non ti mostriamo distanze e tempi, perché
+        misurati dal centro città sembrerebbero veri e non lo sarebbero. Puoi concedere la
+        posizione quando vuoi, dalle impostazioni del telefono.
+      </div>
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cerca una città"
+        style={{
+          width: '100%', boxSizing: 'border-box', padding: '13px 15px', borderRadius: 14,
+          border: '1.5px solid #EFE9EB', fontSize: 15.5, fontFamily: 'inherit', outline: 'none',
+          color: A_TEXT, marginBottom: 12,
+        }}/>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {citta.map(c => (
+          <button key={c.id} data-citta={c.id} onClick={() => onScelta(c.id)} style={{
+            width: '100%', textAlign: 'left', padding: '14px 15px', marginBottom: 8,
+            borderRadius: 14, border: '1.5px solid #EFE9EB', background: '#fff',
+            fontSize: 16, fontWeight: 600, color: A_TEXT, cursor: 'pointer', fontFamily: 'inherit',
+          }}>{c.nome}</button>
+        ))}
+        {citta.length === 0 && (
+          <div style={{ fontSize: 14.5, color: A_MUTED, padding: '18px 2px', lineHeight: 1.5 }}>
+            Qui Byup non c'è ancora. Puoi comunque cercare un locale per nome, aprire un link o
+            inquadrare il QR sul tavolo.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AuthPermissions({ onDone }) {
-  const [stepP, setStepP] = useStateA('loc'); // 'loc' → 'notif' → done
-  const nextP = () => setStepP(s => (s === 'loc' ? 'notif' : (onDone(), s)));
+  // 'info' → 'loc' → ('citta' se nega) → 'notif' → done (P-202, P-204)
+  const [stepP, setStepP] = useStateA('info');
+  const nextP = () => setStepP(s => (s === 'notif' ? (onDone(), s) : 'notif'));
+
+  if (stepP === 'info') {
+    return <AuthPosizioneInfo
+      onProsegui={() => {
+        // La presa d'atto si registra qui: l'informazione è stata resa.
+        if (window.ByupConsensi && window.ByupConsensi.presaDAtto) window.ByupConsensi.presaDAtto('geolocation');
+        setStepP('loc');
+      }}
+      onSalta={() => setStepP('notif')}/>;
+  }
+
+  if (stepP === 'citta') {
+    return <AuthCitta onScelta={(id) => { if (window.ByupPosizione) window.ByupPosizione.scegliCitta(id); setStepP('notif'); }}/>;
+  }
 
   if (stepP === 'loc') {
+    // Le tre azioni non sono più la stessa cosa (P-204 · D-163): chi concede
+    // ha le distanze vere, chi nega sceglie la città a mano.
+    const concedi = () => { if (window.ByupPosizione) window.ByupPosizione.concedi(); setStepP('notif'); };
+    const nega = () => { if (window.ByupPosizione) window.ByupPosizione.nega(); setStepP('citta'); };
     return <IOSAlert
       title={'Consentire a "byup" di usare la tua posizione?'}
       message="La useremo per mostrarti i locali vicini e le distanze. La posizione appare sulla mappa."
       actions={[
-        { label: 'Consenti una volta', onPress: nextP },
-        { label: "Consenti mentre usi l'app", bold: true, onPress: nextP },
-        { label: 'Non consentire', onPress: nextP },
+        { label: 'Consenti una volta', onPress: concedi },
+        { label: "Consenti mentre usi l'app", bold: true, onPress: concedi },
+        { label: 'Non consentire', onPress: nega },
       ]}
     />;
   }
