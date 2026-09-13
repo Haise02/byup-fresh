@@ -68,12 +68,21 @@ function Step4Verifica({ onBack, onComplete, catena }) {
   // senza scelta: su quelli l'onboarding aveva ragione, era il solo menù a
   // essere sbagliato.
   const [menuProprio, setMenuProprio] = React.useState(false);
+  // LA SCELTA PRODUCE UN EFFETTO (P-213 · D-144). Prima si registrava una
+  // chiave che nessuno leggeva, e i due rami mostravano comunque lo stesso
+  // menù: la scelta si compiva e non succedeva niente. Ora il menù nasce
+  // davvero come dato della sede — una COPIA di quello del soggetto se si
+  // conferma, vuoto se se ne vuole uno proprio — e da quel momento i due
+  // vivono separati: togliere un piatto qui non lo toglie alle altre sedi.
   const scriviSceltaMenu = () => {
     try {
       const l = JSON.parse(localStorage.getItem('byup_locale_attivo') || 'null');
-      localStorage.setItem('byup_menu_sede', JSON.stringify({
-        sedeId: l && l.id, proprio: menuProprio, quando: new Date().toISOString(),
-      }));
+      const sedeId = l && l.id;
+      if (!sedeId) return;
+      // La base è il menù del soggetto, cioè quello che questa schermata ha
+      // appena mostrato precompilato.
+      const base = (window.MENUS_INIT || []);
+      if (window.byupCreaMenuSede) window.byupCreaMenuSede(sedeId, menuProprio, base);
     } catch (e) {}
   };
   // Per la sede di catena il contratto non si rifirma: è del soggetto, ed è

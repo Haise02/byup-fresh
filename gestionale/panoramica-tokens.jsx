@@ -1061,6 +1061,54 @@ window.byupSediDi = function (soggettoId) {
   const seme = s ? s.sedi.map(sd => ({ ...sd, ristoranteId: s.id })) : [];
   return [...seme, ...window.byupReadSedi().filter(x => x.ristoranteId === soggettoId)];
 };
+// ─── IL MENÙ È DELLA SEDE (P-213 · D-144) ──────────────────────────────────
+// Due locali dello stesso soggetto hanno spesso carte diverse — l'insegna in
+// centro e quella in stazione — e il menù non è del soggetto: è della sede
+// (`menus.venue_id`). Prima la scelta del terzo passo dell'onboarding si
+// registrava e non produceva niente, e i due rami mostravano lo stesso menù:
+// una catena con due carte diverse restava irrappresentabile, che è proprio il
+// caso che D-144 ha voluto rendere possibile.
+//
+// COPIA, NON COLLEGAMENTO. «Stesso menù del soggetto» significa che la sede
+// nuova nasce con una COPIA, modificabile da subito e indipendente da quel
+// momento in poi; «menù proprio» significa che nasce vuota. In nessuno dei due
+// casi il menù resta condiviso: due sedi che puntassero allo stesso oggetto
+// renderebbero impossibile cambiarne una sola — o la sede della stazione
+// toglie tre piatti a tutte, o serve un meccanismo di eccezioni per sede, che
+// è più complicato di due menù separati. Il prezzo è che un cambio su tutte le
+// sedi si fa sede per sede: è un problema vero, e si affronterà quando ci sarà
+// una catena vera a porlo.
+const PN_MENU_SEDI_KEY = 'byup_menu_sedi';
+window.byupReadMenuSedi = function () {
+  try { const s = localStorage.getItem(PN_MENU_SEDI_KEY); if (s) { const v = JSON.parse(s); if (v && typeof v === 'object') return v; } } catch (e) {}
+  return {};
+};
+// Il menù di una sede, o null se quella sede non ne ha uno suo: la prima sede
+// del soggetto usa il seme, come ha sempre fatto.
+window.byupMenuDellaSede = function (sedeId) {
+  if (!sedeId) return null;
+  const v = window.byupReadMenuSedi()[String(sedeId)];
+  return v && Array.isArray(v.menus) ? v.menus : null;
+};
+window.byupScriviMenuSede = function (sedeId, menus, origine) {
+  if (!sedeId) return;
+  const tutti = window.byupReadMenuSedi();
+  const prima = tutti[String(sedeId)] || {};
+  tutti[String(sedeId)] = { menus, da: origine || prima.da || 'copia', quando: new Date().toISOString() };
+  try { localStorage.setItem(PN_MENU_SEDI_KEY, JSON.stringify(tutti)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-menu-sede-change'));
+};
+// La copia all'attivazione: da qui in poi i due menù vivono separati.
+window.byupCreaMenuSede = function (sedeId, proprio, base) {
+  const copia = proprio ? [] : JSON.parse(JSON.stringify(base || []));
+  window.byupScriviMenuSede(sedeId, copia, proprio ? 'proprio' : 'copia');
+  return copia;
+};
+// Su quale sede si sta lavorando: il registro condiviso della barra laterale.
+window.byupSedeAttiva = function () {
+  try { const l = JSON.parse(localStorage.getItem('byup_locale_attivo') || 'null'); return l && l.id ? String(l.id) : null; } catch (e) { return null; }
+};
+
 // Quelli che questa persona rappresenta: gli unici per cui può firmare.
 window.byupSoggettiRappresentati = () => PN_SOGGETTI.filter(s => s.ruolo === 'titolare');
 

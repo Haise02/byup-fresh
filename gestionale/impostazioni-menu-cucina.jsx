@@ -793,7 +793,24 @@ function MCPanel({ title, sub, action, children, style, bodyStyle }) {
 
 function MCMenuComposer() {
   const [library, setLibrary] = React.useState(DISH_LIBRARY);
-  const [menus, setMenus] = React.useState(MENUS_INIT);
+  // IL MENÙ È DELLA SEDE (P-213 · D-144): si parte da quello della sede su cui
+  // si sta lavorando, e il seme vale per la prima sede, che non ne ha uno
+  // proprio registrato. Cambiando sede dal selettore, questa schermata cambia
+  // contenuto — è il punto della decisione.
+  const [menus, setMenus] = React.useState(() => (window.byupMenuDellaSede && window.byupMenuDellaSede(window.byupSedeAttiva())) || MENUS_INIT);
+  // Quello che si cambia qui resta della SEDE, e non tocca le altre.
+  const sedeCorrente = window.byupSedeAttiva ? window.byupSedeAttiva() : null;
+  React.useEffect(() => {
+    if (!sedeCorrente || !window.byupScriviMenuSede) return;
+    if (!window.byupMenuDellaSede(sedeCorrente)) return; // la prima sede lavora sul seme
+    window.byupScriviMenuSede(sedeCorrente, menus);
+  }, [menus]);
+  React.useEffect(() => {
+    const ri = () => setMenus((window.byupMenuDellaSede && window.byupMenuDellaSede(window.byupSedeAttiva())) || MENUS_INIT);
+    window.addEventListener('byup-locale-change', ri);
+    window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-locale-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
   const [activeMenuId, setActiveMenuId] = React.useState('pranzo');
   const [aiUpload, setAiUpload] = React.useState(false);
 
