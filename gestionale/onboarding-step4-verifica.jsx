@@ -37,7 +37,7 @@ const MENU_INIZIALE = [
   ]},
 ];
 
-function Step4Verifica({ onBack, onComplete}) {
+function Step4Verifica({ onBack, onComplete, catena }) {
   // Il menù è stato, non più una costante: nomi, prezzi e categorie si
   // modificano qui. MENU_INIZIALE resta il seed dell'import AI.
   const [menu, setMenu] = React.useState(MENU_INIZIALE);
@@ -54,12 +54,45 @@ function Step4Verifica({ onBack, onComplete}) {
   // sbagliata, fa male a qualcuno. Nessuna marcatura per campo: la conferma
   // vale per il menù intero, e l'atto finisce nel registro delle attività.
   const [confermaMenu, setConfermaMenu] = React.useState(null); // null | 'panoramica' | 'config'
+  // ── LA SEDE DI CATENA PASSA DI QUI (P-199 · D-144) ──────────────────────
+  // Il menù è DELLA SEDE e può essere diverso da sede a sede: due locali dello
+  // stesso soggetto hanno spesso carte diverse — l'insegna in centro e quella
+  // in stazione — e prima la sede nuova ereditava il menù in silenzio, senza
+  // modo di dire che il suo è un altro. Se ne accorgeva dopo, quando cambiava
+  // il menù di una e si muoveva anche l'altra.
+  // Il passo si apre PRECOMPILATO col menù del soggetto, e ci sono due strade:
+  // confermarlo — e la sede continua a usare il menù valido per tutte — oppure
+  // farne uno proprio. Nel modello è `menus.venue_id`: nullo nel primo caso,
+  // valorizzato nel secondo.
+  // Soggetto fiscale, Stripe e delega restano del soggetto e si ereditano
+  // senza scelta: su quelli l'onboarding aveva ragione, era il solo menù a
+  // essere sbagliato.
+  const [menuProprio, setMenuProprio] = React.useState(false);
+  const scriviSceltaMenu = () => {
+    try {
+      const l = JSON.parse(localStorage.getItem('byup_locale_attivo') || 'null');
+      localStorage.setItem('byup_menu_sede', JSON.stringify({
+        sedeId: l && l.id, proprio: menuProprio, quando: new Date().toISOString(),
+      }));
+    } catch (e) {}
+  };
+  // Per la sede di catena il contratto non si rifirma: è del soggetto, ed è
+  // stato firmato quando il soggetto si è attivato. Si conferma il menù solo
+  // se la sede se ne è fatto uno suo — quello ereditato è già online altrove,
+  // e confermarlo due volte non attesta niente di nuovo.
+  const chiudiCatena = (dest) => { scriviSceltaMenu(); if (onComplete) onComplete(dest); };
+  const vaiA = (dest) => {
+    if (!catena) { setConfermaMenu(dest); return; }
+    if (menuProprio) { setConfermaMenu(dest); return; }
+    chiudiCatena(dest);
+  };
   const confermaIlMenu = (dest) => {
     try {
       if (window.byupScriviAuditEvento) window.byupScriviAuditEvento('menu_confermato', null,
         `${menu.reduce((s, c) => s + c.dishes.length, 0)} piatti in ${menu.length} categorie · allergeni compresi`);
     } catch (e) {}
     setConfermaMenu(null);
+    if (catena) { chiudiCatena(dest); return; }
     setContrattoModal(dest);
   };
   const completa = (dest) => {
@@ -141,7 +174,7 @@ function Step4Verifica({ onBack, onComplete}) {
               letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
               position: 'relative', zIndex: 1,
             }}>
-              Il tuo locale è online.
+              {catena ? `Il menù di ${catena.nome}.` : 'Il tuo locale è online.'}
             </h1>
             <p style={{
               fontSize: 18, fontWeight: 400, lineHeight: 1.5,
@@ -151,8 +184,48 @@ function Step4Verifica({ onBack, onComplete}) {
               {/* Bold + italic combinato sulla parte clickable concettuale.
                   La frase chiude il percorso onboarding e rassicura: "il setup
                   non è una gabbia, modifichi quando vuoi". */}
-              Puoi modificare il tuo menù <b><i>dalle impostazioni locale</i></b> quando vuoi.
+              {catena
+                ? <>Questo è il menù che usano le altre sedi. Confermalo, oppure fai un menù <b><i>di questa sede</i></b>.</>
+                : <>Puoi modificare il tuo menù <b><i>dalle impostazioni locale</i></b> quando vuoi.</>}
             </p>
+
+            {/* La scelta della sede di catena (P-199 · D-144): due strade, e
+                quella che non cambia niente è proposta per prima. */}
+            {catena && (
+              <div data-menu-sede={menuProprio ? 'proprio' : 'soggetto'} style={{
+                position: 'relative', zIndex: 1, marginBottom: 22,
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                {[{ id: false, t: 'Usa il menù del soggetto', d: 'La sede continua a usare il menù valido per tutte: se cambia lì, cambia anche qui.' },
+                  { id: true,  t: 'Fai un menù di questa sede', d: 'Parte da questo, e da qui in poi è suo: cambiarlo non tocca le altre sedi.' }].map(o => {
+                  const on = menuProprio === o.id;
+                  return (
+                    <button key={String(o.id)} type="button" data-scelta-menu={o.id ? 'proprio' : 'soggetto'}
+                      onClick={() => setMenuProprio(o.id)}
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left',
+                        padding: '13px 15px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+                        background: '#fff',
+                        border: `1.5px solid ${on ? ONB.TEXT : 'rgba(15, 17, 21, 0.12)'}`,
+                        boxShadow: on ? '0 2px 10px rgba(15,17,21,0.08)' : 'none',
+                        maxWidth: 560,
+                      }}>
+                      <span style={{
+                        width: 20, height: 20, borderRadius: 999, flexShrink: 0, marginTop: 2,
+                        border: `1.5px solid ${on ? ONB.TEXT : 'rgba(15, 17, 21, 0.25)'}`,
+                        display: 'grid', placeItems: 'center',
+                      }}>
+                        {on && <span style={{ width: 10, height: 10, borderRadius: 999, background: ONB.TEXT }}/>}
+                      </span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 16, fontWeight: 600, color: ONB.TEXT }}>{o.t}</span>
+                        <span style={{ display: 'block', fontSize: 14.5, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45 }}>{o.d}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* ── Anteprima del menù — editabile ── */}
             <div style={{position: 'relative', zIndex: 1}}>
@@ -259,7 +332,7 @@ function Step4Verifica({ onBack, onComplete}) {
                 configurazione") — rossa e a pillola. Entrare subito nel prodotto
                 resta possibile ma anonimo, separato da un "oppure" discreto per
                 chiarire che è un bivio, non una sequenza. */}
-            <SecondaryCta onClick={() => setConfermaMenu('panoramica')}>
+            <SecondaryCta onClick={() => vaiA('panoramica')}>
               Inizia a gestire il locale
             </SecondaryCta>
             <span style={{
@@ -268,7 +341,7 @@ function Step4Verifica({ onBack, onComplete}) {
             }}>
               oppure
             </span>
-            <PrimaryCtaArrow onClick={() => setConfermaMenu('config')}>
+            <PrimaryCtaArrow onClick={() => vaiA('config')}>
               Completa la configurazione
             </PrimaryCtaArrow>
           </div>

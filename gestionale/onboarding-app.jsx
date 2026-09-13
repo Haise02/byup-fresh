@@ -22,9 +22,15 @@ const STEPS = [
 ];
 
 // La sede della catena (Account → Aggiungi un locale → Catena): dell'onboarding
-// fa solo il passo delle sale e dei tavoli — menù, soggetto fiscale, Stripe e
-// delega sono del soggetto e li eredita — e da lì va dritta alla
+// fa DUE passi, le sale e i tavoli e la verifica del menù, e poi va alla
 // Configurazione completa. ?sede=catena&nome=… lo dice.
+// Soggetto fiscale, Stripe e delega sono del soggetto e si ereditano senza
+// scelta. Il MENÙ no (P-199 · D-144): è della sede e può essere diverso da
+// sede a sede — l'insegna in centro e quella in stazione hanno spesso carte
+// diverse — quindi il passo si apre precompilato con quello del soggetto e si
+// conferma, oppure se ne fa uno proprio. Prima lo si ereditava in silenzio, e
+// chi apriva la seconda sede se ne accorgeva quando cambiava il menù di una e
+// si muoveva anche l'altra.
 const ONB_CATENA = (() => {
   try { const q = new URLSearchParams(window.location.search); return q.get('sede') === 'catena' ? { nome: q.get('nome') || 'La nuova sede' } : null; } catch (e) { return null; }
 })();
@@ -149,7 +155,7 @@ function OnboardingApp() {
                   const l = JSON.parse(localStorage.getItem('byup_locale_attivo') || 'null');
                   localStorage.setItem('byup_sale', JSON.stringify({ sedeId: l && l.id, sale: rooms.map(r => ({ id: r.id, nome: r.name, tavoli: r.tables })), quando: new Date().toISOString() }));
                 } catch (e) {}
-                if (ONB_CATENA) window.location.href = 'byup Configurazione Completa.html?sede=catena'; else setStep(4);
+                setStep(4);
               }}
               onBack={() => { if (ONB_CATENA) window.location.href = 'byup Profilo.html'; else setStep(2); }}
             />
@@ -157,9 +163,14 @@ function OnboardingApp() {
 
           {step === 4 && (
             <Step4Verifica
+              catena={ONB_CATENA}
               onBack={() => setStep(3)}
               onComplete={(dest) => {
-                onbAzzeraAttivazioni();
+                // La sede di catena non azzera le attivazioni: Stripe, fiscale
+                // e delega sono del soggetto e sono già fatti — è il locale
+                // NUOVO di un soggetto nuovo che parte da zero.
+                if (!ONB_CATENA) onbAzzeraAttivazioni();
+                if (ONB_CATENA) { window.location.href = 'byup Configurazione Completa.html?sede=catena'; return; }
                 if (dest === 'config')     window.location.href = 'byup Configurazione Completa.html';
                 else if (dest === 'panoramica') window.location.href = 'byup Panoramica.html';
               }}
@@ -206,9 +217,12 @@ function OnbHeader({step}) {
 }
 
 function Stepper({step}) {
-  // Per la sede della catena i passi sono due: le sale, poi la configurazione
-  // completa (che è un'altra pagina). Il resto è ereditato e non si mostra.
-  const passi = ONB_CATENA ? [{ id: 3, label: `Sala e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Configurazione completa' }] : STEPS;
+  // Per la sede della catena i passi sono tre: le sale, la verifica del menù
+  // (P-199 · D-144) e poi la configurazione completa, che è un'altra pagina.
+  // Il resto è ereditato e non si mostra.
+  const passi = ONB_CATENA
+    ? [{ id: 3, label: `Sala e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Verifica menù' }, { id: 5, label: 'Configurazione completa' }]
+    : STEPS;
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 0}}>
       {passi.map((s, i) => {
@@ -581,9 +595,9 @@ function StageNav({step, setStep, setProcessing}) {
 
   return (
     <div className="stage-controls">
-      <button onClick={goPrev} disabled={step === 1 || !!ONB_CATENA}>‹</button>
+      <button onClick={goPrev} disabled={step === 1 || (!!ONB_CATENA && step <= 3)}>‹</button>
       {ONB_CATENA ? 'Sede di catena' : stepLabel}
-      <button onClick={goNext} disabled={step === 4 || !!ONB_CATENA}>›</button>
+      <button onClick={goNext} disabled={step === 4}>›</button>
     </div>
   );
 }
