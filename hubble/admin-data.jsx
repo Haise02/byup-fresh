@@ -644,10 +644,28 @@ function buildUtenti() {
       spesaTotale: ordini * (26 + Math.floor(r() * 13)),
       utilizzo,
       attivo,
-      // Chi ha tolto l'app dal telefono (P-182 · D-135): non è una revoca —
-      // email e messaggi continuano — ma le notifiche non hanno più dove
-      // arrivare. Capita soprattutto a chi non usa l'app da mesi.
-      disinstallato: utilizzo === 'perso' ? r() > 0.45 : r() > 0.94,
+      // QUANDO L'ULTIMO RECAPITO È CADUTO (P-203 · D-162). Prima qui c'era un
+      // booleano estratto a caso — «disinstallato» affermato senza la sua
+      // prova e senza una data — ed era l'ultimo valore del prototipo tirato a
+      // sorte. Il fatto vero è uno solo: il servizio di notifica ha rifiutato
+      // in via definitiva (UNREGISTERED 404 su FCM, INVALID_ARGUMENT 400 a
+      // fronte di un messaggio valido, 410 di APNs con Unregistered o
+      // ExpiredToken), e il recapito si cancella subito.
+      // Quel rifiuto però prova una cosa sola: che a quel telefono non arriva
+      // più nulla. Non dice perché — il terminale perduto, distrutto o
+      // dimenticato in un cassetto, l'azzeramento dei dati dell'app, o
+      // semplicemente un telefono cambiato, con l'app nuova viva altrove.
+      // Di qui la finestra dei trenta giorni: `disinstallato` non è più un
+      // dato ma una LETTURA (hubDisinstallato), e qui si scrive solo la data.
+      // Tenuta coerente con l'attività: chi non apre l'app da mesi la porta
+      // vecchia, chi è attivo non la porta affatto, e qualcuno la porta
+      // RECENTE — è il caso che serve a vedere la differenza fra «non
+      // raggiungibile» e «disinstallata», e prima nel seme non esisteva.
+      pushIrraggiungibileDal: (() => {
+        if (cluster === 'perso') return r() > 0.45 ? new Date(Date.now() - (45 + Math.floor(r() * 120)) * 86400000) : null;
+        if (cluster === 'non_attivo') return r() > 0.72 ? new Date(Date.now() - (3 + Math.floor(r() * 9)) * 86400000) : null;
+        return r() > 0.94 ? new Date(Date.now() - (1 + Math.floor(r() * 12)) * 86400000) : null;
+      })(),
     };
   });
 }

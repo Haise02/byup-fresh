@@ -946,10 +946,25 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
               <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)}/>
               {/* La disinstallazione (P-182 · D-135): un fatto dell'app, non
                   una revoca — le notifiche non arrivano più, email e messaggi
-                  sì. La cancellazione dell'account è altra cosa. */}
-              <DataRow label="App sul telefono" last value={u.disinstallato
-                ? <span style={{color:ADM.WARN, fontWeight:700}}>Disinstallata · niente notifiche, email e messaggi continuano</span>
-                : 'Installata'}/>
+                  sì. La cancellazione dell'account è altra cosa.
+                  TRE STATI e non due (P-203 · D-162): fra il recapito caduto e
+                  la parola «disinstallata» ci sono trenta giorni, perché il
+                  rifiuto del servizio di notifica prova che a quel telefono non
+                  arriva più niente, non perché. Lo stato di mezzo è quello
+                  onesto: sappiamo che non arriva, non sappiamo ancora la
+                  ragione. */}
+              {(() => {
+                const caduto = u.pushIrraggiungibileDal ? new Date(u.pushIrraggiungibileDal) : null;
+                const giorni = caduto ? Math.floor((Date.now() - caduto.getTime()) / 86400000) : 0;
+                const fuori = caduto && giorni > 30;
+                return (
+                  <DataRow label="App sul telefono" last value={!caduto
+                    ? 'Installata'
+                    : fuori
+                      ? <span style={{color:ADM.WARN, fontWeight:700}}>Disinstallata · niente notifiche, email e messaggi continuano</span>
+                      : <span style={{color:ADM.MUTED, fontWeight:600}}>Nessuna notifica recapitata dal {fmtDate(caduto)}</span>}/>
+                );
+              })()}
             </AdmCard>
 
             {/* Il log così come arriva dal tracking: un evento per riga, la

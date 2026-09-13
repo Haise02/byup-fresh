@@ -332,9 +332,11 @@ const HUB_PROPRIETA = [
   // La disinstallazione (P-182 · D-135): un fatto, non una revoca. Toglie le
   // sole notifiche push — senza app non hanno dove arrivare — mentre email e
   // messaggi continuano. La cancellazione dell'account è altra cosa.
+  // Non è un dato comunicato dal negozio applicativo, che non lo comunica: è
+  // una lettura derivata (P-203 · D-162), vedi hubDisinstallato.
   { id: 'disinstallato', label: 'App disinstallata', gruppo: 'attivita', tipo: 'bool', sistema: true, colonna: { w: '1.05fr' },
-    leggi: (c) => c.tipo === 'utente' && c.ref ? (c.ref.disinstallato === true) : null,
-    nota: 'Solo per gli utenti app: le notifiche non arrivano più, email e messaggi sì. Disinstallare non è revocare un consenso' },
+    leggi: (c) => c.tipo === 'utente' && c.ref ? (typeof hubDisinstallato === 'function' ? hubDisinstallato(c) : false) : null,
+    nota: 'Solo per gli utenti app: le notifiche non arrivano più, email e messaggi sì. Disinstallare non è revocare un consenso. Non lo dice il negozio applicativo: si legge dopo trenta giorni dall\'ultimo recapito rifiutato in via definitiva, e qualunque registrazione nuova azzera il conteggio' },
 ];
 
 const HUB_PROP = HUB_PROPRIETA.reduce((m, p) => { m[p.id] = p; return m; }, {});
@@ -770,10 +772,13 @@ function hubInterrogaPosta(righe, corsia, genere, filtri) {
   // Sul telefono (la notifica in più): in corsia di marketing solo chi ha
   // acceso Notifiche; in corsia di servizio tutti i netti — il permesso del
   // sistema operativo non è un nostro consenso e qui non si conosce.
-  // Sul telefono non arriva nulla a chi ha disinstallato: la push non ha dove
-  // arrivare (P-182 · D-135). Email e messaggi continuano, e infatti il netto
-  // non cambia: cambia solo il netto del telefono.
-  const conTelefono = netti.filter(c => !hubDisinstallato(c));
+  // Sul telefono non arriva nulla a chi non ha più un recapito valido: la push
+  // non ha dove arrivare (P-182 · D-135). Email e messaggi continuano, e
+  // infatti il netto non cambia: cambia solo il netto del telefono.
+  // Qui conta il RECAPITO CADUTO, non la lettura «disinstallata»: la finestra
+  // dei trenta giorni (P-203 · D-162) serve a dire una parola giusta nella
+  // scheda del contatto, non a fingere che nel frattempo la notifica parta.
+  const conTelefono = netti.filter(c => !hubPushIrraggiungibile(c));
   const nettoTelefono = corsia === 'marketing' ? conTelefono.filter(hubConsensoTelefono).length : conTelefono.length;
   return { pubblico: righe.length, senzaConsenso: senzaConsenso.length, senzaProfilazione: senzaProfilazione.length, profilato,
     nonAttivi: nonAttivi.length, limitati: limitati.length, minori: minori.length, disinstallati: netti.length - conTelefono.length,
@@ -1882,7 +1887,26 @@ const hubConsensoProfilazione = (c) => {
 // continuano, perché il consenso a quel canale resta prestato. La
 // cancellazione dell'account è altra cosa e ferma tutto — lì il rapporto
 // finisce.
-const hubDisinstallato = (c) => c.tipo === 'utente' && !!c.ref && c.ref.disinstallato === true;
+//
+// COME SI SA (P-203 · D-162). Il segnale è il rifiuto definitivo del servizio
+// di notifica, e da quel momento il recapito non esiste più. Ma quel rifiuto
+// prova una cosa sola — che a quel telefono non arriva più niente — e non dice
+// perché: il terminale può essere perduto, azzerato o semplicemente cambiato,
+// con l'app nuova viva altrove. Per questo fra il rifiuto e la parola
+// «disinstallata» passano TRENTA GIORNI: si registra quando l'ultimo recapito
+// è caduto, e solo dopo trenta giorni senza alcuna registrazione nuova quella
+// persona si legge come disinstallata. Qualunque registrazione azzera il
+// conteggio, e la data torna vuota.
+// Dentro la finestra il telefono è già irraggiungibile — la push non parte
+// comunque — ma non si afferma un fatto che non si conosce.
+const HUB_DISINSTALLO_GG = 30;
+const hubPushCadutoDal = (c) => (c.tipo === 'utente' && c.ref && c.ref.pushIrraggiungibileDal) ? new Date(c.ref.pushIrraggiungibileDal) : null;
+const hubPushIrraggiungibile = (c) => !!hubPushCadutoDal(c);
+const hubDisinstallato = (c) => {
+  const d = hubPushCadutoDal(c);
+  if (!d) return false;
+  return (Date.now() - d.getTime()) > HUB_DISINSTALLO_GG * 86400000;
+};
 
 // Un contatto è dentro un elenco ATTIVO se passa i suoi filtri: è la stessa
 // definizione che usa la pagina Elenchi. Gli statici hanno membri importati,
