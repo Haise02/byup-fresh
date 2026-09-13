@@ -35,36 +35,19 @@ function ContabilitaApp() {
     const d = params.get('fiscData'), st = params.get('fiscStato');
     return d ? { data: d, stato: st || null } : null;
   });
-  // ── LA SCHEDA DEI BUONI ESISTE SOLO SE C'È UN ACCORDO ──────────────────
-  // Senza convenzione non si accetta un buono, quindi non c'è niente da
-  // riscontrare: la linguetta sarebbe una stanza vuota che ogni locale che i
-  // buoni non li prende — la maggioranza — si porta dietro per sempre. E non
-  // serve nemmeno a insegnare la strada, perché la strada è una sola e sta
-  // da un'altra parte: l'accordo si dichiara in Impostazioni → Integrazioni,
-  // e di lì si passa comunque.
-  // Le accettazioni valgono quanto le convenzioni: chiuso un accordo, quello
-  // che è già passato resta da riscontrare e da fatturare, e la scheda deve
-  // restare raggiungibile finché c'è.
-  const buoniInCasa = () => {
-    const conv = window.byupReadConvenzioniBuoni ? window.byupReadConvenzioniBuoni() : [];
-    const acc  = window.byupBuoniAccettazioni ? window.byupBuoniAccettazioni() : [];
-    return conv.length > 0 || acc.length > 0;
-  };
-  const [buoni, setBuoni] = useState(buoniInCasa);
-  React.useEffect(() => {
-    // Si dichiara una convenzione in un'altra scheda del browser, o in questa
-    // stessa sessione: la linguetta compare senza ricaricare la pagina.
-    const f = () => setBuoni(buoniInCasa());
-    window.addEventListener('byup-buoni-change', f);
-    window.addEventListener('storage', f);
-    return () => {
-      window.removeEventListener('byup-buoni-change', f);
-      window.removeEventListener('storage', f);
-    };
-  }, []);
-  // Un collegamento vecchio — o una convenzione terminata mentre la si
-  // guardava — non deve lasciare la pagina su una scheda che non c'è.
-  const tabVero = (tab === 'buoni' && !buoni) ? 'conti' : tab;
+  // ── LA SCHEDA DEI BUONI RESTA FUORI, E NON PER MANCANZA DI DATI ────────
+  // Il riepilogo mensile per emittente — sconto pattuito, netto atteso, ciclo
+  // del rimborso — è amministrazione fra l'esercente e l'emittente e sta fuori
+  // dal primo rilascio (P-195 · D-155). Prima la linguetta compariva con una
+  // convenzione OPPURE un'accettazione: ora che le accettazioni si leggono
+  // sempre — perché registrare un buono non dipende da nulla — tornerebbe da
+  // sé alla prima registrazione, e non deve. Quindi è spenta qui, di proposito
+  // e non per assenza di righe. Si riaccende il giorno in cui il riepilogo del
+  // rimborso entra nel prodotto.
+  const buoni = false;
+  // Un collegamento vecchio non deve lasciare la pagina su una scheda che non
+  // c'è.
+  const tabVero = tab === 'buoni' ? 'conti' : tab;
 
   const [cassaOpen, setCassaOpen] = useState(false);
   const [newCost, setNewCost] = useState(false);
@@ -160,8 +143,8 @@ function ContabilitaApp() {
               {id:'costi', label:'Costi', icon:'commerce-price-tag'},
               {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
               {id:'fatture', label:'Fatture', icon:'commerce-register'},
-              // I buoni pasto (P-173 · D-124): il riepilogo per emittente e
-              // periodo. C'è solo per chi i buoni li prende davvero.
+              // Il riepilogo per emittente e periodo: fuori dal primo
+              // rilascio (P-195 · D-155), vedi sopra.
               buoni ? {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'} : null,
               {id:'export', label:'Export', icon:'download'},
             ].filter(Boolean).map(t => (

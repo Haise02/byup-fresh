@@ -3107,11 +3107,11 @@ const SvIcoMonete = ({ size = 18 }) => (
 
 function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti: pagamentiConto, onPagamenti, onAcconto, lines, takeaway }) {
   const [method, setMethod] = React.useState('contanti'); // contanti | carta | buoni
-  // I buoni pasto (P-173 · D-124): la tessera compare solo con una convenzione
-  // attiva; i campi stanno in `buoni`, la quota è al massimo il residuo, e i
-  // vincoli li impone la finestra condivisa (window.PnBuoniPasto).
+  // I buoni pasto (P-195 · D-155): la tessera c'è SEMPRE, come in Salda conto —
+  // è lo stesso gesto fatto da due porte diverse, e una differenza fra le due
+  // si nota subito in sala. I campi stanno in `buoni`, la quota è al massimo il
+  // residuo, e i vincoli li impone la finestra condivisa (window.PnBuoniPasto).
   const [buoni, setBuoni] = React.useState(null);
-  const buoniAttivi = window.byupBuoniAttivi ? window.byupBuoniAttivi().length > 0 : false;
   // Incasso a più riprese: il residuo è quello che manca, non il totale. Chi
   // paga metà in contanti e metà col POS non sceglie un metodo "misto" — fa
   // due incassi, e la finestra tiene il conto.
@@ -3832,7 +3832,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
               {/* Metodo: due tessere parlanti — icona e nome bastano,
                   l'etichetta di sezione era rumore. */}
               <div style={{padding: '14px 28px 0'}}>
-                <div style={{display: 'grid', gridTemplateColumns: buoniAttivi ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14}}>
                   <SvMetodoCard
                     active={method === 'carta'}
                     onClick={() => chooseMethod('carta')}
@@ -3843,15 +3843,13 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                     onClick={() => chooseMethod('contanti')}
                     label="Contanti"
                     icon={<SvIcoBanconota/>}/>
-                  {/* La terza tessera (P-173 · D-124): solo con una convenzione
-                      dichiarata in Impostazioni → Integrazioni. */}
-                  {buoniAttivi && (
-                    <SvMetodoCard
-                      active={method === 'buoni'}
-                      onClick={() => chooseMethod('buoni')}
-                      label="Buoni pasto"
-                      icon={<SvIcoBuono/>}/>
-                  )}
+                  {/* La terza tessera c'è sempre (P-195 · D-155): non dipende
+                      da una convenzione dichiarata. */}
+                  <SvMetodoCard
+                    active={method === 'buoni'}
+                    onClick={() => chooseMethod('buoni')}
+                    label="Buoni pasto"
+                    icon={<SvIcoBuono/>}/>
                 </div>
               </div>
               {method === 'buoni' && (
@@ -4028,7 +4026,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                         // Quello che si accetta si registra (P-173); la quota
                         // è al massimo il residuo, l'eccedenza la perde il
                         // cliente e la finestra l'ha detto prima.
-                        window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: 'Banco' });
+                        window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, issuer_other_name: buoni.issuer_other_name || '', voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: 'Banco' });
                         setBuoni(null);
                         registraIncasso(preso, 'buoni');
                       }

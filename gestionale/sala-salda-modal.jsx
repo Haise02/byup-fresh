@@ -147,11 +147,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // cash | card_terminal | meal_voucher. Le etichette a schermo restano
   // «Contanti», «Carta» e «Buoni pasto».
   const [method, setMethod] = React.useState('cash'); // cash | card_terminal | meal_voucher
-  // I buoni pasto (P-173 · D-124): la tessera compare solo con una convenzione
-  // attiva; i campi vivono in `buoni`, il totale si sottrae dal dovuto e i
-  // vincoli — otto titoli, niente resto — li impone la finestra condivisa.
+  // I buoni pasto (P-195 · D-155): la tessera c'è SEMPRE, perché registrare un
+  // buono non dipende da nulla — non dalla convenzione, che è un contratto che
+  // vive sul portale dell'emittente. I campi stanno in `buoni`, il totale si
+  // sottrae dal dovuto e i vincoli — otto titoli, niente resto — li impone la
+  // finestra condivisa.
   const [buoni, setBuoni] = React.useState(null);
-  const buoniAttivi = window.byupBuoniAttivi ? window.byupBuoniAttivi().length > 0 : false;
   // La fattura è la stessa di Vendita diretta: una finestra sua, con la
   // ricerca in rubrica e nel registro imprese, i segmenti e il codice
   // destinatario. Qui c'erano tre campi liberi e un interruttore — la stessa
@@ -1455,17 +1456,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       grandi. */}
                   <div style={{padding:'22px 24px 0'}}>
                     <div style={SALDA_LABEL}>Come paga il cliente</div>
-                    <div style={{display:'grid', gridTemplateColumns: buoniAttivi ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
+                    <div style={{display:'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14}}>
                       <SaldaMetodoCard active={method==='cash'} onClick={()=>chooseMethod('cash')}
                         icon={<IconBanconota/>} label="Contanti"/>
                       <SaldaMetodoCard active={method==='card_terminal'} onClick={()=>chooseMethod('card_terminal')}
                         icon={<IconPos/>} label="Carta · Byup Staff"/>
-                      {/* La terza tessera (P-173 · D-124) c'è solo con una
-                          convenzione dichiarata in Impostazioni. */}
-                      {buoniAttivi && (
-                        <SaldaMetodoCard active={method==='meal_voucher'} onClick={()=>chooseMethod('meal_voucher')}
-                          icon={<IconBuono/>} label="Buoni pasto"/>
-                      )}
+                      {/* La terza tessera c'è sempre (P-195 · D-155): il
+                          ristoratore accetta buoni comunque, e il documento
+                          deve dire che il cliente ha pagato in ticket. */}
+                      <SaldaMetodoCard active={method==='meal_voucher'} onClick={()=>chooseMethod('meal_voucher')}
+                        icon={<IconBuono/>} label="Buoni pasto"/>
                     </div>
                     {method === 'meal_voucher' && (
                       <div style={{marginTop: 14}}>
@@ -1587,7 +1587,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             // l'ha detto prima — e se i buoni non coprono, il
                             // residuo resta aperto come acconto e si chiude
                             // con un'altra tessera.
-                            const dettaglio = window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: `Tavolo ${tavolo.id}` });
+                            const dettaglio = window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, issuer_other_name: buoni.issuer_other_name || '', voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: `Tavolo ${tavolo.id}` });
                             const quota = Math.min(buoniTot, total);
                             const pagamento = registraIncasso('meal_voucher', quota, dettaglio);
                             const residuoBuoni = Math.max(0, r2(residuoTavolo - quota));

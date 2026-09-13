@@ -208,35 +208,37 @@ function ImpIntegrazioni() {
       <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore. I telefoni che incassano si vedono in Impostazioni → Personale: si registrano da soli quando chi è in sala entra in Byup Staff.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
       </ImpCard>
-      {/* ── I BUONI PASTO SONO SOSPESI (11 set 2026) ────────────────────────
+      {/* ── LA CONVENZIONE NON STA QUI (P-195 · D-155) ─────────────────────
           Qui c'era la card delle convenzioni (P-173 · D-124): con quali
-          emittenti il locale è convenzionato. Non si monta più, e con lei si
-          spegne tutta la catena — senza convenzione la tessera in cassa non
-          compare, la scheda in Contabilità non compare, il riepilogo non ha
-          righe. Un interruttore solo, perché tutto era già appeso a quello.
+          emittenti il locale è convenzionato, a che sconto, con quanti giorni
+          di rimborso. Non si monta, e la ragione non è più quella dell'11
+          settembre.
 
-          Perché: accettare i buoni di un emittente terzo è una transazione che
-          avviene sui SUOI strumenti — la sua app, il suo terminale, o un POS
-          bancario abilitato a quel circuito dopo che l'emittente lo ha
-          autorizzato. Nessuno dei cinque espone un'interfaccia applicativa con
-          cui un gestionale in cloud possa accettare un buono, e una pagina in
-          https non può nemmeno parlare a una scatola in sala (è lo stesso muro
-          del contenuto misto che la D-109 ha aggirato per le stampanti).
-          Quindi il gestionale poteva soltanto REGISTRARE a mano l'esito di una
-          cosa avvenuta altrove: si torna sul punto quando il buono pasto sarà
-          il NOSTRO, che essendo digitale nasce dentro queste schermate invece
-          di dover essere raccontato a posteriori.
+          La convenzione è un rapporto commerciale fra l'esercente e
+          l'emittente — lo sconto pattuito, i giorni di rimborso, il termine di
+          decadenza — e vive sul portale dell'emittente: non è una
+          configurazione del gestionale, e soprattutto non è la condizione che
+          abilita una registrazione fiscale. Legata com'era, impediva di
+          registrare un incasso in buoni a chi non l'aveva dichiarata, che è la
+          maggioranza.
 
-          Cosa NON si tocca, ed è deliberato: il modello e il lato fiscale
-          restano. Un buono incassato è non riscosso al dieci per cento col
-          riferimento «TICKET», è un credito e non contante nella chiusura di
-          giornata, e `payments.method` vale `meal_voucher`. Quella catena vale
-          identica il giorno in cui il buono lo emettiamo noi — per il documento
-          un buono è un buono — e toglierla adesso vorrebbe dire rifarla dopo
-          tenendo nel frattempo l'ERD disallineato.
+          LA REGISTRAZIONE IN CASSA INVECE C'È, E C'È SEMPRE. «Buoni pasto» sta
+          accanto a contanti e carta in Salda conto e in Vendita diretta,
+          chiede titoli, valore facciale ed emittente — i cinque del dizionario
+          di piattaforma più «Altro» — e scrive il pagamento con metodo
+          `meal_voucher`, che nella chiusura di giornata è credito verso gli
+          emittenti e non contante. Il documento commerciale deve dire che il
+          cliente ha pagato in ticket: chiuderlo in contanti sarebbe un dato
+          non veritiero trasmesso all'Agenzia.
 
-          `ImpBuoniPastoCard` resta nel file, non montata: è sospesa, non
-          cancellata. Si riaccende rimettendo questa riga. */}
+          Restano fuori dal primo rilascio le convenzioni con lo sconto
+          pattuito, il riepilogo per emittente e il ciclo del rimborso: sono
+          amministrazione fra esercente ed emittente e non servono a far uscire
+          un documento veritiero. Il modello non li perde — restano tabelle che
+          nel primo rilascio non si popolano.
+
+          `ImpBuoniPastoCard` resta nel file, non montata. Si rimonta il giorno
+          in cui il riepilogo del rimborso entra nel prodotto. */}
 
       {/* BLOCCO 2 — Stampanti (P-128): il popup «Aggiungi stampante»
           sostituisce la sezione Impostazioni → Stampanti. */}
@@ -1023,7 +1025,9 @@ function ImpBuoniPastoCard() {
   }, []);
   const tutte = window.byupReadConvenzioniBuoni ? window.byupReadConvenzioniBuoni() : [];
   const attive = window.byupBuoniAttivi ? window.byupBuoniAttivi() : [];
-  const emittenti = window.PN_BUONI_EMITTENTI || [];
+  // La voce generica del dizionario non è convenzionabile: una convenzione si
+  // firma con un emittente preciso (P-195 · D-155).
+  const emittenti = (window.PN_BUONI_EMITTENTI || []).filter(e => !e.is_catch_all);
   const liberi = emittenti.filter(e => !attive.some(c => c.issuer_id === e.id));
   const [nuova, setNuova] = React.useState(null);
   const apri = () => setNuova({ issuer_id: liberi[0] ? liberi[0].id : '', merchant_code: '', discount_percent: '', refund_days: '', claim_deadline_months: '' });

@@ -2060,21 +2060,36 @@ window.byupCopertoEsposto = function (segna) {
 // l'intero valore facciale, senza resto (Allegato II.17 al D.Lgs. 36/2023,
 // art. 4). Byup NON valida il buono: la verifica passa dallo strumento
 // dell'emittente, e la finestra lo dice. Le convenzioni si dichiarano in
-// Impostazioni → Integrazioni (venue_meal_voucher_agreements: emittente,
-// codice esercente, sconto pattuito — dal 2026 non oltre il cinque per cento
-// —, giorni di rimborso, decadenza): finché non ce n'è una, la tessera in
-// cassa non compare. Il riepilogo per emittente e periodo
-// (meal_voucher_settlements) sta in Contabilità e serve a riscontrare la
-// prefattura dell'emittente e a comunicargli il numero della fattura: nessun
-// pulsante la emette, non è del primo rilascio. Registri sullo stesso
-// dominio: byup_buoni_convenzioni, byup_buoni_accettazioni,
-// byup_buoni_riepiloghi.
+// REGISTRARE UN BUONO NON DIPENDE DA NULLA (P-195 · D-155). Non dalla
+// convenzione, che è un contratto fra l'esercente e l'emittente e vive sul
+// portale dell'emittente; non da una configurazione; non da un'attivazione. È
+// una forma di pagamento come i contanti, e come i contanti Byup non la
+// esegue, la registra: la tessera in cassa c'è sempre e l'elenco degli
+// emittenti è questo dizionario, non le convenzioni del locale. Legarla alle
+// convenzioni — come faceva P-173 — impediva la registrazione a chi non le
+// aveva dichiarate, che è la maggioranza, e chiudere in contanti un incasso
+// avvenuto in buoni è un dato non veritiero trasmesso all'Agenzia: la guida
+// operativa sul collegamento dei POS vuole che al momento dell'emissione si
+// indichi contante, elettronico o ticket, e indicarlo male è sanzionato
+// (art. 11 co. 2-quinquies del D.Lgs. 471/1997).
+// Le convenzioni (venue_meal_voucher_agreements) restano nel registro e sulle
+// accettazioni come fotografia, ma non abilitano nulla; il riepilogo per
+// emittente e periodo (meal_voucher_settlements) e il ciclo del rimborso sono
+// amministrazione fra esercente ed emittente e stanno fuori dal primo
+// rilascio. Registri sullo stesso dominio: byup_buoni_convenzioni,
+// byup_buoni_accettazioni, byup_buoni_riepiloghi.
 const PN_BUONI_EMITTENTI = [ // meal_voucher_issuers: l'anagrafe comune, tenuta da Byup
   { id: 'edenred',    name: 'Edenred Italia',     brand: 'Ticket Restaurant', invoices_on_behalf: true },
   { id: 'pluxee',     name: 'Pluxee Italia',      brand: 'Pluxee',            invoices_on_behalf: true },
   { id: 'pellegrini', name: 'Pellegrini',         brand: 'Pellegrini Card',   invoices_on_behalf: true },
   { id: 'upday',      name: 'Up Day',             brand: 'Day',               invoices_on_behalf: true },
   { id: 'repas',      name: 'Repas Lunch Coupon', brand: 'Lunch Coupon',      invoices_on_behalf: true },
+  // La voce generica, in coda (meal_voucher_issuers.is_catch_all): l'emittente
+  // è obbligatorio e il mercato si muove — Satispay ha cominciato a emettere
+  // buoni propri — e un cameriere che ha il buono in mano non può fermarsi
+  // davanti a un elenco incompleto. Il nome scritto va su
+  // payment_meal_vouchers.issuer_other_name.
+  { id: 'altro',      name: 'Altro emittente',    brand: 'Altro',             invoices_on_behalf: false, is_catch_all: true },
 ];
 const PN_BUONI_MAX_TITOLI = 8;      // art. 4, co. 1, lett. d): non cumulabili oltre otto
 const PN_BUONI_SCONTO_MAX = 5;      // art. 37 L. 193/2024: dal 2026 lo sconto non supera il cinque per cento
@@ -2086,6 +2101,11 @@ const pnBuoniScrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v
 const pnR2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 Object.assign(window, { PN_BUONI_EMITTENTI, PN_BUONI_MAX_TITOLI, PN_BUONI_SCONTO_MAX, PN_BUONI_FORMATI, PN_BUONI_STATI });
 window.byupBuoniEmittente = (id) => PN_BUONI_EMITTENTI.find(e => e.id === id) || { id, name: id, brand: id };
+// Il nome da mostrare: per la voce generica è quello che chi batte ha scritto.
+window.byupBuoniEmittenteNome = (a) => {
+  const e = window.byupBuoniEmittente(a && a.issuer_id);
+  return e.is_catch_all && a && a.issuer_other_name ? a.issuer_other_name : e.brand;
+};
 window.byupReadConvenzioniBuoni = () => pnBuoniLeggi(PN_BUONI_CONV_KEY) || [];
 window.byupWriteConvenzioniBuoni = (l) => pnBuoniScrivi(PN_BUONI_CONV_KEY, l);
 window.byupAggiungiConvenzioneBuoni = (c) => {
@@ -2099,8 +2119,9 @@ window.byupTerminaConvenzioneBuoni = (id) => window.byupWriteConvenzioniBuoni(wi
 window.byupBuoniAttivi = () => { const oggi = new Date().toISOString().slice(0, 10); return window.byupReadConvenzioniBuoni().filter(c => !c.valid_to || c.valid_to >= oggi); };
 window.byupConvenzioneBuoni = (issuer_id) => window.byupBuoniAttivi().find(c => c.issuer_id === issuer_id) || null;
 // Il seme delle accettazioni: nei giorni dei conti del seme di Contabilità,
-// così la chiusura di cassa ha la sua colonna. Compare solo per gli emittenti
-// con una convenzione, perché senza convenzione nessun buono si accetta.
+// così la chiusura di cassa ha la sua colonna. Si legge sempre e per intero
+// (P-195 · D-155): filtrarlo sugli emittenti convenzionati lasciava la colonna
+// a zero su un locale senza convenzioni, che è il caso normale.
 const PN_BUONI_SEME = [
   { id: 'acc-s1', issuer_id: 'edenred', voucher_count: 2, face_value: 8, total_face_value: 16, voucher_format: 'electronic', authorization_ref: 'ED-4471-0091', at: '2025-11-14T13:10:00', conto: 'Tavolo 4' },
   { id: 'acc-s2', issuer_id: 'edenred', voucher_count: 1, face_value: 8, total_face_value: 8,  voucher_format: 'digital',    authorization_ref: '',             at: '2025-11-15T13:25:00', conto: 'Banco' },
@@ -2108,24 +2129,32 @@ const PN_BUONI_SEME = [
   { id: 'acc-s4', issuer_id: 'edenred', voucher_count: 4, face_value: 8, total_face_value: 32, voucher_format: 'electronic', authorization_ref: 'ED-4471-0132', at: '2025-11-16T13:40:00', conto: 'Tavolo 12' },
   { id: 'acc-s5', issuer_id: 'pluxee',  voucher_count: 2, face_value: 7, total_face_value: 14, voucher_format: 'electronic', authorization_ref: 'PX-88-2210',   at: '2025-11-16T12:50:00', conto: 'Banco' },
 ];
-window.byupBuoniAccettazioni = () => {
-  const conv = new Set(window.byupReadConvenzioniBuoni().map(c => c.issuer_id));
-  return [...PN_BUONI_SEME.filter(a => conv.has(a.issuer_id)), ...(pnBuoniLeggi(PN_BUONI_ACC_KEY) || [])];
-};
+window.byupBuoniAccettazioni = () => [...PN_BUONI_SEME, ...(pnBuoniLeggi(PN_BUONI_ACC_KEY) || [])];
+// La convenzione, quando c'è, continua a essere fotografata sull'accettazione
+// (agreement_id), e quando non c'è resta vuota: è la forma che il modello
+// prevede, dove il riferimento alla convenzione è facoltativo.
 window.byupBuoniRegistraAccettazione = (a) => {
   const l = pnBuoniLeggi(PN_BUONI_ACC_KEY) || []; const conv = window.byupConvenzioneBuoni(a.issuer_id);
   const rec = Object.assign({ id: 'acc-' + Date.now(), at: new Date().toISOString(), agreement_id: conv ? conv.id : null }, a, { total_face_value: pnR2(a.voucher_count * a.face_value) });
   l.push(rec); pnBuoniScrivi(PN_BUONI_ACC_KEY, l); return rec;
 };
-// Il valore facciale proposto: l'ultimo usato con quell'emittente.
-window.byupBuoniUltimoFacciale = (issuer_id) => { const l = window.byupBuoniAccettazioni().filter(a => a.issuer_id === issuer_id).sort((x, y) => String(x.at).localeCompare(String(y.at))); return l.length ? l[l.length - 1].face_value : 8; };
+// Il valore facciale proposto: l'ultimo usato con quell'emittente. Con la
+// voce generica non si propone nulla, perché «l'ultimo usato con Altro» non
+// vuol dire niente: dietro ci possono essere emittenti diversi.
+window.byupBuoniUltimoFacciale = (issuer_id) => {
+  if (window.byupBuoniEmittente(issuer_id).is_catch_all) return '';
+  const l = window.byupBuoniAccettazioni().filter(a => a.issuer_id === issuer_id).sort((x, y) => String(x.at).localeCompare(String(y.at)));
+  return l.length ? l[l.length - 1].face_value : 8;
+};
 window.byupBuoniTotale = (v) => pnR2((parseInt(v && v.voucher_count, 10) || 0) * (Number(v && v.face_value) || 0));
-// Valido = c'è l'emittente, i titoli stanno fra uno e otto, il facciale è
-// positivo e, se i buoni superano il dovuto, il cliente ha confermato che
-// perde la differenza.
+// Valido = c'è l'emittente — e col generico anche il nome scritto, che è
+// l'unico posto in cui quell'emittente esiste —, i titoli stanno fra uno e
+// otto, il facciale è positivo e, se i buoni superano il dovuto, il cliente ha
+// confermato che perde la differenza.
 window.byupBuoniValido = (v, dovuto) => {
   const n = parseInt(v && v.voucher_count, 10) || 0, f = Number(v && v.face_value) || 0;
   if (!v || !v.issuer_id || n < 1 || n > PN_BUONI_MAX_TITOLI || f <= 0) return false;
+  if (window.byupBuoniEmittente(v.issuer_id).is_catch_all && !String(v.issuer_other_name || '').trim()) return false;
   return !(pnR2(n * f) > (dovuto || 0) + 0.004 && !v.eccedenza_ok);
 };
 // Il riepilogo di un mese, una riga per emittente (meal_voucher_settlements):
@@ -2150,12 +2179,16 @@ window.byupBuoniMesi = () => [...new Set(window.byupBuoniAccettazioni().map(a =>
 // gli stessi campi e le stesse parole. `valore` = { issuer_id, voucher_count,
 // face_value, voucher_format, authorization_ref, eccedenza_ok }.
 window.PnBuoniPasto = function PnBuoniPasto({ dovuto, valore, onChange }) {
-  const conv = window.byupBuoniAttivi();
+  // Gli emittenti sono quelli del dizionario di piattaforma (P-195 · D-155),
+  // non le convenzioni del locale: si registra un buono anche senza averne
+  // dichiarata alcuna, che è il caso normale. Si apre sul primo dell'elenco.
+  const emittenti = PN_BUONI_EMITTENTI;
   const v = valore || {};
   const set = (patch) => onChange(Object.assign({}, v, patch));
   React.useEffect(() => {
-    if (!v.issuer_id && conv.length) onChange({ issuer_id: conv[0].issuer_id, voucher_count: 1, face_value: window.byupBuoniUltimoFacciale(conv[0].issuer_id), voucher_format: 'electronic', authorization_ref: '', eccedenza_ok: false });
+    if (!v.issuer_id && emittenti.length) onChange({ issuer_id: emittenti[0].id, voucher_count: 1, face_value: window.byupBuoniUltimoFacciale(emittenti[0].id), voucher_format: 'electronic', authorization_ref: '', issuer_other_name: '', eccedenza_ok: false });
   }, []);
+  const altro = window.byupBuoniEmittente(v.issuer_id).is_catch_all;
   const n = parseInt(v.voucher_count, 10) || 0;
   const facciale = Number(v.face_value) || 0;
   const totale = pnR2(n * facciale);
@@ -2165,15 +2198,24 @@ window.PnBuoniPasto = function PnBuoniPasto({ dovuto, valore, onChange }) {
   const LAB = { fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 };
   const INP = { width: '100%', padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10, fontSize: 16, fontFamily: 'inherit', color: PN.TEXT, background: PN.WHITE, boxSizing: 'border-box', outline: 'none' };
   const BTN = (on) => ({ padding: '8px 12px', borderRadius: 999, border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: on ? PN.TEXT : PN.WHITE, color: on ? PN.WHITE : PN.TEXT, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
-  const cambiaEmittente = (id) => set({ issuer_id: id, face_value: window.byupBuoniUltimoFacciale(id) });
+  // Cambiando emittente il facciale torna all'ultimo usato con quello; il nome
+  // scritto vale solo per la voce generica e si pulisce uscendone.
+  const cambiaEmittente = (id) => set({ issuer_id: id, face_value: window.byupBuoniUltimoFacciale(id), issuer_other_name: window.byupBuoniEmittente(id).is_catch_all ? (v.issuer_other_name || '') : '' });
   return (
     <div data-buoni-pasto style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)', gap: 12 }}>
         <div>
           <div style={LAB}>Emittente</div>
           <select value={v.issuer_id || ''} onChange={e => cambiaEmittente(e.target.value)} style={INP}>
-            {conv.map(c => { const e = window.byupBuoniEmittente(c.issuer_id); return <option key={c.id} value={c.issuer_id}>{e.brand}{e.brand !== e.name ? ` · ${e.name}` : ''}</option>; })}
+            {emittenti.map(e => <option key={e.id} value={e.id}>{e.brand}{e.brand !== e.name ? ` · ${e.name}` : ''}</option>)}
           </select>
+          {/* Con «Altro» il nome lo scrive chi batte, ed è obbligatorio: è
+              l'unico posto in cui quell'emittente esiste, e a fine mese serve
+              a riscontrare la rendicontazione. */}
+          {altro && (
+            <input data-altro-emittente value={v.issuer_other_name || ''} onChange={e => set({ issuer_other_name: e.target.value })}
+              placeholder="Nome dell'emittente" style={{ ...INP, marginTop: 8, fontSize: 14.5 }}/>
+          )}
         </div>
         <div>
           <div style={LAB}>Numero dei titoli</div>
