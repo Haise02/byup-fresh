@@ -878,7 +878,6 @@ function AccAccessibilita() {
   };
 
   return (
-    <React.Fragment>
       <AcCard title="Dimensione dell'interfaccia"
         subtitle="Vale per questo dispositivo: il tablet in cucina e il computer in ufficio possono avere misure diverse. Ogni riga è disegnata alla misura che propone.">
         <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
@@ -951,12 +950,24 @@ function AccAccessibilita() {
           <kbd style={tastiera}>{tastoMod + ' + Alt + −'}</kbd>
           <span>per rimpicciolire.</span>
         </div>
-      </AcCard>
 
-      <AcCard title="Movimento"
-        subtitle="Alcune parti del gestionale si animano quando qualcosa cambia — una card che entra, un numero che pulsa.">
-        <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
-          <div style={{flex: 1, minWidth: 0}}>
+        {/* Il movimento sta QUI e non in una scheda sua: una scheda intera con
+            titolo e sottotitolo per un solo interruttore è più interfaccia di
+            quanta ne serva. Resta però, e non è un vezzo — il gestionale ha 56
+            animazioni che non finiscono mai, e nove durano oltre i cinque
+            secondi (il gradiente del byuppino, le sue macchie, il liquid glass,
+            il Ken Burns della vetrina, il telefono dell'anteprima che scorre da
+            solo per 48"). Contenuto che parte da solo e dura più di cinque
+            secondi accanto ad altro contenuto fa scattare WCAG 2.2.2, che è
+            livello A: il pavimento, non un lusso.
+            La preferenza di sistema le spegne già tutte, ma chi ne ha bisogno
+            quasi mai sa che quell'impostazione esiste: questo è il posto dove
+            la scopre. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+          marginTop: 18, paddingTop: 18, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <div style={{flex: '1 1 260px', minWidth: 0}}>
             <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Riduci le animazioni</div>
             <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 3}}>
               {sistemaRiduce
@@ -967,7 +978,6 @@ function AccAccessibilita() {
           <AccInterruttore checked={ridotto} onChange={cambiaMoto} etichetta="Riduci le animazioni"/>
         </div>
       </AcCard>
-    </React.Fragment>
   );
 }
 

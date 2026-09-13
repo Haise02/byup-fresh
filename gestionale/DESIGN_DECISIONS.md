@@ -1125,3 +1125,24 @@ girava fra i livelli, e un comando che gira non dice dove ti porta. In 68 px lo
 spazio per spiegarlo non c'è, e un controllo che si capisce solo dal tooltip non
 è un controllo accessibile. Da tastiera invece resta ovunque: `⌘/Ctrl + Alt + +`
 e `−`.
+
+**«Riduci le animazioni» è una riga, non una scheda.** Sta sotto le tre misure,
+dentro la stessa scheda, separata da un filetto: una scheda intera con titolo e
+sottotitolo per un solo interruttore era più interfaccia di quanta ne serva.
+
+Resta, però, e la ragione è misurata: il gestionale ha **56 animazioni infinite**
+e nove durano oltre i cinque secondi — il gradiente della scheda del byuppino
+(12 e 16 s) e le sue tre macchie di sfondo (19, 21, 27 s), il liquid glass
+(14 s), il bagliore del vetro (5,2 s), il Ken Burns della vetrina (11 s) e il
+telefono dell'anteprima che scorre da solo per 48 s. Contenuto che parte da
+solo, dura più di cinque secondi e sta accanto ad altro contenuto fa scattare
+**WCAG 2.2.2 Pause, Stop, Hide — livello A**, cioè il pavimento, non un lusso.
+Il criterio che chiederebbe di disattivare le animazioni in quanto tali (2.3.3)
+è invece AAA, e non è il nostro bersaglio.
+
+`prefers-reduced-motion` le spegne già tutte e 56 con una regola globale in
+`byup-fit.js` — prima lo faceva a macchia di leopardo, in undici file. Ma chi ha
+bisogno di ridurre il movimento quasi mai sa che quell'impostazione di sistema
+esiste: l'interruttore nel prodotto è il posto dove la scopre, ed è anche quello
+che rende 2.2.2 un fatto invece di un'interpretazione sul se un'impostazione del
+sistema operativo valga come «meccanismo».
