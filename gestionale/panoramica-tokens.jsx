@@ -1633,11 +1633,33 @@ if (!window.byupConsegnaConferma) {
   const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} window.dispatchEvent(new Event('byup-consegne-change')); };
   window.byupConsegnaConferma = () => leggi(CONS_KEY, false) === true;
   window.byupSetConsegnaConferma = (v) => scrivi(CONS_KEY, !!v);
-  // Le consegne dichiarate, per numero di tavolo: la Sala e l'app del
-  // cameriere le scrivono, il monitor le legge per spegnere il cronometro
-  // della voce che aspettava. Un fatto, non uno stato da sincronizzare.
-  window.byupConsegneTavolo = () => leggi(CONS_FATTE, {});
-  window.byupSegnaConsegnaTavolo = (n) => { const m = leggi(CONS_FATTE, {}); m[String(n)] = Date.now(); scrivi(CONS_FATTE, m); };
+  // Le consegne dichiarate, PER PORZIONE (P-211 · D-156). La Sala e l'app del
+  // cameriere le scrivono, il monitor le legge per fermare il cronometro di
+  // quello che è uscito. Un fatto, non uno stato da sincronizzare.
+  //
+  // Prima la grana era il TAVOLO più un istante: consegnare due secondi su
+  // quattro spegneva il cronometro di tutto il tavolo, e anche i piatti
+  // ordinati dopo risultavano consegnati se il loro momento cadeva prima di
+  // quella marcatura. Il modello scrive la consegna sulla porzione
+  // (`order_items`), non sul tavolo, e questa è la grana giusta: quei due si
+  // fermano, gli altri due continuano a scorrere sotto la lampada, che è
+  // esattamente l'informazione che serve al cuoco.
+  //
+  // La CHIAVE, e il suo limite dichiarato: le tre superfici sono tre mock
+  // diversi — la Sala ha le righe di SALA_TAVOLI, il monitor i ticket della
+  // Cucina — e non condividono l'identificativo della riga d'ordine che nel
+  // prodotto è uno solo. Qui la porzione si nomina con «tavolo|piatto», che è
+  // la grana con cui la Sala già raggruppa le sue righe e l'unica che le due
+  // parti sanno calcolare entrambe.
+  const chiaveCons = (tavolo, piatto) => String(tavolo) + '|' + String(piatto || '').trim().toLowerCase();
+  window.byupConsegne = () => leggi(CONS_FATTE, {});
+  window.byupChiaveConsegna = chiaveCons;
+  window.byupConsegnata = (tavolo, piatto) => !!leggi(CONS_FATTE, {})[chiaveCons(tavolo, piatto)];
+  window.byupSegnaConsegna = (tavolo, piatti) => {
+    const m = leggi(CONS_FATTE, {}); const ora = Date.now();
+    (Array.isArray(piatti) ? piatti : [piatti]).forEach(p => { m[chiaveCons(tavolo, p)] = ora; });
+    scrivi(CONS_FATTE, m);
+  };
   // La soglia dell'attesa sotto la lampada, in minuti: è la stessa che l'app
   // del cameriere usa nella coda «Da consegnare», e si legge da qui invece di
   // scriverla due volte.

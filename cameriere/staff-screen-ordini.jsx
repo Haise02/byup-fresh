@@ -118,13 +118,19 @@ function DaPortareCard({ g, nav, openModal }) {
       </div>
 
       {/* Azione unica: Consegna. Dichiararla qui la fa sapere anche al monitor
-          di cucina, che spegne il cronometro della voce che aspettava
+          di cucina, che ferma il cronometro di quello che è uscito
           (P-197 · D-156): è una delle due superfici da cui la consegna si
-          scrive, insieme alla card del tavolo in Sala. */}
+          scrive, insieme alla card del tavolo in Sala, e scrive nello stesso
+          posto e nella stessa forma.
+          Si marcano le PORZIONI scelte (P-211): «Consegna selezionati» manda
+          quelle spuntate, «Consegna tutti» tutte quelle della card, e gli
+          altri piatti dello stesso tavolo continuano ad aspettare. */}
       <div style={{ padding: '0 14px 12px' }}>
         <Btn variant="primary" size="md" full onClick={() => {
-          if (window.byupSegnaConsegnaTavolo && g.tavolo != null) window.byupSegnaConsegnaTavolo(g.tavolo);
-          openModal({ kind: 'success', text: 'Consegnato al tavolo' });
+          const scelti = g.piatti.filter(p => sel[p.id]);
+          const quali = (scelti.length ? scelti : g.piatti).map(p => p.nome);
+          if (window.byupSegnaConsegna && g.tavolo != null) window.byupSegnaConsegna(g.tavolo, quali);
+          openModal({ kind: 'success', text: quali.length === g.piatti.length ? 'Consegnato al tavolo' : `Consegnat${quali.length === 1 ? 'o' : 'i'} ${quali.length} su ${g.piatti.length}` });
         }}>
           {selCount > 0 && selCount < g.piatti.length ? 'Consegna selezionati' : 'Consegna tutti'}
         </Btn>

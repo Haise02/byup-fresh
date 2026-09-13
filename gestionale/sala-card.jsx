@@ -1028,19 +1028,35 @@ function OrdiniList({ ordini, tavolo }) {
   // L'azione compare solo dove la sede chiede la conferma: a interruttore
   // spento la riga passa a consegnata da sé insieme al pronto, e un comando
   // che ripete una cosa già avvenuta confonde.
+  // Lo stato della consegna VIVE NEL REGISTRO CONDIVISO (P-211), non in
+  // memoria: prima la Sala scriveva `o.stato = 'consegnato'` sull'oggetto del
+  // seme e il registro riceveva solo il numero del tavolo, così dopo un
+  // ricaricamento la Sala diceva «pronto» e il monitor «consegnato» — due
+  // schermate che si contraddicono su un fatto. Ora la marcatura è la stessa
+  // per tutti: la porzione consegnata sta nel registro, e chiunque la legge.
   const [, ribatti] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => ribatti(x => x + 1);
+    window.addEventListener('byup-consegne-change', f);
+    window.addEventListener('storage', f);
+    return () => { window.removeEventListener('byup-consegne-change', f); window.removeEventListener('storage', f); };
+  }, []);
   const conferma = window.byupConsegnaConferma ? window.byupConsegnaConferma() : false;
-  const segna = (righe) => {
-    righe.forEach(o => { o.stato = 'consegnato'; });
-    // Il monitor di cucina spegne il cronometro della voce che aspettava.
-    if (tavolo != null && window.byupSegnaConsegnaTavolo) window.byupSegnaConsegnaTavolo(tavolo);
+  // Lo stato che si mostra: quello della riga, più la consegna dichiarata.
+  const statoDi = (o) => (o.stato === 'pronto' && tavolo != null && window.byupConsegnata && window.byupConsegnata(tavolo, o.nome))
+    ? 'consegnato' : o.stato;
+  const segna = (nomi) => {
+    // Si marcano le PORZIONI, non il tavolo: gli altri piatti dello stesso
+    // tavolo continuano a portare la loro attesa.
+    if (tavolo != null && window.byupSegnaConsegna) window.byupSegnaConsegna(tavolo, nomi);
     ribatti(x => x + 1);
   };
-  const consegnaGruppo = (g) => segna(ordini.filter(o => o.nome === g.nome && o.stato === g.stato));
-  const prontiOra = ordini.filter(o => o.stato === 'pronto');
+  const consegnaGruppo = (g) => segna([g.nome]);
+  const prontiOra = ordini.filter(o => statoDi(o) === 'pronto');
   // Raggruppa per nome + status, somma qty, prende max dei due timer
   const grouped = {};
-  ordini.forEach(o => {
+  ordini.forEach(o0 => {
+    const o = statoDi(o0) === o0.stato ? o0 : Object.assign({}, o0, { stato: statoDi(o0) });
     const key = `${o.nome}|${o.stato}`;
     if (!grouped[key]) {
       grouped[key] = { ...o, qty: 0, minutiInPreparazione: 0, minutiInCoda: 0 };
@@ -1136,7 +1152,7 @@ function OrdiniList({ ordini, tavolo }) {
       {/* Tutto il tavolo in un gesto: quando escono insieme, chiedere riga per
           riga sarebbe lavoro inventato. */}
       {open && conferma && prontiOra.length > 1 && (
-        <button data-consegna-tutto onClick={(e) => { e.stopPropagation(); segna(prontiOra); }}
+        <button data-consegna-tutto onClick={(e) => { e.stopPropagation(); segna(prontiOra.map(o => o.nome)); }}
           className="pn-btn-feedback"
           style={{
             marginTop: 2, padding: '5px 10px', borderRadius: 8, alignSelf: 'flex-start',
