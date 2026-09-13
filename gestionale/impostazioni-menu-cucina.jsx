@@ -74,6 +74,43 @@ function CopertoImportoLibero({ tipo, valore, onChange }) {
 // predefinito «uguale alla chiusura» non chiede nulla; «un orario mio» apre
 // sette campi, uno per giorno aperto. Nulla si salva con un pulsante: ogni
 // cambio scrive il registro, come per il coperto.
+// ─── La conferma della consegna al tavolo (P-197 · D-156) ─────────────────
+// Chi scrive che il piatto è arrivato al tavolo dipende da come lavora la
+// sede, e la sede sceglie qui. Spento — il predefinito — il piatto pronto si
+// registra come consegnato e nessuno tocca niente: è il caso del locale senza
+// personale dedicato al passe. Acceso, il piatto resta pronto finché chi lo
+// porta non lo dichiara, dall'app del cameriere o dalla card del tavolo in
+// Sala. L'etichetta dice la cosa e non il suo contrario, e la riga sotto dice
+// che cosa cambia, perché un interruttore di cui non si vede l'effetto finché
+// il servizio non si inceppa non si accende con cognizione.
+// Il valore vive in un posto solo (byupConsegnaConferma, panoramica-tokens):
+// lo leggono il monitor di cucina, la Sala e l'app del cameriere.
+function ConfermaConsegnaCard() {
+  const [on, setOn] = React.useState(() => (window.byupConsegnaConferma ? window.byupConsegnaConferma() : false));
+  React.useEffect(() => {
+    const ri = () => setOn(window.byupConsegnaConferma ? window.byupConsegnaConferma() : false);
+    window.addEventListener('byup-consegne-change', ri); window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-consegne-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
+  const cambia = (v) => { setOn(v); if (window.byupSetConsegnaConferma) window.byupSetConsegnaConferma(v); };
+  return (
+    <ImpCard anchor="conferma-consegna" title="Chiedi la conferma della consegna al tavolo"
+      sub="Riguarda i soli tavoli: al banco il cliente è davanti a chi prepara, e l'asporto ha la sua coda dei ritiri."
+      action={
+        <div style={{display:'flex', alignItems:'center', gap: 8}}>
+          <ImpToggle checked={on} onChange={() => cambia(!on)}/>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: on ? PN.TEXT : PN.MUTED}}>{on ? 'Attivo' : 'Disattivato'}</span>
+        </div>
+      }>
+      <div data-conferma-consegna={on ? 'on' : 'off'} style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5}}>
+        {on
+          ? <>Il piatto resta <b style={{color: PN.TEXT}}>pronto</b> finché chi lo porta non dichiara la consegna, dall'app del cameriere o dalla card del tavolo in Sala. Il monitor di cucina mostra da quanto aspetta.</>
+          : <>Il piatto <b style={{color: PN.TEXT}}>pronto si registra come consegnato</b>: nessuno deve toccare niente, e in cucina non scorre alcun tempo di attesa.</>}
+      </div>
+    </ImpCard>
+  );
+}
+
 function UltimaComandaCard() {
   const [uc, setUcState] = React.useState(() => window.byupReadUltimaComanda ? window.byupReadUltimaComanda() : { modo: 'chiusura', orari: {} });
   const [orari, setOrari] = React.useState(() => window.byupReadOrari ? window.byupReadOrari() : { openDays: {}, stdHours: ['09:00', '23:00'] });
@@ -7998,6 +8035,9 @@ function MCConfigura() {
           lucchetto per la sala, che invia con un avviso. Registro condiviso
           byup_ultima_comanda; la mezzanotte si gestisce come la chiusura. */}
       <UltimaComandaCard/>
+
+      {/* ── La conferma della consegna (P-197 · D-156) ── */}
+      <ConfermaConsegnaCard/>
 
       {/* === SEZIONE 2: PRENOTAZIONI === */}
       <ImpCard

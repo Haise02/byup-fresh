@@ -1443,7 +1443,12 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
       prima.current = m;
       volaVerso(card);
     }
-    const conferma = window.byupConsegnaConferma ? window.byupConsegnaConferma() : false;
+    // L'impostazione riguarda i SOLI TAVOLI (P-197 · D-156). Al banco il
+    // cliente è davanti a chi prepara, quindi pronto e consegnato sono lo
+    // stesso istante; l'asporto e il delivery hanno la loro coda dei ritiri in
+    // Vendita diretta, e un cronometro qui direbbe che il cuoco deve fare
+    // qualcosa mentre si sta solo aspettando che il cliente arrivi.
+    const conferma = (window.byupConsegnaConferma ? window.byupConsegnaConferma() : false) && !t.tipo;
     setUsciti(l => [{ id: t.id, n: t.n, tipo: t.tipo, ritiro: t.ritiro, cliente: t.cliente,
       piatti: somma(t.piatti), quando: ora, reale: Date.now(), consegnato: !conferma }]
       .concat(l.filter(v => v.id !== t.id)).slice(0, 60));

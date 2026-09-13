@@ -66,7 +66,10 @@ function DaPortareCard({ g, nav, openModal }) {
   const isDiretto = g.rotta === 'diretto';
   // Il tempo non è un dato da mostrare sempre: conta solo come ALERT quando un
   // piatto di cucina è pronto da troppo (si fredda). Sotto soglia, niente.
-  const SOGLIA_ALERT = 3;
+  // La soglia è una sola per tutto il prodotto (P-196 · D-156): la usa anche
+  // il monitor di cucina nella lista dei pronti, e scriverla due volte
+  // significherebbe vederla cambiare in un posto e non nell'altro.
+  const SOGLIA_ALERT = window.PN_CONSEGNA_SOGLIA_MIN || 3;
   const inAllarme = !isDiretto && (g.minutiPronto || 0) > SOGLIA_ALERT;
 
   return (
@@ -114,9 +117,15 @@ function DaPortareCard({ g, nav, openModal }) {
         })}
       </div>
 
-      {/* Azione unica: Consegna */}
+      {/* Azione unica: Consegna. Dichiararla qui la fa sapere anche al monitor
+          di cucina, che spegne il cronometro della voce che aspettava
+          (P-197 · D-156): è una delle due superfici da cui la consegna si
+          scrive, insieme alla card del tavolo in Sala. */}
       <div style={{ padding: '0 14px 12px' }}>
-        <Btn variant="primary" size="md" full onClick={() => openModal({ kind: 'success', text: 'Consegnato al tavolo' })}>
+        <Btn variant="primary" size="md" full onClick={() => {
+          if (window.byupSegnaConsegnaTavolo && g.tavolo != null) window.byupSegnaConsegnaTavolo(g.tavolo);
+          openModal({ kind: 'success', text: 'Consegnato al tavolo' });
+        }}>
           {selCount > 0 && selCount < g.piatti.length ? 'Consegna selezionati' : 'Consegna tutti'}
         </Btn>
       </div>

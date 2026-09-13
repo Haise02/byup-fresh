@@ -784,7 +784,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 sceglie cosa saldare.
                 Richiudibile e chiusa di default: la card dice lo stato del
                 tavolo, il dettaglio si apre solo a chi lo chiede. */}
-            {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
+            {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini} tavolo={t.id}/>}
 
             {/* Crea ordine — link testuale: niente sfondo, si
                 ingrandisce in hover */}
@@ -978,7 +978,7 @@ function StatoPill({ color, bg, label, tip }) {
   );
 }
 
-function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
+function OrdineRow({ qty, nome, nomeExtra, alert, pill, azione, style }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center',
@@ -1008,6 +1008,8 @@ function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
       }}>
         {pill}
       </span>
+      {/* L'azione della riga, quando c'è: oggi è la consegna (P-197). */}
+      {azione}
     </div>
   );
 }
@@ -1015,8 +1017,27 @@ function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
 // Lista articoli realistica con stato cucina — contraibile, chiusa di
 // default: l'header riepiloga i conteggi per stato (pallini colorati),
 // il click la espande/contrae.
-function OrdiniList({ ordini }) {
+function OrdiniList({ ordini, tavolo }) {
   const [open, setOpen] = React.useState(false);
+  // ── CHI DICHIARA LA CONSEGNA (P-197 · D-156) ────────────────────────────
+  // Lo stato «consegnato» esisteva come cosa da mostrare e nessun comando lo
+  // scriveva: si vedeva e non si poteva mettere. Ora la riga pronta porta
+  // l'azione che la chiude, e vale PER RIGA perché il caso vero è «due
+  // secondi su quattro sono usciti»; l'azione sull'intero tavolo c'è in
+  // aggiunta, non al posto.
+  // L'azione compare solo dove la sede chiede la conferma: a interruttore
+  // spento la riga passa a consegnata da sé insieme al pronto, e un comando
+  // che ripete una cosa già avvenuta confonde.
+  const [, ribatti] = React.useState(0);
+  const conferma = window.byupConsegnaConferma ? window.byupConsegnaConferma() : false;
+  const segna = (righe) => {
+    righe.forEach(o => { o.stato = 'consegnato'; });
+    // Il monitor di cucina spegne il cronometro della voce che aspettava.
+    if (tavolo != null && window.byupSegnaConsegnaTavolo) window.byupSegnaConsegnaTavolo(tavolo);
+    ribatti(x => x + 1);
+  };
+  const consegnaGruppo = (g) => segna(ordini.filter(o => o.nome === g.nome && o.stato === g.stato));
+  const prontiOra = ordini.filter(o => o.stato === 'pronto');
   // Raggruppa per nome + status, somma qty, prende max dei due timer
   const grouped = {};
   ordini.forEach(o => {
@@ -1098,9 +1119,31 @@ function OrdiniList({ ordini }) {
               </span>
             )}
             pill={<StatoPill color={pillColor} bg={pillBg} label={pillLabel} tip={tipText}/>}
+            azione={conferma && o.stato === 'pronto' ? (
+              <button data-consegna-riga={o.nome} onClick={(e) => { e.stopPropagation(); consegnaGruppo(o); }}
+                title="Segna come consegnato al tavolo"
+                className="pn-btn-feedback"
+                style={{
+                  flexShrink: 0, marginLeft: 6, padding: '3px 9px', borderRadius: 999,
+                  background: '#ECFDF3', border: '1px solid #A7F3D0', color: '#047857',
+                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                }}>Consegnato</button>
+            ) : null}
           />
         );
       })}
+      {/* Tutto il tavolo in un gesto: quando escono insieme, chiedere riga per
+          riga sarebbe lavoro inventato. */}
+      {open && conferma && prontiOra.length > 1 && (
+        <button data-consegna-tutto onClick={(e) => { e.stopPropagation(); segna(prontiOra); }}
+          className="pn-btn-feedback"
+          style={{
+            marginTop: 2, padding: '5px 10px', borderRadius: 8, alignSelf: 'flex-start',
+            background: '#fff', border: '1px solid #A7F3D0', color: '#047857',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Segna tutto consegnato · {prontiOra.reduce((n, o) => n + (o.qty || 0), 0)}</button>
+      )}
     </div>
   );
 }
