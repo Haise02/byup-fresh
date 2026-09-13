@@ -119,6 +119,15 @@ function BuAiFab() {
   // dove l'assistente È il widget in testa — e Statistiche, dove il pannello
   // da 390px non avrebbe spazio e il bollino coprirebbe le tab in basso.
   const device = window.PnDevice ? window.PnDevice.use() : 'desktop';
+  // La stessa ragione per cui il bollino non c'è dal telefono vale su una tela
+  // logica altrettanto piccola, che è quello che succede a «Molto grande»: a
+  // 646 × 360 un bollino da 72 nell'angolo copre le linguette di sezione e le
+  // CTA in basso a destra, e il pannello dell'assistente non avrebbe spazio.
+  // A `md` resta, ma a 56: su 514 px di altezza, 72 erano un settimo di
+  // schermo. L'assistente resta comunque raggiungibile dov'è di casa, cioè il
+  // suo widget in Panoramica.
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const lato = bp === 'md' ? 56 : 72;
   const [hover, setHover] = React.useState(false);
   const [scintille, setScintille] = React.useState(0);   // rimonta il burst a ogni clic
   // `null` = mai spostato: resta ancorato in basso a destra e segue il frame
@@ -236,7 +245,7 @@ function BuAiFab() {
   };
 
   // Dopo tutti gli hook, così il ritorno anticipato non ne cambia l'ordine.
-  if (device === 'phone') return null;
+  if (device === 'phone' || bp === 'sm' || bp === 'xs') return null;
 
   return (
       <div ref={wrapRef} style={{
@@ -298,7 +307,7 @@ function BuAiFab() {
           data-no-fx
           style={{
             position:'relative',
-            width: 72, height: 72, borderRadius:'50%',
+            width: lato, height: lato, borderRadius:'50%',
             touchAction:'none',   // senza, su touch lo scroll ruba il gesto
             border: `1px solid ${hover ? 'transparent' : 'rgba(15,17,21,0.06)'}`,
             // A riposo è bianco con la faccina; al passaggio si accende col
@@ -359,7 +368,7 @@ function BuAiFab() {
             <span style={{
               position:'absolute', inset: 0, display:'grid', placeItems:'center',
               opacity: ritirato ? 1 : 0, transition:'opacity 200ms ease',
-              color: PN.PINK,
+              color: PN.BRAND_TEXT,
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"

@@ -51,6 +51,10 @@ const IMP_SEZIONI = [
   { id: 'flussi', label: 'Servizio', icon: 'chart-workflow', area: 'impostazioni' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt', area: 'dati_fiscali' },
   { id: 'integrazioni', label: 'Integrazioni', icon: 'commerce-bank-cards', area: 'impostazioni' },
+  // Senza `area`: la dimensione dei caratteri non è un permesso da concedere.
+  // Chiunque apra il gestionale su questo schermo deve poterla cambiare, anche
+  // il cameriere che non tocca né i conti né il menù.
+  { id: 'accessibilita', label: 'Accessibilità', icon: 'magnifying-glass' },
 ];
 
 // La seconda colonna: stessa cassa del menù globale del gestionale — vetro
@@ -62,7 +66,10 @@ const IMP_SEZIONI = [
 //
 // `collapsed`: le due colonne si danno il cambio, una sola per volta è larga.
 // Da stretta questa resta la stessa fila di icone, solo senza le parole.
-function ImpNavSidebar({ active, onChange, collapsed }) {
+// `pieno`: la colonna non è più una colonna, è la schermata. Serve alla vista
+// a un livello per volta delle tele strette, dove l'elenco delle sezioni e la
+// sezione aperta si danno il cambio invece di stare affiancati.
+function ImpNavSidebar({ active, onChange, collapsed, pieno }) {
   // Il totale che sta sulla voce Impostazioni del menù accanto, qui si divide
   // fra le due sezioni che lo compongono: uno su Dati fiscali, uno su
   // Integrazioni. È la stessa notizia detta un gradino più in basso — chi è
@@ -72,7 +79,7 @@ function ImpNavSidebar({ active, onChange, collapsed }) {
   const daFare = { fiscali: attivazioni.fiscale ? 1 : 0, integrazioni: attivazioni.stripe ? 1 : 0 };
   return (
     <aside style={{
-      width: collapsed ? 68 : 272, flexShrink: 0,
+      ...(pieno ? { flex: 1, minWidth: 0 } : { width: collapsed ? 68 : 272, flexShrink: 0 }),
       ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column',
       padding: collapsed ? '20px 10px' : '20px 14px',
@@ -304,22 +311,39 @@ function ImpTextarea(props) {
   );
 }
 
-function ImpToggle({ checked, onChange }) {
+// L'interruttore. Il DISEGNO è lo stesso di sempre — pista da 38 × 22, pallina
+// da 18 — ma il bersaglio adesso è 44 × 44: cresce l'area attorno, non il
+// segno (WCAG 2.5.5). E si dichiara per quello che è: `role="switch"` con
+// `aria-checked`, perché prima uno screen reader leggeva «pulsante» e non
+// diceva se era acceso o spento.
+function ImpToggle({ checked, onChange, etichetta }) {
   return (
-    <button onClick={() => onChange?.(!checked)} style={{
-      width: 38, height: 22, borderRadius: 999,
-      border: 'none',
-      background: checked ? PN.GREEN : PN.BORDER,
-      position:'relative', cursor:'pointer',
-      transition: 'background .15s',
-    }}>
-      <span style={{
-        position:'absolute', top: 2, left: checked ? 18 : 2,
-        width: 18, height: 18, borderRadius: '50%',
-        background: PN.WHITE,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-        transition: 'left .15s',
-      }}/>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!!checked}
+      aria-label={etichetta}
+      onClick={() => onChange?.(!checked)}
+      style={{
+        width: 44, height: 44, padding: 0, flexShrink: 0,
+        border: 'none', background: 'transparent', cursor: 'pointer',
+        display: 'grid', placeItems: 'center',
+      }}>
+      <span aria-hidden="true" style={{
+        display: 'block',
+        width: 38, height: 22, borderRadius: 999,
+        background: checked ? PN.GREEN : PN.BORDER,
+        position:'relative',
+        transition: 'background .15s',
+      }}>
+        <span style={{
+          position:'absolute', top: 2, left: checked ? 18 : 2,
+          width: 18, height: 18, borderRadius: '50%',
+          background: PN.WHITE,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          transition: 'left .15s',
+        }}/>
+      </span>
     </button>
   );
 }
@@ -368,7 +392,15 @@ function ImpButton({ variant = 'primary', icon, children, onClick, style = {}, d
         display:'inline-flex', alignItems:'center', gap: 7,
         padding: '9px 16px',
         borderRadius: 9,
-        fontSize: 15, fontWeight: 600,
+        // ── Testo bianco sul corallo del marchio (C2, deciso il 13/09) ──────
+        // #FF5A5F col bianco fa 3,05:1. Per 1.4.3 bastano 3:1 quando il testo
+        // è GRANDE, e «grande» in bold vuol dire almeno 18,66 px — non 17,
+        // come avevo scritto per errore in Fase 0. Quindi il pulsante di marca
+        // porta il testo a 19/700: il corallo non si tocca, e il criterio è
+        // soddisfatto. Le altre varianti restano 15/600, perché sul nero e sul
+        // bianco il contrasto c'è già abbondante (13,75:1 e 18,90:1).
+        fontSize: variant === 'pink' ? 19 : 15,
+        fontWeight: variant === 'pink' ? 700 : 600,
         cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
         background: v.bg, color: v.color, border: v.border,
         boxShadow: v.shadow,
@@ -388,7 +420,7 @@ function MenuItem({ icon, children, danger, onClick }) {
       display:'flex', alignItems:'center', gap: 9, width:'100%',
       padding:'8px 10px', background:'transparent', border:'none',
       borderRadius: 7, fontSize: 15, fontFamily:'inherit',
-      color: danger ? PN.PINK_DARK : PN.TEXT,
+      color: danger ? PN.BRAND_TEXT : PN.TEXT,
       cursor:'pointer', textAlign:'left',
     }}
     onMouseEnter={e => e.currentTarget.style.background = danger ? PN.PINK_SOFT : '#F4F5F7'}
@@ -433,12 +465,17 @@ function ImpWithPreview({ children, preview }) {
   const stretto = window.statStretto ? window.statStretto() : false;
   void pnDevice;
 
-  // Su tablet l'anteprima parte CHIUSA: aperta, tra le due colonne di menu e
-  // i suoi 348px, al form restavano ~330px e le schede dei servizi si
-  // accavallavano. Il bottone «Mostra anteprima vetrina» resta lì per aprirla.
-  const [open, setOpen] = React.useState(
-    () => !(window.PnDevice && window.PnDevice.get() === 'tablet')
-  );
+  // L'anteprima parte CHIUSA quando la tela è stretta: aperta, tra le colonne
+  // di menù e i suoi 348px, al form restavano ~330px e le schede dei servizi
+  // si accavallavano. Il bottone «Mostra anteprima vetrina» resta lì per
+  // aprirla. La misura è quella della TELA LOGICA e non più della sola classe
+  // di dispositivo: un desktop a «Molto grande» ha 646 px di tela, cioè meno
+  // di un iPad in verticale, e lì l'anteprima da sola si prendeva l'85%.
+  const [open, setOpen] = React.useState(() => {
+    if (window.PnDevice && window.PnDevice.get() === 'tablet') return false;
+    const bp0 = window.byupBp ? window.byupBp() : 'lg';
+    return bp0 === 'lg';
+  });
   const asideRef = React.useRef(null);
   const phoneRef = React.useRef(null);
 

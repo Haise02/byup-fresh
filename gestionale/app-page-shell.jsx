@@ -9,8 +9,19 @@
 // sheet=true: FOGLIO che sale dal fondo (ancorato in basso, angoli 22px in
 // alto, slide-up spring) — per i flussi di creazione, niente modal opaco.
 function PnModal({ open, onClose, title, subtitle, width = 720, children, footer, surface, sheet }) {
+  // Gli hook stanno PRIMA del ritorno anticipato: l'ordine non può cambiare
+  // fra un render e l'altro.
+  const pannello = React.useRef(null);
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  if (window.useTrappolaFocus) window.useTrappolaFocus(pannello, !!open, onClose);
   if (!open) return null;
   const solid = surface === 'solid';
+  // Su una tela da 646 px una finestra da 720 è già più larga dello schermo, e
+  // il `maxWidth: 92%` la lascia a 594 con dentro moduli pensati per 720. A
+  // quel punto non è più una finestra posata sopra la pagina: è la pagina. Si
+  // prende tutto lo spazio, il corpo scorre e il piede resta attaccato in
+  // basso, così le CTA non finiscono mai fuori portata.
+  const pieno = bp === 'sm' || bp === 'xs';
   const surfaceStyle = solid
     ? {
         background: '#FFFFFF',
@@ -33,13 +44,23 @@ function PnModal({ open, onClose, title, subtitle, width = 720, children, footer
         from { opacity: 0.4; transform: translateY(36px); }
         to   { opacity: 1;   transform: translateY(0); }
       }`}</style>}
-      <div onClick={e => e.stopPropagation()} style={{
+      <div
+        ref={pannello}
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : undefined}
+        onClick={e => e.stopPropagation()}
+        style={{
         width, maxWidth: '92%', maxHeight: sheet ? '90%' : '88%',
         ...surfaceStyle,
         borderRadius: sheet ? '22px 22px 0 0' : 14,
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
         animation: sheet ? 'pnSheetUp 320ms cubic-bezier(0.32, 0.72, 0, 1)' : undefined,
+        ...(pieno ? {
+          width: '100%', maxWidth: '100%', height: '100%', maxHeight: '100%',
+          borderRadius: 0, animation: undefined,
+        } : null),
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
@@ -50,8 +71,11 @@ function PnModal({ open, onClose, title, subtitle, width = 720, children, footer
             <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT, letterSpacing: '-0.01em'}}>{title}</div>
             {subtitle && <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>{subtitle}</div>}
           </div>
-          <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: 8,
+          {/* 44 × 44: cresce l'AREA, non il segno — la X resta di 16. Era 28,
+              che passa il minimo di 2.5.8 ma non l'obiettivo di 2.5.5, ed è il
+              bersaglio più ripetuto di tutto il gestionale. */}
+          <button onClick={onClose} aria-label="Chiudi" title="Chiudi" style={{
+            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
             background: 'transparent', border: 'none',
             color: PN.MUTED, cursor: 'pointer',
             display: 'grid', placeItems: 'center',
@@ -68,6 +92,10 @@ function PnModal({ open, onClose, title, subtitle, width = 720, children, footer
             borderTop: `1px solid ${PN.BORDER_HAIR}`,
             display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10,
             background: PN.WHITE_HUSH,
+            // A tutto schermo il piede è l'unico posto da cui si conferma:
+            // non deve poter scorrere via insieme al corpo, e su una tela
+            // stretta le CTA vanno a capo invece di uscire dal bordo.
+            flexShrink: 0, flexWrap: 'wrap',
           }}>{footer}</div>
         )}
       </div>
@@ -121,7 +149,15 @@ function PnButton({ variant = 'primary', icon, children, onClick, style, disable
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         padding: '9px 16px', borderRadius: 9,
-        fontSize: 15, fontWeight: 600,
+        // ── Testo bianco sul corallo del marchio (C2, deciso il 13/09) ──────
+        // #FF5A5F col bianco fa 3,05:1. Per 1.4.3 bastano 3:1 quando il testo
+        // è GRANDE, e «grande» in bold vuol dire almeno 18,66 px — non 17,
+        // come avevo scritto per errore in Fase 0. Quindi il pulsante di marca
+        // porta il testo a 19/700: il corallo non si tocca, e il criterio è
+        // soddisfatto. Le altre varianti restano 15/600, perché sul nero e sul
+        // bianco il contrasto c'è già abbondante (13,75:1 e 18,90:1).
+        fontSize: variant === 'pink' ? 19 : 15,
+        fontWeight: variant === 'pink' ? 700 : 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
         opacity: disabled ? 0.5 : 1,

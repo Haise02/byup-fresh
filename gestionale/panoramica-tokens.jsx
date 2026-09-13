@@ -6,7 +6,19 @@ const PN = {
   WHITE: '#fff',
   // text
   TEXT: '#0F1115',
-  MUTED: '#6B7280',
+  // Scurito da #6B7280 il 13 settembre 2026. L'originale faceva 4,47:1 sulle
+  // superfici grigie e falliva 1.4.3 di un soffio proprio dove è più usato.
+  // #636875 è il primo grigio che passa il 4,5 su TUTTE le superfici chiare
+  // che il prodotto usa davvero — bianco 5,57 · BG 5,15 · WHITE_FROST 4,85 ·
+  // PINK_SOFT 4,50 · PINK_BG_SOFT 5,06 — misurate una per una, perché il
+  // secondario finisce anche sopra il rosa tenue delle voci attive.
+  MUTED: '#636875',
+  // ATTENZIONE: questi due NON sono colori di testo. 2,54:1 e 1,68:1 su bianco.
+  // Valgono per la decorazione — un separatore, un tratteggio, un'icona che non
+  // porta informazione — e per niente che si debba leggere. Il testo secondario
+  // è MUTED. Un terzo grigio conforme non esiste: fra il più chiaro che passa
+  // (#6D727A) e MUTED non c'è differenza percepibile, quindi la gerarchia sotto
+  // MUTED la fa il PESO, non il colore.
   MUTED_SOFT: '#9CA3AF',
   MUTED_LIGHT: '#C5C8CE',
   // border
@@ -19,6 +31,23 @@ const PN = {
   PINK_BG_SOFT: '#FFF1EF',
   WINE: '#B53338',
   WINE_SOFT: '#FFE0DD',
+
+  // ─── I colori quando fanno TESTO ──────────────────────────────────────────
+  // Il corallo del marchio e i colori di stato sono nati per RIEMPIRE: come
+  // fondi, bordi, icone e indicatori passano la soglia dei 3:1 di 1.4.11 e
+  // restano il segno di byup. Come testo no — #FF5A5F fa 3,05:1 su bianco e
+  // #E04347 fa 4,15, sotto il 4,5 che 1.4.3 chiede a qualunque testo che non
+  // sia grande. Quindi il testo prende queste varianti, che sono gli stessi
+  // colori portati alla soglia, non colori nuovi:
+  //   BRAND_TEXT  = WINE, che nella palette c'era già     6,01:1 su bianco
+  //   GREEN_TEXT  e AMBER_TEXT sono i colori degli stati
+  //   tavolo (TT_ACCENTS / SALA_STATI): già nel sistema   5,02:1
+  // Il riempimento non si tocca: PINK resta PINK ovunque faccia il colore.
+  BRAND_TEXT: '#B53338',
+  GREEN_TEXT: '#15803D',
+  AMBER_TEXT: '#B45309',
+  RED_TEXT:   '#B91C1C',
+  BLUE_TEXT:  '#1D4ED8',
   // ─── Marchio byup Staff ──────────────────────────────────────────────────
   // Il gradiente del logo: rosa profondo → corallo chiaro in diagonale,
   // lettering crema. Lo portano quattro superfici in tre applicazioni — il
@@ -301,12 +330,15 @@ Object.assign(window, { MODAL_PANEL, MODAL_HEAD, MODAL_TITLE, MODAL_SUB, MODAL_B
 function PnSectionTab({ id, active, onClick, label, icon, hint, badge }) {
   return (
     <button onClick={() => onClick(id)}
+      role="tab" aria-selected={!!active} data-tab-attiva={active ? '1' : '0'}
       onMouseEnter={e => { if (!active) { e.currentTarget.style.color = PN.TEXT; e.currentTarget.style.background = '#F4F5F7'; } }}
       onMouseLeave={e => { e.currentTarget.style.color = active ? PN.TEXT : PN.MUTED; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = ''; }}
       onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
       onMouseUp={e => { e.currentTarget.style.transform = ''; }}
       style={{
         position: 'relative',
+        // Le schede non si stringono per stare tutte dentro: la barra scorre.
+        flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', gap: 7,
         padding: '11px 18px',
         background: 'transparent', border: 'none',
@@ -342,12 +374,71 @@ function PnSectionTab({ id, active, onClick, label, icon, hint, badge }) {
 // (Profilo, Impostazioni). Contabilità e Statistiche montano PnSectionTab
 // dentro le loro barre, che affiancano KPI e period picker.
 function PnSectionTabs({ tabs, active, onChange }) {
+  const barra = React.useRef(null);
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const stretta = bp === 'sm' || bp === 'xs';
+
+  // La barra scorre già in orizzontale. Quello che mancava è che la scheda
+  // ACCESA si porti in vista: su una tela stretta la quarta di sei resta fuori
+  // dal bordo, e chi ci arriva da un rimando non vede dove si trova.
+  React.useEffect(() => {
+    if (!barra.current) return;
+    const el = barra.current.querySelector('[data-tab-attiva="1"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [active, bp]);
+
+  // Quando lo scorrimento non basta più: le schede di là dal bordo non si
+  // sospettano nemmeno. La soglia non è solo il NUMERO — cinque etichette
+  // lunghe come «Account e fatturazione» sfondano dove otto corte starebbero —
+  // quindi oltre al conto si misura il nastro vero: se sborda, si passa a un
+  // elenco nativo, che le mostra tutte, si apre col dito e con la tastiera e
+  // non ha bisogno di sapere quanto sono larghe.
+  const [nonCiStanno, setNonCiStanno] = React.useState(false);
+  React.useEffect(() => { setNonCiStanno(false); }, [bp, tabs.length]);
+  React.useEffect(() => {
+    const el = barra.current;
+    if (!stretta || nonCiStanno || !el) return;
+    // Si misura al mount E a ogni cambio di larghezza: al primo giro il
+    // contenitore può non essere ancora stato stretto dal padre, e un controllo
+    // una tantum direbbe «ci stanno» su una misura che non è quella finale.
+    const guarda = () => {
+      if (el.scrollWidth > el.clientWidth + 1) setNonCiStanno(true);
+    };
+    guarda();
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(guarda);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stretta, nonCiStanno, tabs.length]);
+
+  if (stretta && (tabs.length > 5 || nonCiStanno)) {
+    return (
+      <div style={{
+        padding: '8px 16px', borderBottom: `1px solid ${PN.BORDER}`, background: PN.WHITE,
+      }}>
+        <select
+          value={active}
+          aria-label="Sezione"
+          onChange={e => onChange(e.target.value)}
+          style={{
+            width: '100%', minHeight: 44, padding: '0 12px', borderRadius: 10,
+            border: `1px solid ${PN.BORDER}`, background: PN.WHITE,
+            fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+          }}>
+          {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+      </div>
+    );
+  }
+
   return (
-    <div className="pn-scroll" style={{
-      display: 'flex', gap: 4, padding: '4px 32px 0',
+    <div ref={barra} className="pn-scroll" style={{
+      display: 'flex', gap: 4, padding: stretta ? '4px 12px 0' : '4px 32px 0',
       borderBottom: `1px solid ${PN.BORDER}`,
       background: PN.WHITE,
       overflowX: 'auto',
+      // Le schede non si comprimono per stare dentro: scorrono.
+      flexShrink: 0,
     }}>
       {tabs.map(t => (
         <PnSectionTab key={t.id} id={t.id} active={active === t.id} onClick={onChange} label={t.label} icon={t.icon}/>
@@ -2370,7 +2461,7 @@ window.PnBuoniPasto = function PnBuoniPasto({ dovuto, valore, onChange }) {
       {!eccede && resta > 0.004 && n > 0 && (
         <div data-avviso-residuo style={{ fontSize: 14, color: PN.MUTED, lineHeight: 1.45 }}>Restano <b style={{ color: PN.TEXT }}>{eur(resta)}</b>: il residuo resta aperto e si chiude con un'altra tessera in questa finestra.</div>
       )}
-      <div style={{ fontSize: 12.5, color: PN.MUTED_SOFT || PN.MUTED, lineHeight: 1.45 }}>La validità del buono la verifica lo strumento dell'emittente. Qui si registra soltanto quello che hai accettato.</div>
+      <div style={{ fontSize: 12.5, color: PN.MUTED || PN.MUTED, lineHeight: 1.45 }}>La validità del buono la verifica lo strumento dell'emittente. Qui si registra soltanto quello che hai accettato.</div>
     </div>
   );
 };

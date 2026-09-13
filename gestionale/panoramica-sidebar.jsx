@@ -236,9 +236,40 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     setCollapsedSelf(device === 'tablet');
   }, [device]);
   const controlled = collapsedProp != null;
-  const collapsed = controlled ? collapsedProp : collapsedSelf;
+
+  // ── Quanto spazio c'è davvero ─────────────────────────────────────────────
+  // `bp` è il breakpoint della TELA LOGICA: cambia sia quando si stringe la
+  // finestra sia quando l'utente alza la scala d'interfaccia. Su una tela da
+  // 646 px — il desktop a «Molto grande» — un menù largo 272 si prende il 42%
+  // dello schermo, e su una da 320 l'80%.
+  //   md → la barretta è IMPOSTA, e la preferenza dell'utente resta scritta
+  //        dov'era: appena c'è di nuovo spazio il menù torna com'era.
+  //   sm/xs → in fila resta solo la striscia con l'apri-menù; le voci vivono
+  //        in un cassetto che si apre sopra la pagina.
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const strisciaSola = bp === 'sm' || bp === 'xs';
+  const barrettaImposta = bp === 'md';
+  const stretta = strisciaSola || barrettaImposta;
+
+  const [cassetto, setCassetto] = React.useState(false);
+  // Se la tela si allarga mentre il cassetto è aperto, il cassetto non ha più
+  // ragione di esistere: si chiude da solo invece di restare sospeso.
+  React.useEffect(() => { if (!stretta && cassetto) setCassetto(false); }, [stretta]);
+  const cassettoRef = React.useRef(null);
+  const chiudiCassetto = React.useCallback(() => setCassetto(false), []);
+  const apriRef = window.useTrappolaFocus
+    ? window.useTrappolaFocus(cassettoRef, cassetto, chiudiCassetto)
+    : React.useRef(null);
+
+  const collapsed = cassetto ? false
+                  : controlled ? collapsedProp
+                  : stretta ? true
+                  : collapsedSelf;
 
   const toggle = () => {
+    // Su tela stretta il pulsante non allarga più il menù in fila — non ci
+    // starebbe: apre e chiude il cassetto.
+    if (stretta) { setCassetto(c => !c); return; }
     if (controlled) { if (onToggle) onToggle(); return; }
     setCollapsedSelf(c => {
       const next = !c;
@@ -246,6 +277,15 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
       return next;
     });
   };
+
+  // Il bersaglio dell'apri-menù: su tela stretta è l'unico modo di navigare e
+  // va preso al primo colpo, spesso col dito (WCAG 2.5.5). Il segno dentro
+  // resta di 12: cresce l'area, non il disegno.
+  const latoApri = stretta ? 44 : 26;
+  const propsApri = stretta
+    ? { ref: apriRef, 'aria-expanded': cassetto, 'aria-controls': 'pn-sidebar-cassetto',
+        'aria-label': cassetto ? 'Chiudi il menu' : 'Apri il menu' }
+    : {};
 
   // Moduli abilitati — reattivi a cambi di localStorage (stessa pagina + cross-tab)
   const [modules, setModulesState] = React.useState(() => window.byupReadModules());
@@ -332,8 +372,17 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     if (url) window.location.href = url;
   };
 
-  return (
-    <aside style={{
+  // Il menù è UNO. In fila è la colonna di sempre; dentro al cassetto è lo
+  // stesso elemento posato sopra la pagina, con `collapsed` a falso — nessun
+  // secondo albero da tenere allineato.
+  const menu = (
+    <aside
+      ref={cassetto ? cassettoRef : null}
+      id={cassetto ? 'pn-sidebar-cassetto' : undefined}
+      role={cassetto ? 'dialog' : undefined}
+      aria-modal={cassetto ? 'true' : undefined}
+      aria-label={cassetto ? 'Menu di navigazione' : undefined}
+      style={{
       width: collapsed ? 68 : 272,
       flexShrink: 0,
       ...PN.GLASS_VIBRANT,
@@ -346,6 +395,18 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
       // distendere sopra il contenuto principale senza essere clippato.
       overflow: 'visible',
       zIndex: 60,
+      ...(cassetto ? {
+        position: 'absolute', left: 0, top: 0, bottom: 0, height: 'auto',
+        width: '86%', maxWidth: 272, zIndex: 210, transition: 'none',
+        borderRadius: '0 18px 18px 0',
+        boxShadow: '0 24px 70px -12px rgba(15, 17, 21, 0.38)',
+        // Nel cassetto scorre la COLONNA INTERA, non l'elenco dentro di lei.
+        // Su una tela alta 360 la card del piano e il profilo schiacciavano
+        // l'elenco delle voci fino a farlo sparire: il menù si apriva e non
+        // mostrava il menù. Così invece le voci partono dall'alto, sempre
+        // visibili, e per arrivare al piano e al profilo si scorre.
+        overflowY: 'auto', overflowX: 'hidden',
+      } : null),
     }}>
       <GlassMeshSubstrate/>
 
@@ -367,8 +428,8 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
             {/* Il segno del logo, non una "B": da chiusa la sidebar mostra
                 lo stesso disegno del logo esteso, solo senza lettering. */}
             <PnI.LogoMark size={32}/>
-            <button onClick={toggle} title="Espandi menu" style={{
-              width: 26, height: 26, borderRadius: 7,
+            <button onClick={toggle} title={stretta ? 'Menu' : 'Espandi menu'} {...propsApri} style={{
+              width: latoApri, height: latoApri, borderRadius: stretta ? 11 : 7,
               border: `1px solid ${PN.BORDER_LIGHT}`,
               background: PN.WHITE_HUSH,
               color: PN.MUTED, cursor: 'pointer',
@@ -382,8 +443,8 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
           </div>
         )}
         {!collapsed && (
-          <button onClick={toggle} title="Comprimi menu" style={{
-            width: 26, height: 26, borderRadius: 7,
+          <button onClick={toggle} title={stretta ? 'Chiudi il menu' : 'Comprimi menu'} {...propsApri} style={{
+            width: latoApri, height: latoApri, borderRadius: stretta ? 11 : 7,
             border: `1px solid ${PN.BORDER_LIGHT}`,
             background: PN.WHITE_HUSH,
             color: PN.MUTED, cursor: 'pointer',
@@ -399,8 +460,10 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
 
       {/* Nav items */}
       <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column', gap: 2,
-        minHeight: 0, overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: 2,
+        ...(cassetto
+          ? { flex: '0 0 auto', overflow: 'visible' }
+          : { flex: 1, minHeight: 0, overflowY: 'auto' }),
       }}>
         {items.map(it => (
           <PnNavItem key={it.id} {...it}
@@ -417,6 +480,20 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
       {/* Piano: card completa a menu esteso; a menu contratto resta il 77%
           leggibile su chip coral, e il click riespande il menu */}
       {collapsed ? <PnSidebarPlanCardMini onExpand={toggle}/> : <PnSidebarPlanCard/>}
+
+      {/* La dimensione dell'interfaccia, raggiungibile da ogni schermata senza
+          passare dalle Impostazioni: chi ha bisogno di ingrandire ne ha bisogno
+          mentre lavora, non mentre configura. Da menù largo sono i tre livelli
+          per esteso; da barretta è un bottone solo che gira fra i tre, perché
+          in 68 px tre bersagli da 44 non ci stanno. */}
+      {window.ByupScalaControllo && (
+        <div style={{
+          paddingTop: 10,
+          display: 'flex', justifyContent: collapsed ? 'center' : 'stretch',
+        }}>
+          <window.ByupScalaControllo compatto={collapsed} breve/>
+        </div>
+      )}
 
       {/* System actions */}
       <div style={{
@@ -506,6 +583,70 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
       </div>
     </aside>
   );
+
+  // ── Dove finisce il menù, a seconda di quanto spazio c'è ──────────────────
+  if (!stretta) return menu;
+
+  // A `sm`/`xs` in fila resta una striscia da 44: il segno del marchio e
+  // l'apri-menù, più un pallino se di là c'è qualcosa da vedere. Vive in fila
+  // e non fluttuante sopra la testata perché le undici pagine hanno undici
+  // testate diverse, e un pulsante appoggiato sopra ne coprirebbe qualcuna.
+  const striscia = (
+    <div style={{
+      width: 44, flexShrink: 0, ...PN.GLASS_VIBRANT,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+      padding: '14px 0', height: '100%', position: 'relative', zIndex: 60,
+    }}>
+      <PnI.LogoMark size={26}/>
+      <button
+        ref={apriRef}
+        onClick={() => setCassetto(true)}
+        aria-expanded={false}
+        aria-controls="pn-sidebar-cassetto"
+        aria-label="Apri il menu"
+        title="Menu"
+        style={{
+          width: 44, height: 44, borderRadius: 12,
+          border: `1px solid ${PN.BORDER_LIGHT}`, background: PN.WHITE_HUSH,
+          color: PN.TEXT, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          flexShrink: 0, position: 'relative',
+        }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="2.4" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        {(notifNonLette > 0 || attivazioni.totale > 0) && (
+          <span aria-hidden="true" style={{
+            position: 'absolute', top: 4, right: 4, width: 8, height: 8,
+            borderRadius: '50%', background: PN.PINK,
+            boxShadow: '0 0 0 2px ' + PN.WHITE_HUSH,
+          }}/>
+        )}
+      </button>
+    </div>
+  );
+
+  if (!cassetto) return barrettaImposta ? menu : striscia;
+
+  // Cassetto aperto: in fila resta un vuoto della stessa misura, così il
+  // contenuto della pagina non salta mentre il menù è sopra. Lo scurino e il
+  // menù vanno nel frame con un portale: la barra è annidata dentro alberi
+  // diversi a seconda della pagina, e l'unico ancoraggio certo è il frame.
+  const frame = document.querySelector('.frame');
+  const sopra = (
+    <React.Fragment>
+      <div onClick={chiudiCassetto} aria-hidden="true" style={{
+        position: 'absolute', inset: 0, zIndex: 200,
+        background: 'rgba(15, 17, 21, 0.42)',
+        backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+      }}/>
+      {menu}
+    </React.Fragment>
+  );
+  return (
+    <React.Fragment>
+      <div aria-hidden="true" style={{width: barrettaImposta ? 68 : 44, flexShrink: 0}}/>
+      {frame ? ReactDOM.createPortal(sopra, frame) : sopra}
+    </React.Fragment>
+  );
 }
 
 // `pallino`: mostra il segno tondo invece della cifra, com'è già da menù
@@ -532,7 +673,7 @@ function PnNavItem({ label, icon, badge, pallino, active, onClick, collapsed }) 
         border: 'none',
         // Base esplicita: senza, i <button> mostrano il grigio UA al load
         background: 'transparent',
-        color: active ? PN.PINK_DARK : PN.TEXT,
+        color: active ? PN.BRAND_TEXT : PN.TEXT,
         fontWeight: active ? 600 : 500,
         fontSize: 19.5,
         cursor: 'pointer',
@@ -552,7 +693,7 @@ function PnNavItem({ label, icon, badge, pallino, active, onClick, collapsed }) 
         else e.currentTarget.style.transform = 'translateX(0)';
       }}
     >
-      <span style={{display: 'inline-flex', color: active ? PN.PINK : PN.MUTED, position: 'relative', zIndex: 3}}>
+      <span style={{display: 'inline-flex', color: active ? PN.BRAND_TEXT : PN.MUTED, position: 'relative', zIndex: 3}}>
         {/* Icone più grandi a menu esteso; 22px quando è contratto */}
         <Icon name={icon} size={collapsed ? 22 : 26}/>
       </span>
@@ -603,7 +744,7 @@ function PnSysItem({ label, icon, badge, active, onClick, collapsed }) {
         borderRadius: 10,
         border: 'none',
         background: 'transparent',
-        color: active ? PN.PINK_DARK : PN.MUTED,
+        color: active ? PN.BRAND_TEXT : PN.MUTED,
         fontWeight: active ? 600 : 500,
         fontSize: 17.5,
         cursor: 'pointer',
@@ -706,7 +847,7 @@ function PnMobileShell({ active, title, actions, onNav, children }) {
               flex: 1, display:'flex', flexDirection:'column', alignItems:'center', gap: 3,
               padding:'6px 0 4px',
               background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
-              color: on ? PN.PINK_DARK : PN.MUTED,
+              color: on ? PN.BRAND_TEXT : PN.MUTED,
               fontSize: 11.5, fontWeight: on ? 700 : 600,
             }}>
               <Icon name={t.icon} size={23} color={on ? PN.PINK : PN.MUTED}/>

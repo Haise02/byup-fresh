@@ -14,11 +14,29 @@ function ImpApp() {
   const stretto = window.statStretto ? window.statStretto() : false;
   void pnDevice;
 
+  // ── Due colonne di menù su una tela stretta non ci stanno ─────────────────
+  // 68 + 272 sono 340 px logici: su una tela da 923 — il desktop a «Grande» —
+  // sono più di un terzo dello schermo solo per navigare, e su una da 646
+  // sono più di metà. Quindi:
+  //   md    → la colonna delle sezioni diventa una fila di icone (68), e le
+  //           due colonne smettono di darsi il cambio: restano strette tutte
+  //           e due, che è la cosa che lascia più spazio al contenuto.
+  //   sm/xs → un livello per volta: o l'elenco delle sezioni, o la sezione
+  //           aperta, con un ritorno esplicito in cima. Affiancarle vorrebbe
+  //           dire due colonne da 300 e nessuna delle due leggibile.
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const unLivelloPerVolta = bp === 'sm' || bp === 'xs';
+  const sezioniARail = bp === 'md';
+  const [vista, setVista] = React.useState('sezione');
+  React.useEffect(() => {
+    if (!unLivelloPerVolta && vista !== 'sezione') setVista('sezione');
+  }, [unLivelloPerVolta]);
+
   // Deep-link: ?page=<tab> apre direttamente la pagina di impostazioni.
   const [active, setActive] = React.useState(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
-      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
+      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni', 'accessibilita'].includes(p)) return p;
       // P-124: ?page=stampanti apriva la sezione che non c'è più; porta al blocco in Integrazioni.
       if (p === 'stampanti') return 'integrazioni';
     } catch (e) {}
@@ -179,16 +197,43 @@ function ImpApp() {
         collapsed={stretto || menuLargo !== 'gestionale'}
         onToggle={() => setMenuLargo(m => m === 'gestionale' ? 'impostazioni' : 'gestionale')}/>
 
-      <ImpNavSidebar active={active} onChange={vaiA} collapsed={stretto || menuLargo !== 'impostazioni'}/>
+      {unLivelloPerVolta
+        ? (vista === 'elenco' && (
+            <ImpNavSidebar pieno collapsed={false} active={active}
+              onChange={(id) => { vaiA(id); setVista('sezione'); }}/>
+          ))
+        : <ImpNavSidebar active={active} onChange={vaiA}
+            collapsed={stretto || sezioniARail || menuLargo !== 'impostazioni'}/>}
 
       {/* Solo il contenuto entra scorrendo dal basso: le due colonne di menù
           devono sembrare già lì — una perché c'era davvero, l'altra perché la
           sua entrata è la larghezza che prende, non uno scivolamento. */}
+      {(!unLivelloPerVolta || vista === 'sezione') && (
       <div style={{
         flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
         background: PN.BG, position: 'relative',
         animation: 'impEntra 0.30s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
+        {/* Il ritorno all'elenco, quando l'elenco non è in vista perché non
+            c'era spazio per tenercelo. Alto 44: è l'unica strada indietro. */}
+        {unLivelloPerVolta && (
+          <div style={{flexShrink: 0, padding: '12px 18px 0', background: PN.BG}}>
+            <button
+              onClick={() => setVista('elenco')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                minHeight: 44, padding: '0 16px 0 12px', borderRadius: 11,
+                border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+                color: PN.TEXT, fontSize: 15, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={13}/></span>
+              Sezioni{' '}
+              <span style={{color: PN.MUTED, fontWeight: 600}}>· {sezione.label || ''}</span>
+            </button>
+          </div>
+        )}
+
         {/* Quando ci si è arrivati da un rimando, la strada per tornare a
             quello che si stava facendo. È un'altra cosa dall'uscire dalle
             impostazioni, che sta in cima alla colonna: questa riporta alla
@@ -228,6 +273,7 @@ function ImpApp() {
           {active === 'flussi' && <ImpFlussi/>}
           {active === 'fiscali' && <ImpDatiFiscali/>}
           {active === 'integrazioni' && <ImpIntegrazioni/>}
+          {active === 'accessibilita' && window.ImpAccessibilita && <window.ImpAccessibilita/>}
           </React.Fragment>)}
         </div>
 
@@ -245,11 +291,11 @@ function ImpApp() {
               </React.Fragment>
             ) : salvato ? (
               <React.Fragment>
-                <span style={{color: PN.GREEN, display: 'inline-flex'}}><PnI.Check size={14}/></span>
-                <span style={{color: PN.GREEN, fontWeight: 600}}>Modifiche salvate</span>
+                <span style={{color: PN.GREEN_TEXT, display: 'inline-flex'}}><PnI.Check size={14}/></span>
+                <span style={{color: PN.GREEN_TEXT, fontWeight: 600}}>Modifiche salvate</span>
               </React.Fragment>
             ) : (
-              <span style={{color: PN.MUTED_SOFT}}>Tutto salvato</span>
+              <span style={{color: PN.MUTED}}>Tutto salvato</span>
             )}
           </div>
           {/* Una sola cosa da fare qui: salvare. Uscire non è un'azione del
@@ -257,6 +303,7 @@ function ImpApp() {
           <ImpButton variant="pink" onClick={salva} disabled={!modifiche}>Salva modifiche</ImpButton>
         </div>
       </div>
+      )}
 
       {/* Andarsene buttando via il lavoro non deve poter succedere per sbaglio */}
       {chiedi && (
@@ -274,7 +321,7 @@ function ImpApp() {
             <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
               <div style={{
                 width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-                background: PN.AMBER_SOFT, color: PN.AMBER,
+                background: PN.AMBER_SOFT, color: PN.AMBER_TEXT,
               }}><PnI.Alert size={19}/></div>
               <div style={{flex: 1, minWidth: 0}}>
                 <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>
