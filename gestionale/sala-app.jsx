@@ -90,6 +90,12 @@ function SalaApp() {
   // le righe di categorie non instradate non stampano e vivono sul monitor,
   // che vede tutto.
   function handleConfirmCart() {
+    // SI ORDINA FINO AL SALDO (D-157), non fino all'apertura del conto: un
+    // tavolo col conto aperto ordina ancora, da qui come dall'app del cliente,
+    // e nessuna guardia lo impedisce — era il documento a vietarlo, ed è stato
+    // corretto. Quello che è già stato incassato non si riduce e non si toglie
+    // (il freno vive nella finestra del conto), e la riga nuova entra nel conto
+    // ancora aperto, mai in uno già saldato.
     const tableId = cart.tableId;
     // Cucina chiusa (P-167 · D-117): la sala invia comunque, con l'avviso e l'ora.
     const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;

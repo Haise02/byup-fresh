@@ -532,16 +532,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
   }
-  // Qui viveva `cambiaQtyOrdine`, il − e il + sulla QUANTITÀ ORDINATA: tre
-  // birre battute per due si correggevano sulla riga, e il «+» su un piatto
-  // che la cucina aveva già preso in carico apriva una riga gemella in attesa
-  // (`_extraDi`) invece di gonfiare quella lavorata.
-  // In modifica la quantità non si tocca più: si correggono il nome, il
-  // prezzo e la presenza della riga. Contare le porzioni al ribasso è un
-  // gesto che somiglia troppo a «ne ho servite meno» e che nessuno può
-  // verificare a conto aperto; toglierne una in più è un altro ordine, e per
-  // quello c'è «Aggiungi articolo». Il cestino resta l'unico modo di far
-  // sparire una riga, e la toglie INTERA.
+  // ── LA QUANTITÀ, IN MODIFICA (D-157) ───────────────────────────────────
+  // Questa schermata ha cambiato idea tre volte sullo stesso punto — ad agosto
+  // in un senso, a fine agosto nel senso opposto, il 7 settembre di nuovo — e
+  // qui sotto c'era ancora scritto che «in modifica la quantità non si tocca
+  // più», dieci righe sopra le due funzioni che la toccano. Questo commento è
+  // il posto dove la decisione smette di oscillare.
+  // Come stanno le cose adesso: il «−» toglie porzioni dalla riga, mai sotto
+  // quello che è già stato incassato; il «+» NON gonfia la riga, apre una
+  // porzione NUOVA accanto a quelle già fatte. Il cestino toglie la riga
+  // intera, sempre entro lo stesso limite.
   // Togliere dal conto non è sempre togliere tutto: «una delle tre birre non
   // l'hanno presa» è la correzione più comune che c'è, e prima costringeva a
   // cancellare la riga intera e a ribatterne due. `quante` dice quante
@@ -575,26 +575,46 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
-  // IL «+» IN MODIFICA — la porzione in più sulla riga che c'è già. È il
-  // gemello del «−»: «di birre ne hanno prese quattro, non tre» è la stessa
-  // correzione al contrario, e chiederla da «Aggiungi articolo» vorrebbe dire
-  // cercare a mano un piatto che sta già sotto gli occhi, per aprire una
-  // seconda riga uguale alla prima. Sale la riga, non ne nasce un'altra.
+  // IL «+» IN MODIFICA — una porzione in più di quel piatto (P-198 · D-157).
+  // Il gesto si tiene, perché premere il più sulla riga che si ha davanti è
+  // più comodo che cercare a menù un piatto già sotto gli occhi. A cambiare è
+  // l'effetto: NON sale la quantità della riga esistente, nasce una riga
+  // nuova, in attesa, accanto a quelle già fatte.
+  // Gonfiare la riga era una bugia: tre birre già mandate al banco diventavano
+  // quattro, ma la quarta non esisteva — nessuno l'aveva ordinata e nessuno la
+  // stava facendo — e chi guardava quella comanda vedeva una riga da quattro
+  // già evasa, col cliente che pagava quattro birre avendone bevute tre.
+  // La riga nuova nasce SENZA STATO di lavorazione, come quella di
+  // `addItemFromMenu` qui sotto: la cucina non l'ha mai vista, e finché il
+  // conto è aperto in cassa non parte niente.
   // Nessun tetto: in su non c'è niente da proteggere — gli incassi già presi
   // restano quelli, e una porzione aggiunta è denaro che il tavolo deve, non
-  // denaro che sparisce. Il freno vale solo in discesa, ed è il «−».
+  // denaro che sparisce. Il freno vale solo in discesa, ed è il «−». La
+  // porzione entra nel conto ancora aperto e non in quelli già saldati.
   function addPortion(id) {
     const o = allOrdini.find(x => x.id === id);
     if (!o) return;
-    const nuova = r2(o.qty + 1);
-    setEditedOrdini(arr => arr.map(x => x.id === id ? { ...x, qty: nuova } : x));
+    const nuova = {
+      id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      nome: o.nome,
+      prezzo: o.prezzo,
+      qty: 1,
+      stato: null,
+      minutiInPreparazione: 0,
+      minutiInCoda: 0,
+      origin: 'cameriere',
+      guestId: null,
+      categoria: o.categoria,
+      tipologia: o.tipologia,
+      iva: o.iva,
+      ivaProfilo: o.ivaProfilo,
+      ivaModo: o.ivaModo,
+      _added: true,
+    };
+    setEditedOrdini(arr => [...arr, nuova]);
     // La selezione segue: la porzione appena messa sul conto è da incassare
     // come le altre, e tornando indietro deve trovarsi già spuntata.
-    setSelectedItems(s => {
-      const ns = new Map(s);
-      ns.set(id, r2(nuova - qtyPagata(o)));
-      return ns;
-    });
+    setSelectedItems(s => { const ns = new Map(s); ns.set(nuova.id, 1); return ns; });
   }
   function addItemFromMenu(menuItem) {
     // Il piatto aggiunto da qui nasce su una riga SUA — mai dentro una riga
