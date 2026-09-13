@@ -165,8 +165,12 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
         padding: '11px 14px', marginBottom: 12,
       }}>
 
-        {/* Riga 1 — Vista + Ricerca + Sala + Fullscreen */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        {/* Riga 1 — Vista + Ricerca + Sala + Fullscreen.
+            Va a capo invece di schiacciare: su una tela stretta il campo di
+            ricerca era l'unico elemento senza `flexShrink`, e si prendeva lui
+            tutta la compressione — da 218 px scendeva a 52, cioè poco più
+            dell'icona, e quello che scrivevi non si leggeva più. */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8}}>
           {/* Segmented view toggle */}
           <div style={{
             position: 'relative',
@@ -1936,7 +1940,17 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
   const [expanded, setExpanded] = React.useState(false);
   const inputRef = React.useRef(null);
 
+  // Su tela stretta la lente che si apre non ha senso: lo spazio per aprirsi
+  // non c'è, e un campo da 52 px è un campo in cui non si legge quello che si
+  // scrive. Lì nasce già aperto e si prende una riga sua — cercare un tavolo o
+  // un cliente in mezzo al servizio è una delle cose che si fanno di più.
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const stretta = bp === 'sm' || bp === 'xs';
+  const aperto = expanded || stretta;
+
   React.useEffect(() => {
+    // A tela stretta è già aperto all'arrivo: rubare il fuoco a chi non ha
+    // chiesto di cercare sarebbe peggio del problema.
     if (expanded) {
       inputRef.current?.focus();
     }
@@ -1956,13 +1970,18 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
 
   return (
     <div style={{
-      width: expandedWidth,
+      // `flexShrink: 0` è il punto: senza, questo era l'unico elemento
+      // comprimibile della barra e assorbiva tutto lo schiacciamento.
+      width: stretta ? '100%' : expandedWidth,
+      flex: stretta ? '1 1 100%' : '0 0 auto',
+      minWidth: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
     }}>
       <div style={{
         position: 'relative',
         height: 38,
-        width: expanded ? '100%' : 38,
+        width: aperto ? '100%' : 38,
+        minWidth: aperto ? 140 : 38,
         background: PN.WHITE,
         border: `1px solid ${PN.BORDER_LIGHT}`,
         borderRadius: 10,
@@ -1973,16 +1992,16 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          tabIndex={expanded ? -1 : 0}
+          tabIndex={aperto ? -1 : 0}
           aria-label="Cerca"
           style={{
             position: 'absolute', left: 0, top: 0,
             width: 38, height: 38,
             background: 'transparent', border: 'none',
-            cursor: expanded ? 'default' : 'pointer',
+            cursor: aperto ? 'default' : 'pointer',
             display: 'grid', placeItems: 'center',
             color: PN.MUTED, fontFamily: 'inherit',
-            pointerEvents: expanded ? 'none' : 'auto',
+            pointerEvents: aperto ? 'none' : 'auto',
           }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
             <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/>
@@ -2002,9 +2021,9 @@ function SearchExpandable({ value, onChange, placeholder, expandedWidth = 240 })
             background: 'transparent',
             fontSize: 17.5, color: PN.TEXT,
             outline: 'none', fontFamily: 'inherit',
-            opacity: expanded ? 1 : 0,
+            opacity: aperto ? 1 : 0,
             transition: 'opacity 200ms ease',
-            pointerEvents: expanded ? 'auto' : 'none',
+            pointerEvents: aperto ? 'auto' : 'none',
           }}
         />
       </div>

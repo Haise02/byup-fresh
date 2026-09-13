@@ -629,6 +629,15 @@ copre, e chi arriva col `Tab` a un elemento sotto di lei lo trova coperto.
   in `byup-a11y.jsx`: anello di focus, trappola e finestre piene morti su tutte
   le pagine, e il compile check da solo non l'aveva preso perché non l'avevo
   rilanciato. Il render headless sì.
+- **In una barra flex, chi non dichiara `flexShrink: 0` assorbe tutta la
+  compressione.** Nella Sala tutti i comandi della testata lo dichiaravano
+  tranne il campo di ricerca: a «Molto grande» si stringeva da 218 a **52 px
+  logici** — poco più dell'icona — e quello che ci si scriveva non si leggeva
+  più. Non basta guardare se la riga sborda: non sborda, perché qualcuno dentro
+  si è schiacciato al posto suo. Il controllo giusto su un campo di testo è
+  `scrollWidth > clientWidth` **con del testo dentro**; misurato su tutte le
+  pagine a scala massima, gli altri 22 campi stanno, e i quattro sotto i 120 px
+  sono gli orari di apertura, che contengono «09:00» e non troncano.
 - **Il frame lo monta React dopo Babel.** Dedurre «questa pagina non ha frame»
   dall'assenza di `.frame` nel DOM apre una finestra di qualche decimo di
   secondo — esattamente quella del primo render — in cui ogni layout adattivo
