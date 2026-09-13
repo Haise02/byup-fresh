@@ -505,6 +505,7 @@ l'elemento a fuoco sia in vista e porti un anello visibile.
 | **Bersagli sotto 24 × 24** | **0** |
 | **Focus fuori vista o senza anello** | **0** |
 | **Errori JavaScript** | **0** |
+| **Contrasto del testo** | **0 sotto soglia** su 1024 testi misurati (§10.1) |
 
 Finestre provate: 1920 × 1080, 1366 × 768, 1280 × 800. L'unico scroll che resta
 è **verticale sul Login** a «Grande» e «Molto grande» (203–1066 px): la scheda
@@ -515,7 +516,7 @@ DUE dimensioni, non quello verticale.
 
 | Criterio | Livello | Esito | Come è stato verificato |
 |---|---|---|---|
-| **1.4.3** Contrasto testo | AA | ✅ fuori dalle due cucine · ❌ **85 testi** su Cucina e KDS v2 (§10) | 1024 testi misurati su tinta piatta, colore calcolato dal DOM contro il fondo effettivo, soglia scelta per dimensione e peso |
+| **1.4.3** Contrasto testo | AA | ✅ **1024 testi misurati, zero sotto soglia** | Colore calcolato dal DOM contro il fondo effettivo, soglia scelta per dimensione e peso. Comprese le tre route della cucina (§10.1), misurate a parte: 294 testi, zero sotto soglia |
 | **1.4.4** Resize text | AA | ✅ | Le modalità arrivano al 250%, oltre il 200% richiesto. Nessun troncamento irrecuperabile, nessun controllo che non cresca col testo |
 | **1.4.10** Reflow | AA | ✅ con le 5 eccezioni di §6 e §9 | Tela logica portata da 1280 a **320 px**: il minimo di reflow è raggiunto, non solo il 200% |
 | **1.4.11** Contrasto non testuale | AA | ✅ | Il corallo del marchio come riempimento fa 3,05:1; i colori di stato 3,19–5,70. I bordi a riposo restano sotto, ma lo stato lo porta l'anello di focus (§10) |
@@ -551,13 +552,46 @@ solo col mouse.
 
 ## 10. Quello che resta, detto per intero
 
-**1 · Le due cucine (decisione tua).** Il monitor Cucina e la board KDS v2 hanno
-una palette propria (`K`), che in Fase 0 non avevo auditato perché avevo
-misurato `PN`. Lì restano **85 testi sotto soglia**: il grigio `#9E9E9E` a
-2,68:1, `#8C8587` a 3,61, il rosso `#E8402E` a 3,66. È lo schermo che sta a due
-metri dal cuoco, quindi è proprio dove il contrasto conta di più — ma il tema
-del KDS è fra le decisioni chiuse, e non l'ho toccato. Serve una decisione
-esplicita, con i prima/dopo misurati, prima di cambiare una tinta.
+**1 · Le board della cucina — CHIUSO il 13/09.** Restava scoperta la palette
+delle due board, che in Fase 0 non avevo auditato perché avevo misurato `PN`.
+Nel riesaminarla sono emerse due cose che avevano cambiato il quadro.
+
+La prima: **non sono due pagine, sono due modi di guardare**, e ciascuno vive su
+due route. La *Visualizzazione Ristorante* è la board a tavoli (`kds-tavoli.jsx`,
+palette `UI`/`STATI`), che compare dentro `byup Cucina.html` e, da sola, in
+**`byup_KDS.html` — il monitor a parete**. La *Visualizzazione Pub* è il KDS v2
+(`cucina-kds2-board.jsx`, palette `K`), che compare nella stessa Cucina e nella
+sua route autonoma. Quale si veda lo decide il monitor, non chi guarda.
+
+La seconda: **`byup_KDS.html` non era nella scansione del contrasto** — era nelle
+verifiche di reflow e di bersagli, non in quella dei colori. Coi numeri veri i
+testi sotto soglia erano **119 su 294**, non 85, e il peso si spostava: la board
+a tavoli ne portava 69 e il KDS v2 50. Quella messa peggio era quella *senza* una
+decisione alle spalle — e sistemarla ripara anche il monitor a parete.
+
+Quattro tinte cambiate, ognuna scesa nella propria famiglia:
+
+| Dove | Prima | Peggiore | Dopo | Peggiore |
+|---|---|---|---|---|
+| Tavoli · grigio secondario (`UI.muto`) | `#8C8587` | 3,23 | **`#736D6F`** | 4,53 |
+| Tavoli · «In preparazione» (`STATI.marcia.testo`) | `#E8402E` | 3,61 | **`#CC3828`** | 4,51 |
+| Tavoli · «Pronti» (`STATI.pronto.testo`) | `#1DA35C` | 2,91 | **`#177F48`** | 4,51 |
+| KDS v2 · grigio di quiete (`K.TESTO_OFF`) | `#9E9E9E` | 2,48 | **`#707070`** | 4,50 |
+
+«In attesa» `#C2410C` resta com'era: passava già. Nella board a tavoli `ink` e
+`testo` erano lo stesso valore e non potevano esserlo — il primo riempie (3:1 di
+1.4.11 gli basta), il secondo scrive il nome dello stato (4,5). Adesso sono due
+campi distinti e il riempimento non è cambiato, quindi a schermo la board è
+quella di prima.
+
+**Il salto fra acceso e spento si stringe**, e questo i numeri lo dicono: sul
+KDS v2 da 7,05 a 3,87, sui tavoli da 4,92 a 3,51. Guardate le due board a pieno
+carico, **regge**: nel nastro delle sorgenti «Marco» e «Luca» restano
+chiaramente indietro perché a distinguerli non è il solo grigio ma anche il
+bordo tratteggiato contro quello pieno, e nelle card il nome del piatto resta
+quasi nero e in grassetto contro un secondario che è grigio e più leggero. Se un
+giorno quel salto non bastasse, la strada è il peso o l'opacità della tessera
+intera, non il colore dell'inchiostro.
 
 **2 · I bordi a riposo (1.4.11).** `PN.BORDER` fa 1,24:1 sul bianco: il bordo di
 un campo, da solo, non raggiunge i 3:1. Non l'ho cambiato perché il filetto

@@ -1053,3 +1053,47 @@ Niente rem, niente seconda scala tipografica, niente componenti «large», nient
 già l'architettura). Niente dipendenze, niente build step.
 
 > Dettaglio completo, misure e residui: **`gestionale/A11Y-AUDIT.md`**.
+
+### Le board della cucina — 13 settembre 2026
+
+Le due board non sono due pagine ma **due modi di guardare lo stesso servizio**,
+e ciascuno vive su due route: la *Visualizzazione Ristorante* (board a tavoli,
+`kds-tavoli.jsx`) dentro `byup Cucina.html` e da sola in **`byup_KDS.html`, il
+monitor a parete**; la *Visualizzazione Pub* (KDS v2, `cucina-kds2-board.jsx`)
+nella stessa Cucina e nella sua route autonoma. Quale si veda lo decide il
+monitor, non chi guarda: si imposta dove lo si collega.
+
+Le due palette hanno temperature diverse — i tavoli su un grigio caldo
+`#F7F5F5` tarato sulla famiglia corallo, il KDS v2 sul `#F5F6F8` freddo che è il
+canvas del gestionale — quindi ogni tinta va corretta **nella propria famiglia**,
+mai portata a un valore comune.
+
+**`ink` e `testo` sono due campi diversi.** Nella board a tavoli erano lo stesso
+valore: il primo riempie — fili, veli, aloni, bordi — e gli basta il 3:1 di
+1.4.11; il secondo scrive il nome dello stato, e a 13 px chiede 4,5. Separarli è
+la ragione per cui il contrasto rientra senza che la board cambi aspetto: il
+riempimento è rimasto identico.
+
+| Dove | Prima | Dopo | Perché |
+|---|---|---|---|
+| `UI.muto` | `#8C8587` (3,23) | `#736D6F` (4,53) | porta «Sala interna · 4 cop.», «Al dente»: non è decorazione |
+| `STATI.marcia.testo` | `#E8402E` (3,61) | `#CC3828` (4,51) | è il nome di uno stato |
+| `STATI.pronto.testo` | `#1DA35C` (2,91) | `#177F48` (4,51) | il peggiore della board, ed è la parola che manda a ritirare |
+| `K.TESTO_OFF` | `#9E9E9E` (2,48) | `#707070` (4,50) | copre nomi di piatti a 28–32 px e cronometri |
+
+`STATI.attesa.testo` `#C2410C` resta: passava già, ed è lo stesso ambra che il
+KDS v2 aveva scelto per conto suo.
+
+Il grigio di quiete del KDS v2 era una **decisione esplicita**, documentata nel
+codice, presa contro «il minimo che questa schermata si era data» — uno standard
+interno. È stata rivista perché il metro è cambiato (EN 301 549) e perché quel
+grigio non copre solo righe da ignorare: copre contenuto, su uno schermo
+guardato da due metri. WCAG esenta i controlli *disabilitati*, non il testo
+smorzato.
+
+**Il salto fra acceso e spento si stringe** — sul KDS v2 da 7,05 a 3,87, sui
+tavoli da 4,92 a 3,51 — e va tenuto d'occhio. Regge perché non è portato dal
+solo colore: nel nastro delle sorgenti il bordo è tratteggiato contro pieno, e
+nelle card il nome del piatto è quasi nero e in grassetto contro un secondario
+grigio e più leggero. Se un giorno non bastasse, la strada è il **peso** o
+l'**opacità della tessera intera**, mai un inchiostro più chiaro.
