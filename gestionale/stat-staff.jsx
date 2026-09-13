@@ -181,7 +181,7 @@ function StaffPannello({ metrica, media }) {
                 appena accennato. Serve a dare la scaletta, non a gridare. */}
             <span style={{
               fontSize: 12.5, fontWeight: 700, textAlign:'right',
-              color: i < 3 ? PN.MUTED : PN.MUTED_LIGHT,
+              color: i < 3 ? PN.MUTED : PN.MUTED,
               fontVariantNumeric:'tabular-nums',
             }}>{i + 1}</span>
             <span style={{
@@ -200,7 +200,7 @@ function StaffPannello({ metrica, media }) {
                   ruolo stava qui e mangiava la riga — «Cameriera · 274 ord…» —
                   quindi è passato nel suggerimento del nome. */}
               <span style={{
-                display:'block', fontSize: 12.5, color: PN.MUTED_SOFT,
+                display:'block', fontSize: 12.5, color: PN.MUTED,
                 fontVariantNumeric:'tabular-nums',
                 whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
               }}>{metrica.micro(s)}</span>

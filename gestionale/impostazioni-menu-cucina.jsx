@@ -63,7 +63,7 @@ function CopertoImportoLibero({ tipo, valore, onChange }) {
             fontSize: 14, fontWeight: 600, color: PN.TEXT, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
         <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', fontSize: 13, color: PN.MUTED, fontWeight: 700}}>{fisso ? '€' : '%'}</span>
       </div>
-      <span style={{fontSize: 12, color: PN.MUTED_SOFT}}>{fisso ? 'a persona' : 'sul totale'}</span>
+      <span style={{fontSize: 12, color: PN.MUTED}}>{fisso ? 'a persona' : 'sul totale'}</span>
     </div>
   );
 }
@@ -132,7 +132,7 @@ function UltimaComandaCard() {
           return (
             <button key={m.id} data-ultima-comanda={m.id} onClick={() => setUc({ modo: m.id })} style={{
               padding:'5px 13px', borderRadius: 999, border:'none',
-              background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.MUTED,
+              background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.BRAND_TEXT : PN.MUTED,
               fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
             }}>{m.label}</button>
           );
@@ -148,7 +148,7 @@ function UltimaComandaCard() {
                 <input type="time" value={(uc.orari && uc.orari[g]) || ''} disabled={!aperto} placeholder={chiusuraDi(g)}
                   onChange={e => setUc({ orari: { ...(uc.orari || {}), [g]: e.target.value || undefined } })}
                   style={{width:'100%', boxSizing:'border-box', padding:'7px 6px', borderRadius: 8, border:`1px solid ${PN.BORDER}`, fontFamily:'inherit', fontSize: 13, color: PN.TEXT, background: PN.WHITE}}/>
-                <div style={{fontSize: 11, color: PN.MUTED_SOFT, marginTop: 3}}>{aperto ? `chiude ${chiusuraDi(g)}` : 'chiuso'}</div>
+                <div style={{fontSize: 11, color: PN.MUTED, marginTop: 3}}>{aperto ? `chiude ${chiusuraDi(g)}` : 'chiuso'}</div>
               </div>
             );
           })}
@@ -1149,7 +1149,7 @@ function MCMenuComposer() {
                     padding: '9px 10px', borderRadius: 9,
                     cursor: dragDish ? (rifiuta ? 'no-drop' : 'copy') : 'pointer',
                     background: sopra ? PN.PINK : (riceve ? PN.PINK_BG_SOFT : (on ? PN.PINK_SOFT : 'transparent')),
-                    color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.TEXT),
+                    color: sopra ? PN.WHITE : (on ? PN.BRAND_TEXT : PN.TEXT),
                     boxShadow: sopra
                       ? '0 8px 20px -8px rgba(255,90,95,0.65)'
                       : (riceve ? `inset 0 0 0 1.5px ${PN.PINK_SOFT}` : (lineaSopra ? `inset 0 2px 0 ${PN.PINK}` : 'none')),
@@ -1161,7 +1161,7 @@ function MCMenuComposer() {
                   onMouseEnter={e => { setHoverCat(c.name); if (!on && !dragDish) e.currentTarget.style.background = '#F7F8FA'; }}
                   onMouseLeave={e => { setHoverCat(h => h === c.name ? null : h); if (!on && !dragDish) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <span title="Trascina per riordinare" style={{color: sopra ? PN.WHITE : (on ? PN.PINK : PN.MUTED_LIGHT), cursor: 'grab', display: 'inline-flex'}}>
+                  <span title="Trascina per riordinare" style={{color: sopra ? PN.WHITE : (on ? PN.BRAND_TEXT : PN.MUTED), cursor: 'grab', display: 'inline-flex'}}>
                     <PnI.Drag size={12}/>
                   </span>
                   {inRinomina ? (
@@ -1182,13 +1182,13 @@ function MCMenuComposer() {
                   {/* Il conteggio lascia il posto a un «+» quando la categoria
                       sta per ricevere: dice cosa succede lasciando adesso. */}
                   <span style={{position: 'relative', minWidth: 16, textAlign: 'right', flexShrink: 0}}>
-                    <span style={{fontSize: 13, fontWeight: 800, color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.MUTED)}}>
+                    <span style={{fontSize: 13, fontWeight: 800, color: sopra ? PN.WHITE : (on ? PN.BRAND_TEXT : PN.MUTED)}}>
                       {sopra ? '+1' : c.items.length}
                     </span>
                     {flashCat === c.name && (
                       <span aria-hidden style={{
                         position: 'absolute', right: 0, top: -2, fontSize: 12.5, fontWeight: 800,
-                        color: PN.PINK, pointerEvents: 'none',
+                        color: PN.BRAND_TEXT, pointerEvents: 'none',
                         animation: 'mcPiuUno 1s cubic-bezier(.22,.9,.35,1) forwards',
                       }}>+1</span>
                     )}
@@ -1232,11 +1232,11 @@ function MCMenuComposer() {
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 10,
             background: dragDish ? PN.PINK_BG_SOFT : '#F7F8FA',
-            color: dragDish ? PN.PINK_DARK : PN.MUTED,
+            color: dragDish ? PN.BRAND_TEXT : PN.MUTED,
             display: 'flex', alignItems: 'flex-start', gap: 8,
             transition: 'background 160ms ease-out, color 160ms ease-out',
           }}>
-            <span style={{marginTop: 2, display: 'inline-flex', color: dragDish ? PN.PINK : PN.MUTED_SOFT}}><PnI.Drag size={12}/></span>
+            <span style={{marginTop: 2, display: 'inline-flex', color: dragDish ? PN.BRAND_TEXT : PN.MUTED}}><PnI.Drag size={12}/></span>
             <div style={{fontSize: 13, lineHeight: 1.4}}>
               {dragDish ? (
                 <>
@@ -1285,7 +1285,7 @@ function MCMenuComposer() {
             <button onClick={() => setAddingCat(true)} style={{
               width: '100%', padding: '11px 12px', borderRadius: 10,
               border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
-              color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              color: PN.BRAND_TEXT, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               transition: 'background 150ms ease-out',
             }}
@@ -1319,7 +1319,7 @@ function MCMenuComposer() {
             }}><Icon name="time-calendar" size={14}/></span>
             <span style={{flex: 1, minWidth: 0}}>
               <span style={{
-                display: 'block', fontSize: 11.5, fontWeight: 700, color: PN.MUTED_SOFT,
+                display: 'block', fontSize: 11.5, fontWeight: 700, color: PN.MUTED,
                 textTransform: 'uppercase', letterSpacing: 0.6,
               }}>Visibilità</span>
               {/* Va a capo invece di finire in «12:00–1…»: l'orario è il
@@ -1329,7 +1329,7 @@ function MCMenuComposer() {
                 marginTop: 1, lineHeight: 1.3,
               }}>{(activeMenu && activeMenu.schedule) || 'Sempre visibile'}</span>
             </span>
-            <span style={{display: 'inline-flex', color: PN.MUTED_LIGHT, flexShrink: 0}}>
+            <span style={{display: 'inline-flex', color: PN.MUTED, flexShrink: 0}}>
               <PnI.ChevronRight size={12}/>
             </span>
           </button>
@@ -1521,7 +1521,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
         boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
       }}>
         <div style={{
-          fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.8,
+          fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.8,
           textTransform: 'uppercase', padding: '7px 10px 9px',
         }}>I tuoi menù</div>
 
@@ -1539,7 +1539,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                 transition: 'background 130ms ease-out',
               }}>
               <div style={{flex: 1, minWidth: 0}}>
-                <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
+                <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.BRAND_TEXT : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
 
                 {/* Sotto al nome: lo stato — che da qui si cambia — e quanti
                     piatti ha, che è come si sceglie su quale lavorare. */}
@@ -1551,7 +1551,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                       display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
                       padding: '1px 6px', marginLeft: -6, borderRadius: 999,
                       border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: 12.5, fontWeight: 700, color: x.active ? PN.GREEN : PN.MUTED,
+                      fontSize: 12.5, fontWeight: 700, color: x.active ? PN.GREEN_TEXT : PN.MUTED,
                       transition: 'background 130ms ease-out',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = x.active ? PN.GREEN_SOFT : '#EDEFF2'}
@@ -1601,13 +1601,13 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
               display: 'flex', alignItems: 'center', gap: 9, width: '100%',
               padding: '9px 10px', borderRadius: 10, border: 'none',
               background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 15, fontWeight: 700, color: PN.PINK_DARK, textAlign: 'left',
+              fontSize: 15, fontWeight: 700, color: PN.BRAND_TEXT, textAlign: 'left',
               transition: 'background 130ms ease-out',
             }}>
             <span style={{
               width: 22, height: 22, borderRadius: 7, flexShrink: 0,
               display: 'grid', placeItems: 'center',
-              background: PN.PINK_SOFT, color: PN.PINK_DARK,
+              background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
             }}><PnI.Plus size={12}/></span>
             Nuovo menù
           </button>
@@ -1707,7 +1707,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                   <div style={{
                     width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
                     background: accende ? PN.GREEN_SOFT : PN.AMBER_SOFT,
-                    color: accende ? PN.GREEN : PN.AMBER,
+                    color: accende ? PN.GREEN_TEXT : PN.AMBER_TEXT,
                   }}>{accende ? <PnI.Check size={19}/> : <PnI.Alert size={19}/>}</div>
                   <div style={{flex: 1, minWidth: 0}}>
                     <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>{titolo}</div>
@@ -1881,7 +1881,7 @@ function NMSelect({ value, options, onChange, open, setOpen, versoAlto, compatto
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
                   background: on ? PN.PINK_SOFT : 'transparent',
-                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  color: on ? PN.BRAND_TEXT : PN.TEXT,
                   fontSize: compatto ? 13.5 : 15, fontWeight: on ? 700 : 600,
                   transition: 'background 120ms ease-out',
                   ...(compatto ? {padding: '7px 9px'} : null),
@@ -1940,7 +1940,7 @@ function NMOraPicker({ value, onChange, scorciatoie, style, larghezza = 132 }) {
   };
   const colonna = (voci, attivo, onPick, etichetta) => (
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: PN.MUTED_SOFT, padding: '0 4px 6px' }}>{etichetta}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: PN.MUTED, padding: '0 4px 6px' }}>{etichetta}</div>
       <div className="pn-scroll" style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 2 }}>
         {voci.map(v => {
           const on = v === attivo;
@@ -1951,7 +1951,7 @@ function NMOraPicker({ value, onChange, scorciatoie, style, larghezza = 132 }) {
               style={{
                 padding: '7px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
                 fontSize: 14.5, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums',
-                background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.TEXT,
+                background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.BRAND_TEXT : PN.TEXT,
                 transition: 'background 120ms ease-out',
               }}>{v}</div>
           );
@@ -2004,7 +2004,7 @@ function NMOraPicker({ value, onChange, scorciatoie, style, larghezza = 132 }) {
                       padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                       border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
                       background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      color: on ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
                       transition: 'border-color 150ms ease-out, background 150ms ease-out',
                     }}>{sc.label}</button>
@@ -2126,10 +2126,10 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                 onKeyDown={e => { if (e.key === 'Enter') salva(); }}
                 placeholder="Es. Menù primavera"
                 style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
-              <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>{nome.length}/80</span>
+              <span style={{fontSize: 13, color: PN.MUTED, flexShrink: 0}}>{nome.length}/80</span>
             </div>
             {nomePreso && (
-              <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginBottom: 18, lineHeight: 1.4}}>
+              <div style={{fontSize: 12.5, color: PN.BRAND_TEXT, marginBottom: 18, lineHeight: 1.4}}>
                 Esiste già un menù con questo nome: scegline un altro.
               </div>
             )}
@@ -2155,7 +2155,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                         padding: '13px 8px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
                         border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                         background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                        color: on ? PN.PINK_DARK : PN.TEXT,
+                        color: on ? PN.BRAND_TEXT : PN.TEXT,
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
                         fontSize: 14.5, fontWeight: on ? 700 : 600,
                         transition: 'border-color 150ms ease-out, background 150ms ease-out',
@@ -2172,7 +2172,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
             {perPersona && (
               <div style={{marginBottom: 18}}>
                 <label style={NM_LABEL} htmlFor="nm-prezzo">
-                  Prezzo <span style={{color: PN.PINK}}>*</span>
+                  Prezzo <span style={{color: PN.BRAND_TEXT}}>*</span>
                 </label>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8,
@@ -2188,7 +2188,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                     onKeyDown={e => { if (e.key === 'Enter') salva(); }}
                     placeholder="0,00"
                     style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontWeight: 600, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
-                  <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>a persona</span>
+                  <span style={{fontSize: 13, color: PN.MUTED, flexShrink: 0}}>a persona</span>
                 </div>
                 <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
                   Il prezzo è del menù e vale per tutto quello che si ordina da qui: i piatti non ne hanno uno proprio.
@@ -2212,7 +2212,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                     style={{flex: 1, minWidth: 0, accentColor: PN.PINK}}/>
                   <div style={{
                     padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                     fontSize: 14, fontWeight: 700,
                   }}>{tkLeadTime} min</div>
                 </div>
@@ -2569,12 +2569,12 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
         <div style={{display: 'flex', alignItems: 'flex-start', gap: 13, padding: '20px 20px 0'}}>
           <div style={{
             width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-            background: PN.PINK_BG_SOFT, color: PN.PINK,
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
           }}><IcCartellino size={20}/></div>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 21, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.4}}>Modifica prezzi</div>
             <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
-              Stai modificando <strong style={{color: PN.PINK}}>{count} {count === 1 ? 'piatto' : 'piatti'}</strong> {count === 1 ? 'selezionato' : 'selezionati'}
+              Stai modificando <strong style={{color: PN.BRAND_TEXT}}>{count} {count === 1 ? 'piatto' : 'piatti'}</strong> {count === 1 ? 'selezionato' : 'selezionati'}
             </div>
           </div>
           <button onClick={onClose} title="Chiudi" style={{
@@ -2599,14 +2599,14 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
                   padding: '16px 8px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
                   border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
                   background: on ? PN.WHITE : '#FBFCFD',
-                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  color: on ? PN.BRAND_TEXT : PN.TEXT,
                   fontSize: 14.5, fontWeight: on ? 700 : 600,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                   transition: 'border-color 150ms ease-out, background 150ms ease-out',
                 }}>
                   <span style={{
                     width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                    background: on ? PN.PINK_BG_SOFT : '#EDEFF2', color: on ? PN.PINK : PN.MUTED,
+                    background: on ? PN.PINK_BG_SOFT : '#EDEFF2', color: on ? PN.BRAND_TEXT : PN.MUTED,
                   }}>{s.ic}</span>
                   <span style={{lineHeight: 1.25, textAlign: 'center'}}>{s.l}</span>
                 </button>
@@ -2643,7 +2643,7 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
                       width: 54, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
                       border: `1.5px solid ${on ? PN.PINK : 'transparent'}`,
                       background: on ? PN.PINK_BG_SOFT : 'transparent',
-                      color: on ? PN.PINK : PN.MUTED, fontSize: 16, fontWeight: 700,
+                      color: on ? PN.BRAND_TEXT : PN.MUTED, fontSize: 16, fontWeight: 700,
                       transition: 'background 150ms ease-out, border-color 150ms ease-out',
                     }}>{u.l}</button>
                   );
@@ -2662,9 +2662,9 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
             <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9}}>
               <span style={{
                 width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-                background: pronta ? '#DDF3E4' : '#EDEFF2', color: pronta ? PN.GREEN : PN.MUTED,
+                background: pronta ? '#DDF3E4' : '#EDEFF2', color: pronta ? PN.GREEN_TEXT : PN.MUTED,
               }}><PnI.Eye size={14}/></span>
-              <div style={{fontSize: 14.5, fontWeight: 700, color: pronta ? PN.GREEN : PN.MUTED}}>Anteprima</div>
+              <div style={{fontSize: 14.5, fontWeight: 700, color: pronta ? PN.GREEN_TEXT : PN.MUTED}}>Anteprima</div>
               {pronta && (
                 <div style={{marginLeft: 'auto', fontSize: 13, color: PN.MUTED, fontWeight: 600}}>
                   {piatti.length} {piatti.length === 1 ? 'piatto' : 'piatti'}
@@ -2684,10 +2684,10 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
                     }}>
                       <span style={{flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{p.name}</span>
                       <span style={{flexShrink: 0, fontSize: 13.5, color: PN.MUTED, textDecoration: uguale ? 'none' : 'line-through'}}>{euro(p.price)}</span>
-                      <span style={{flexShrink: 0, color: PN.MUTED_SOFT}}>→</span>
+                      <span style={{flexShrink: 0, color: PN.MUTED}}>→</span>
                       <span style={{
                         flexShrink: 0, padding: '2px 9px', borderRadius: 7, fontSize: 13.5, fontWeight: 700,
-                        background: uguale ? '#F1F3F5' : '#DDF3E4', color: uguale ? PN.MUTED : PN.GREEN,
+                        background: uguale ? '#F1F3F5' : '#DDF3E4', color: uguale ? PN.MUTED : PN.GREEN_TEXT,
                       }}>{euro(nuovo)}</span>
                     </div>
                   );
@@ -2795,7 +2795,7 @@ function MCPiattiPanel({
               display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
               border: `1px solid ${inSelezione ? PN.PINK : PN.BORDER}`,
               background: inSelezione ? PN.PINK_BG_SOFT : PN.WHITE,
-              color: inSelezione ? PN.PINK_DARK : PN.TEXT,
+              color: inSelezione ? PN.BRAND_TEXT : PN.TEXT,
               fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
               transition: 'background 150ms ease-out, border-color 150ms ease-out',
             }}>
@@ -2811,7 +2811,7 @@ function MCPiattiPanel({
           border: `1px solid ${statoOpen || filtrato ? PN.PINK : PN.BORDER}`,
           background: filtrato ? PN.PINK_BG_SOFT : PN.WHITE, cursor: 'pointer',
           fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-          color: filtrato ? PN.PINK_DARK : PN.TEXT,
+          color: filtrato ? PN.BRAND_TEXT : PN.TEXT,
           transition: 'background 150ms ease-out, border-color 150ms ease-out',
         }}>
           {/* Col filtro acceso il pulsante dice quale: senza le pillole sotto,
@@ -2827,7 +2827,7 @@ function MCPiattiPanel({
               <MenuDotItem key={s.id} icon={stateFilter === s.id ? <PnI.Check size={13}/> : ' '} onClick={() => { setStateFilter(s.id); setStatoOpen(false); }}>
                 <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, width: '100%'}}>
                   <span style={{flex: 1}}>{s.l}</span>
-                  <span style={{fontSize: 12.5, fontWeight: 800, color: PN.MUTED_SOFT}}>{s.n}</span>
+                  <span style={{fontSize: 12.5, fontWeight: 800, color: PN.MUTED}}>{s.n}</span>
                 </span>
               </MenuDotItem>
             ))}
@@ -2928,7 +2928,7 @@ function MCPiattiPanel({
               e si legge nel colore del marchio come «Nuova categoria». */}
           <button onClick={onOpenPicker} style={{
             minHeight: 150, borderRadius: 12, border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
-            color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            color: PN.BRAND_TEXT, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
             transition: 'background 150ms ease-out, border-color 150ms ease-out',
           }}
@@ -2997,7 +2997,7 @@ function MCPiattiPanel({
           })}
           <button onClick={onOpenPicker} style={{
             width: '100%', padding: '12px', border: 'none', borderTop: `1px dashed ${PN.PINK_SOFT}`,
-            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700,
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT, fontSize: 14.5, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             transition: 'background 150ms ease-out',
@@ -3058,7 +3058,7 @@ function MCDishCard({
       }}>
         {r.dish.photo
           ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
-          : <div style={{width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: PN.MUTED_SOFT}}><Icon name={CAT_ICON[r.dish.cat] || 'star'} size={26}/></div>}
+          : <div style={{width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: PN.MUTED}}><Icon name={CAT_ICON[r.dish.cat] || 'star'} size={26}/></div>}
 
         <div aria-hidden style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -3106,7 +3106,7 @@ function MCDishCard({
       )}
 
       <div style={{padding: '9px 11px 11px'}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : (r.active ? PN.TEXT : PN.MUTED), lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 160ms ease-out'}}>{r.dish.name}</div>
+        <div style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.BRAND_TEXT : (r.active ? PN.TEXT : PN.MUTED), lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 160ms ease-out'}}>{r.dish.name}</div>
 
         <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} title="Clicca per modificare il prezzo" style={{
           display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 3,
@@ -3123,7 +3123,7 @@ function MCDishCard({
                 style={{width: 52, fontSize: 14.5, fontWeight: 700, color: PN.TEXT, border: 'none', outline: 'none', fontFamily: 'inherit', background: 'transparent'}}/>
             </>
           ) : (
-            <span style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : (r.active ? PN.TEXT : PN.MUTED)}}>{eur(r.price)}</span>
+            <span style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.BRAND_TEXT : (r.active ? PN.TEXT : PN.MUTED)}}>{eur(r.price)}</span>
           )}
         </div>
 
@@ -3278,7 +3278,7 @@ function MCConfermaModal({ icona, titolo, testo, conferma, pericolo, onAnnulla, 
         <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-            background: pericolo ? '#FEF2F2' : PN.PINK_BG_SOFT, color: pericolo ? PN.RED : PN.PINK_DARK,
+            background: pericolo ? '#FEF2F2' : PN.PINK_BG_SOFT, color: pericolo ? PN.RED : PN.BRAND_TEXT,
           }}>{icona}</div>
           <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>{titolo}</div>
         </div>
@@ -3415,7 +3415,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
         }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
           }}><BuAiSparkle size={15} color={PN.PINK_DARK}/></div>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>Traduzioni del piatto</div>
@@ -3446,7 +3446,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
           }}>
             <div style={{
               fontSize: 11.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
-              color: PN.MUTED_SOFT, marginBottom: 6,
+              color: PN.MUTED, marginBottom: 6,
             }}>Nome del piatto · l’AI non lo traduce</div>
             <div style={{display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8}}>
               <span style={{fontSize: 15, lineHeight: 1}}>🇮🇹</span>
@@ -3509,7 +3509,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
                           <React.Fragment>
                             <button onClick={() => svuotaNome(l.code)} style={{
                               background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.BRAND_TEXT,
                             }}>Torna al nome italiano</button>
                             <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
                               {voce.vecchia
@@ -3587,7 +3587,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
                           <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5}}>
                             <span style={{
                               flex: 1, fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4,
-                              textTransform: 'uppercase', color: PN.MUTED_SOFT,
+                              textTransform: 'uppercase', color: PN.MUTED,
                             }}>{v.label}</span>
                             {!originale && voce && voce.manuale && voce.vecchia && <TradPastiglia tono="vecchia">Non allineata</TradPastiglia>}
                             {!originale && voce && voce.manuale && !voce.vecchia && <TradPastiglia tono="mano">Corretta da te</TradPastiglia>}
@@ -3595,7 +3595,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
 
                           {!originale && (
                             <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 6, lineHeight: 1.4}}>
-                              <span style={{color: PN.MUTED_SOFT}}>Italiano: </span>{v.it || '—'}
+                              <span style={{color: PN.MUTED}}>Italiano: </span>{v.it || '—'}
                             </div>
                           )}
 
@@ -3608,7 +3608,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
                               <span style={{flex: 1, fontSize: 13.5, color: '#8A5A00', fontWeight: 600}}>Da generare</span>
                               <button onClick={() => generaLingua(l.code)} style={{
                                 background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.BRAND_TEXT,
                               }}>Genera</button>
                             </div>
                           ) : v.lungo ? (
@@ -3640,7 +3640,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
                                 <React.Fragment>
                                   <button onClick={() => tornaAutomatica(l.code, v)} style={{
                                     background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.BRAND_TEXT,
                                   }}>Torna alla traduzione automatica</button>
                                   <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
                                     {voce.vecchia
@@ -3722,7 +3722,7 @@ function MCRigeneraModal({ nome, lingue, onAnnulla, onConferma }) {
         <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
           }}><BuAiSparkle size={15} color={PN.PINK_DARK}/></div>
           <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>
             Hai cambiato la descrizione
@@ -3781,7 +3781,7 @@ function MCScheda({ icona, titolo, sub, children }) {
       <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: sub ? 6 : 14}}>
         <span style={{
           width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-          background: PN.PINK_BG_SOFT, color: PN.PINK,
+          background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
           display: 'grid', placeItems: 'center',
         }}>{icona}</span>
         <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{titolo}</span>
@@ -3981,7 +3981,7 @@ function MCDettagliPiatto({
               flex: 1, minWidth: 0, padding: '14px 8px 13px', marginBottom: -1,
               background: 'transparent', border: 'none',
               borderBottom: `2.5px solid ${on ? PN.PINK : 'transparent'}`,
-              color: on ? PN.PINK_DARK : PN.MUTED,
+              color: on ? PN.BRAND_TEXT : PN.MUTED,
               fontSize: 15, fontWeight: on ? 700 : 600, letterSpacing: -0.1,
               cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
               transition: 'color 150ms ease-out, border-color 150ms ease-out',
@@ -3997,7 +3997,7 @@ function MCDettagliPiatto({
         {/* ── INFORMAZIONI ───────────────────────────────────────────── */}
         {tab === 'info' && (
           <div>
-            <MCCampo label="Nome piatto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{name.length}/80</span>}>
+            <MCCampo label="Nome piatto" right={<span style={{fontSize: 12, color: PN.MUTED, fontWeight: 600}}>{name.length}/80</span>}>
               <input value={name} maxLength={80} onChange={e => setName(e.target.value)} style={MC_INPUT}/>
             </MCCampo>
 
@@ -4007,13 +4007,13 @@ function MCDettagliPiatto({
                 {traduzioniOn && (
                   <button onClick={() => setTraduzioniOpen(true)} style={{
                     background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: PN.PINK_DARK,
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: PN.BRAND_TEXT,
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                   }}>
                     <BuAiSparkle size={11} color={PN.PINK_DARK}/> Vedi traduzioni
                   </button>
                 )}
-                <span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>
+                <span style={{fontSize: 12, color: PN.MUTED, fontWeight: 600}}>{desc.length}/160</span>
               </div>
             }>
               <textarea value={desc} maxLength={160} rows={3} onChange={e => scriviDesc(e.target.value)}
@@ -4031,7 +4031,7 @@ function MCDettagliPiatto({
               width: '100%', marginBottom: 14, padding: '9px 12px', borderRadius: 9,
               border: `1.5px dashed ${name.trim() ? PN.PINK : '#E3E6EA'}`,
               background: name.trim() ? PN.PINK_BG_SOFT : '#F7F8FA',
-              color: name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT,
+              color: name.trim() ? PN.BRAND_TEXT : PN.MUTED,
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
               cursor: (aiLoading || !name.trim()) ? 'default' : 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -4092,7 +4092,7 @@ function MCDettagliPiatto({
               </label>
             </MCCampo>
 
-            <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
+            <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED, fontWeight: 600}}>{photos.length}/3</span>}>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
                 {[0, 1, 2].map(i => {
                   const piena = i < photos.length;
@@ -4135,7 +4135,7 @@ function MCDettagliPiatto({
               <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
               <button onClick={() => setVariants(arr => [...arr, {name: '', options: [{name: ''}], required: true}])} style={{
                 marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
-                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.BRAND_TEXT, fontSize: 13.5, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}>+ Crea nuova variante</button>
             </MCSezione>
@@ -4157,7 +4157,7 @@ function MCDettagliPiatto({
                       padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 600,
                       border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_SOFT}`,
                       background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                      color: on ? PN.PINK_DARK : PN.TEXT, cursor: 'pointer', userSelect: 'none',
+                      color: on ? PN.BRAND_TEXT : PN.TEXT, cursor: 'pointer', userSelect: 'none',
                     }}>
                       <input type="checkbox" checked={on} onChange={() => toggleTag(t)} style={{margin: 0, accentColor: PN.PINK, width: 14, height: 14}}/>
                       <span style={{fontSize: glyph === 'BIO' ? 9.5 : 13, fontWeight: glyph === 'BIO' ? 800 : 400, color: glyph === 'BIO' ? '#16A34A' : undefined}}>{glyph}</span>
@@ -4214,7 +4214,7 @@ function MCDettagliPiatto({
               <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
                 {recipeSteps.map((step, i) => (
                   <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7}}>
-                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.PINK_DARK, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
+                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.BRAND_TEXT, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
                     <textarea value={step} rows={1} placeholder={`Passo ${i + 1}…`}
                       onChange={e => setRecipeSteps(s => s.map((x, idx) => idx === i ? e.target.value : x))}
                       style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
@@ -4233,7 +4233,7 @@ function MCDettagliPiatto({
               </div>
               <button onClick={() => setRecipeSteps(s => [...s, ''])} style={{
                 marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
-                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.BRAND_TEXT, fontSize: 13.5, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}>+ Aggiungi passo</button>
             </MCSezione>
@@ -4263,7 +4263,7 @@ function MCDettagliPiatto({
                         position: 'relative', padding: '14px 6px 11px', borderRadius: 12,
                         border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
                         background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                        color: on ? PN.PINK_DARK : PN.MUTED,
+                        color: on ? PN.BRAND_TEXT : PN.MUTED,
                         cursor: bloccato ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                         fontSize: 13, fontWeight: on ? 700 : 600,
@@ -4743,7 +4743,7 @@ function MCAnteprimaModal({ menu, library, catName, evidenzia, onClose }) {
 function DishThumb({ dish, size = 46 }) {
   const [err, setErr] = React.useState(false);
   if (!dish.photo || err) return (
-    <div style={{width: size, height: size, borderRadius: 10, background:'#F4F5F7', display:'grid', placeItems:'center', flexShrink: 0, color: PN.MUTED_SOFT}}>
+    <div style={{width: size, height: size, borderRadius: 10, background:'#F4F5F7', display:'grid', placeItems:'center', flexShrink: 0, color: PN.MUTED}}>
       <Icon name={CAT_ICON[dish.cat] || 'star'} size={20}/>
     </div>
   );
@@ -4776,7 +4776,7 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
             <PnI.Plate size={24} color={PN.PINK}/>
           </div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:12.5, color:PN.PINK, textTransform:'uppercase', letterSpacing:0.8, fontWeight:800, marginBottom: 2}}>{catName}</div>
+            <div style={{fontSize:12.5, color:PN.BRAND_TEXT, textTransform:'uppercase', letterSpacing:0.8, fontWeight:800, marginBottom: 2}}>{catName}</div>
             <div style={{fontSize:20, fontWeight:800, color:PN.TEXT, letterSpacing:-0.2}}>Aggiungi piatti dalla libreria</div>
             <div style={{fontSize:15, color:PN.MUTED, marginTop: 3}}>Scegli i piatti da aggiungere al menù "{menuName}"</div>
           </div>
@@ -4893,7 +4893,7 @@ function LibrarySidebar({ library, menus, filters, setFilters }) {
                 padding: '4px 8px', borderRadius: 5,
                 border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
                 background: on ? PN.PINK_SOFT : PN.WHITE,
-                color: on ? PN.PINK_DARK : PN.MUTED,
+                color: on ? PN.BRAND_TEXT : PN.MUTED,
                 fontSize: 12, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 textTransform:'uppercase', letterSpacing: 0.4,
               }}>{a.name}</button>
@@ -5015,7 +5015,7 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
                     <span key={m.id} style={{
                       fontSize: 12.5, fontWeight: 600,
                       padding:'2px 7px', borderRadius: 4,
-                      background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                      background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                     }}>{m.name.replace('Menù ','')}</span>
                   ))
                 )}
@@ -5075,7 +5075,7 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
             <span style={{
               fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4,
               padding:'2px 7px', borderRadius: 4,
-              background: PN.GREEN_SOFT, color: PN.GREEN,
+              background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
             }}>NUOVO</span>
           )}
         </div>
@@ -5141,7 +5141,7 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
         padding:'5px 11px', borderRadius: 999,
         border: `1.5px solid ${item.active ? PN.GREEN : PN.BORDER}`,
         background: item.active ? PN.GREEN_SOFT : PN.BORDER_SOFT,
-        color: item.active ? PN.GREEN : PN.MUTED,
+        color: item.active ? PN.GREEN_TEXT : PN.MUTED,
         fontSize: 13, fontWeight: 700, letterSpacing: 0.3,
         cursor:'pointer', fontFamily:'inherit',
         textTransform:'uppercase',
@@ -5192,11 +5192,11 @@ function NutritionFields({ alcolico = false }) {
         background: PN.GREEN_SOFT, display:'flex', alignItems:'center', gap:10,
       }}>
         <span style={{fontSize: 16}}>✨</span>
-        <div style={{flex:1, fontSize:15, color: PN.GREEN, fontWeight:600, lineHeight:1.4}}>
+        <div style={{flex:1, fontSize:15, color: PN.GREEN_TEXT, fontWeight:600, lineHeight:1.4}}>
           Stimati dall'AI in base agli ingredienti. Modifica i valori se serve, oppure rigenera.
         </div>
         <button onClick={regenerate} disabled={regenerating} style={{
-          background: PN.WHITE, color: PN.GREEN, border:`1px solid ${PN.GREEN}`,
+          background: PN.WHITE, color: PN.GREEN_TEXT, border:`1px solid ${PN.GREEN}`,
           padding:'6px 10px', borderRadius:6, fontSize:15, fontWeight:700,
           cursor: regenerating ? 'default' : 'pointer', fontFamily:'inherit',
           whiteSpace:'nowrap', opacity: regenerating ? 0.7 : 1,
@@ -5269,7 +5269,7 @@ function CollapseSection({ title, subtitle, icon, iconBg, iconColor, open, onTog
         <div style={{
           width:32, height:32, borderRadius:9,
           background: iconBg || (open ? PN.PINK_SOFT : '#F4F5F7'),
-          color: iconColor || (open ? PN.PINK_DARK : PN.MUTED),
+          color: iconColor || (open ? PN.BRAND_TEXT : PN.MUTED),
           display:'flex', alignItems:'center', justifyContent:'center',
           fontSize: 16, fontWeight: 700, flexShrink:0,
         }}>{icon}</div>
@@ -5385,7 +5385,7 @@ function IngredientList({ ingredients, setIngredients }) {
           </div>
           {showSuggest && dbMatches.length > 0 && (
             <div style={{position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', zIndex: 20, maxHeight: 240, overflowY: 'auto', padding: 5}}>
-              <div style={{padding: '6px 8px 5px', fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.6, textTransform: 'uppercase'}}>Dal tuo archivio</div>
+              <div style={{padding: '6px 8px 5px', fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase'}}>Dal tuo archivio</div>
               {dbMatches.map(s => (
                 <button key={s.name} onMouseDown={() => addExisting(s)}
                   style={{width: '100%', textAlign: 'left', padding: '8px 9px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 10}}
@@ -5406,7 +5406,7 @@ function IngredientList({ ingredients, setIngredients }) {
         <button onMouseDown={() => addNew(query)} disabled={!query.trim() || exactMatch} style={{
           flexShrink: 0, padding: '9px 14px', borderRadius: 10,
           border: `1px solid ${(!query.trim() || exactMatch) ? PN.BORDER_SOFT : PN.BORDER}`,
-          background: PN.WHITE, color: (!query.trim() || exactMatch) ? PN.MUTED_SOFT : PN.TEXT,
+          background: PN.WHITE, color: (!query.trim() || exactMatch) ? PN.MUTED : PN.TEXT,
           cursor: (!query.trim() || exactMatch) ? 'default' : 'pointer', fontFamily: 'inherit',
           fontSize: 14.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
         }}><PnI.Plus size={12}/> Aggiungi ingrediente</button>
@@ -5452,7 +5452,7 @@ function IngredientList({ ingredients, setIngredients }) {
                   <span
                     draggable onDragStart={() => setDragIdx(i)} onDragEnd={() => setDragIdx(null)}
                     title="Trascina per riordinare"
-                    style={{color: PN.MUTED_SOFT, cursor: 'grab', display: 'inline-flex'}}
+                    style={{color: PN.MUTED, cursor: 'grab', display: 'inline-flex'}}
                   ><PnI.Drag size={12}/></span>
 
                   <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
@@ -5506,7 +5506,7 @@ function IngredientList({ ingredients, setIngredients }) {
                       padding: '5px 7px 5px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                       border: `1px solid ${aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER)}`,
                       background: ingAllergens.length ? PN.PINK_BG_SOFT : PN.WHITE,
-                      color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                      color: ingAllergens.length ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize: 12.5, fontWeight: 600,
                       transition: 'border-color 150ms ease-out',
                     }}>
@@ -5523,7 +5523,7 @@ function IngredientList({ ingredients, setIngredients }) {
                     )}
                     <span style={{
                       display: 'inline-flex', flexShrink: 0,
-                      color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                      color: ingAllergens.length ? PN.BRAND_TEXT : PN.MUTED,
                       transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
                     }}><PnI.ChevronDown size={11}/></span>
                   </button>
@@ -5566,7 +5566,7 @@ function IngredientList({ ingredients, setIngredients }) {
                             padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                             border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
                             background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                            color: on ? PN.PINK_DARK : PN.TEXT,
+                            color: on ? PN.BRAND_TEXT : PN.TEXT,
                             fontSize: 13.5, fontWeight: on ? 700 : 600,
                           }}>
                             <window.AllergenIcon id={a.id} size={15}/>
@@ -5668,7 +5668,7 @@ function ExtrasList({ extras, setExtras }) {
               </div>
               <span style={{fontSize:16, color: PN.TEXT, fontWeight:600}}>{ex.name}</span>
               <span style={{
-                fontSize:15, fontWeight:700, color: PN.PINK_DARK,
+                fontSize:15, fontWeight:700, color: PN.BRAND_TEXT,
                 background: PN.PINK_SOFT, padding:'3px 9px', borderRadius:999,
                 fontVariantNumeric:'tabular-nums',
               }}>+ € {ex.price.toFixed(2)}</span>
@@ -5738,7 +5738,7 @@ function ExtrasList({ extras, setExtras }) {
           height:40, padding:'0 16px', borderRadius:9,
           background: name.trim() ? PN.PINK_BG_SOFT : '#E9EBEF',
           border: name.trim() ? `1.5px solid ${PN.PINK_SOFT}` : '1.5px solid transparent',
-          color: name.trim() ? PN.PINK_DARK : PN.MUTED,
+          color: name.trim() ? PN.BRAND_TEXT : PN.MUTED,
           fontSize:16, fontWeight:700, cursor: name.trim() ? 'pointer' : 'default', fontFamily:'inherit',
           transition:'background 150ms ease-out',
         }}
@@ -5825,7 +5825,7 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
                       padding:'0 9px', height:30, flexShrink:0, borderRadius:8, cursor:'pointer', fontFamily:'inherit',
                       border:`1px solid ${(opt.addsAllergens || []).length ? PN.PINK_SOFT : PN.BORDER_SOFT}`,
                       background:(opt.addsAllergens || []).length ? PN.PINK_BG_SOFT : PN.WHITE,
-                      color:(opt.addsAllergens || []).length ? PN.PINK_DARK : PN.MUTED,
+                      color:(opt.addsAllergens || []).length ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize:12.5, fontWeight:700,
                     }}>{(opt.addsAllergens || []).length ? `${(opt.addsAllergens || []).length} allergeni` : 'Allergeni'}</button>
                   {v.options.length > 1 && (
@@ -5865,7 +5865,7 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
                 </div>
                 );
               })}
-              <button onClick={() => updateGroup(i, {options: [...v.options.map(mcOpzione), {name:''}]})} style={{background:'transparent', border:'none', color: PN.PINK_DARK, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:5, padding:'4px 0', alignSelf:'flex-start'}}>+ Aggiungi opzione</button>
+              <button onClick={() => updateGroup(i, {options: [...v.options.map(mcOpzione), {name:''}]})} style={{background:'transparent', border:'none', color: PN.BRAND_TEXT, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:5, padding:'4px 0', alignSelf:'flex-start'}}>+ Aggiungi opzione</button>
             </div>
             <label style={{display:'flex', alignItems:'center', gap:7, fontSize:15, color: PN.MUTED, fontWeight:600, cursor:'pointer', paddingTop:8, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
               <input type="checkbox" checked={v.required} onChange={() => updateGroup(i, {required: !v.required})} style={{margin:0, accentColor: PN.PINK}}/>
@@ -6127,7 +6127,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
             display:'grid', placeItems:'center',
           }}><PnI.Plate size={21} color={PN.PINK}/></div>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:12.5, color:PN.PINK, textTransform:'uppercase', letterSpacing:0.8, fontWeight:800, marginBottom:2}}>
+            <div style={{fontSize:12.5, color:PN.BRAND_TEXT, textTransform:'uppercase', letterSpacing:0.8, fontWeight:800, marginBottom:2}}>
               {fromLibrary ? 'Libreria piatti' : (catName || cat)}
             </div>
             <div style={{fontSize:20, fontWeight:800, color:PN.TEXT, lineHeight:1.2, letterSpacing:'-0.01em',
@@ -6142,7 +6142,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
             style={{
             flexShrink:0, height:36, padding:'0 14px',
             background: !name.trim() ? '#EEF0F3' : (aiLoading ? PN.PINK_SOFT : PN.PINK_BG_SOFT),
-            color: !name.trim() ? PN.MUTED_LIGHT || '#9AA0A6' : PN.PINK_DARK,
+            color: !name.trim() ? PN.MUTED || '#9AA0A6' : PN.BRAND_TEXT,
             border: !name.trim() ? '1.5px solid #E3E6EA' : `1.5px solid ${PN.PINK_SOFT}`,
             borderRadius:9, cursor: (aiLoading || !name.trim()) ? 'default' : 'pointer',
             display:'inline-flex', alignItems:'center', gap:6,
@@ -6243,7 +6243,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     <textarea value={desc} maxLength={160} onChange={e=>scriviDesc(e.target.value)} rows={4} placeholder="Ingredienti principali, breve descrizione…" style={{
                       width:'100%', padding:'10px 12px 26px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:PN.WHITE,
                     }}/>
-                    <span style={{position:'absolute', right:12, bottom:10, fontSize:12.5, color:PN.MUTED_SOFT, fontWeight:600, pointerEvents:'none'}}>{desc.length}/160</span>
+                    <span style={{position:'absolute', right:12, bottom:10, fontSize:12.5, color:PN.MUTED, fontWeight:600, pointerEvents:'none'}}>{desc.length}/160</span>
                   </div>
                 </ImpField>
               </div>
@@ -6348,7 +6348,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
             >
               {ingredientAllergens.size > 0 && (
                 <div style={{fontSize:14, color:PN.MUTED, fontStyle:'italic', marginBottom:8}}>
-                  <span style={{color:PN.PINK_DARK, fontWeight:700, fontStyle:'normal'}}>•</span> = derivati dagli ingredienti
+                  <span style={{color:PN.BRAND_TEXT, fontWeight:700, fontStyle:'normal'}}>•</span> = derivati dagli ingredienti
                 </div>
               )}
               <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
@@ -6362,13 +6362,13 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                       padding:'6px 11px', borderRadius:999,
                       border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
                       background: on ? PN.PINK_SOFT : '#FAFBFC',
-                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      color: on ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize:15, fontWeight:600, cursor:(fromIng && !fromManual) ? 'not-allowed' : 'pointer', fontFamily:'inherit',
                       transition:'background 150ms ease-out, border-color 150ms ease-out',
                     }}>
                       <AllergenIcon id={a.id} size={17}/>
                       {a.name}
-                      {fromIng && <span style={{color:PN.PINK_DARK, fontSize:14}}>•</span>}
+                      {fromIng && <span style={{color:PN.BRAND_TEXT, fontSize:14}}>•</span>}
                     </button>
                   );
                 })}
@@ -6412,7 +6412,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                   display:'inline-flex', alignItems:'center', gap:7,
                   background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
                   padding:'4px 0', margin:'2px 0 0',
-                  fontSize:15, fontWeight:700, color: PN.PINK_DARK,
+                  fontSize:15, fontWeight:700, color: PN.BRAND_TEXT,
                 }}
               >
                 {openSection === 'avanzate' ? 'Nascondi opzioni avanzate' : 'Mostra opzioni avanzate'}
@@ -6438,7 +6438,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                           padding:'8px 13px', borderRadius:9, fontSize:15, fontWeight:600,
                           border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_SOFT}`,
                           background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                          color: on ? PN.PINK_DARK : PN.TEXT,
+                          color: on ? PN.BRAND_TEXT : PN.TEXT,
                           cursor:'pointer', userSelect:'none',
                           transition:'background 150ms ease-out, border-color 150ms ease-out',
                         }}>
@@ -6498,7 +6498,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     <button onClick={() => setVariants(arr => [...arr, { name:'', options:[''], required:true }])} style={{
                       flexShrink:0, padding:'8px 14px', borderRadius:9,
                       background: PN.PINK_BG_SOFT, border:`1.5px solid ${PN.PINK_SOFT}`,
-                      color: PN.PINK_DARK, fontSize:15, fontWeight:700,
+                      color: PN.BRAND_TEXT, fontSize:15, fontWeight:700,
                       cursor:'pointer', fontFamily:'inherit',
                       transition:'background 150ms ease-out',
                     }}
@@ -6521,12 +6521,12 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     {recipeSteps.map((step, i) => (
                       <div key={i} style={{display:'flex', alignItems:'flex-start', gap:8}}>
                         <span aria-hidden="true" style={{
-                          flexShrink:0, color:PN.MUTED_LIGHT, fontSize:14, marginTop:9,
+                          flexShrink:0, color:PN.MUTED, fontSize:14, marginTop:9,
                           letterSpacing:-1, userSelect:'none', cursor:'grab', lineHeight:1,
                         }}>⠿</span>
                         <span style={{
                           flexShrink:0, width:24, height:24, borderRadius:'50%',
-                          background:PN.PINK_SOFT, color:PN.PINK_DARK, fontSize:14.5, fontWeight:800,
+                          background:PN.PINK_SOFT, color:PN.BRAND_TEXT, fontSize:14.5, fontWeight:800,
                           display:'grid', placeItems:'center', marginTop:7,
                         }}>{i+1}</span>
                         <textarea value={step}
@@ -6561,7 +6561,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     marginTop:10, display:'inline-flex', alignItems:'center', gap:5,
                     padding:'8px 14px', borderRadius:9,
                     background: PN.PINK_BG_SOFT, border:`1.5px solid ${PN.PINK_SOFT}`,
-                    color:PN.PINK_DARK, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                    color:PN.BRAND_TEXT, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
                     transition:'background 150ms ease-out',
                   }}
                   onMouseEnter={e=>{ e.currentTarget.style.background = PN.PINK_SOFT; }}
@@ -6845,7 +6845,7 @@ function MCIngredienti() {
             padding: '10px 14px', borderRadius: 9,
             border: `1px solid ${allergenFilter.length ? PN.PINK : PN.BORDER}`,
             background: allergenFilter.length ? PN.PINK_SOFT : PN.WHITE,
-            color: allergenFilter.length ? PN.PINK_DARK : PN.TEXT,
+            color: allergenFilter.length ? PN.BRAND_TEXT : PN.TEXT,
             fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
             display:'inline-flex', alignItems:'center', gap: 8, whiteSpace:'nowrap',
           }}>
@@ -7101,7 +7101,7 @@ function MCIngredienti() {
                 <button data-ing-trigger onClick={() => { setPopoverIdx(isPopoverOpen ? null : idx); setEditAllergensIdx(null); }} style={{
                   background:'transparent', border:'none', padding: 0, cursor:'pointer',
                   fontFamily:'inherit', fontSize: 15, fontWeight: 600,
-                  color: PN.PINK_DARK,
+                  color: PN.BRAND_TEXT,
                   display:'inline-flex', alignItems:'center', gap: 4,
                   textDecoration: isPopoverOpen ? 'underline' : 'none',
                 }}>
@@ -7230,7 +7230,7 @@ function PrenotazioniDurata() {
             <span style={{
               fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
               padding:'2px 8px', borderRadius: 999,
-              background: PN.PINK_SOFT, color: PN.PINK_DARK,
+              background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
             }}>{overrides} personalizzat{overrides === 1 ? 'a' : 'e'}</span>
           )}
         </button>
@@ -7404,7 +7404,7 @@ function ServizioVisibilitaMenu() {
                   width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                   display: 'grid', placeItems: 'center',
                   background: m.active ? PN.PINK_BG_SOFT : '#F4F5F7',
-                  color: m.active ? PN.PINK_DARK : PN.MUTED,
+                  color: m.active ? PN.BRAND_TEXT : PN.MUTED,
                 }}><Icon name="time-calendar" size={16}/></span>
                 <span style={{flex: 1, minWidth: 0}}>
                   <span style={{display: 'flex', alignItems: 'center', gap: 8}}>
@@ -7414,7 +7414,7 @@ function ServizioVisibilitaMenu() {
                     {m.active && (
                       <span style={{
                         fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-                        background: PN.GREEN_SOFT, color: PN.GREEN,
+                        background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
                       }}>Attivo</span>
                     )}
                   </span>
@@ -7533,7 +7533,7 @@ function VisibilitaEditor({ menu, orari, onSalva }) {
                   flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
                   border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
                   background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                  color: on ? PN.PINK_DARK : PN.MUTED,
+                  color: on ? PN.BRAND_TEXT : PN.MUTED,
                   fontSize: 13.5, fontWeight: on ? 700 : 600,
                   transition: 'border-color 150ms ease-out, background 150ms ease-out',
                 }}>{g}</button>
@@ -7541,7 +7541,7 @@ function VisibilitaEditor({ menu, orari, onSalva }) {
             })}
           </div>
           {!giorniOk && (
-            <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginTop: 6}}>
+            <div style={{fontSize: 12.5, color: PN.BRAND_TEXT, marginTop: 6}}>
               Scegli almeno un giorno, altrimenti il menù non si vedrebbe mai.
             </div>
           )}
@@ -7561,7 +7561,7 @@ function VisibilitaEditor({ menu, orari, onSalva }) {
       )}
 
       <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 14}}>
-        <span style={{flex: 1, fontSize: 13.5, color: PN.GREEN, fontWeight: 600}}>
+        <span style={{flex: 1, fontSize: 13.5, color: PN.GREEN_TEXT, fontWeight: 600}}>
           {salvato ? 'Visibilità aggiornata' : ''}
         </span>
         <ImpButton variant="pink" onClick={applica} disabled={!giorniOk}>Applica</ImpButton>
@@ -7743,7 +7743,7 @@ function MCConfigura() {
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: PN.AMBER_SOFT, color: PN.AMBER,
+            background: PN.AMBER_SOFT, color: PN.AMBER_TEXT,
             display:'grid', placeItems:'center',
           }}>
             <PnI.Plate size={17}/>
@@ -7859,7 +7859,7 @@ function MCConfigura() {
             <div style={{display:'flex', alignItems:'center', gap: 12, marginBottom: 16}}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                background: PN.AMBER_SOFT, color: PN.AMBER,
+                background: PN.AMBER_SOFT, color: PN.AMBER_TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <PnI.Clock size={17} color={PN.AMBER}/>
@@ -7887,7 +7887,7 @@ function MCConfigura() {
                           flex: 1, padding: '10px 8px', borderRadius: 8,
                           border: `1.5px solid ${on ? PN.AMBER : PN.BORDER}`,
                           background: on ? PN.AMBER_SOFT : PN.WHITE,
-                          color: on ? PN.AMBER : PN.TEXT,
+                          color: on ? PN.AMBER_TEXT : PN.TEXT,
                           fontSize: 15, fontWeight: 700,
                           cursor:'pointer', fontFamily:'inherit',
                         }}>
@@ -7928,7 +7928,7 @@ function MCConfigura() {
                             background: on ? PN.AMBER : PN.SIDE_BG,
                           }}><Icon size={12} color={on ? PN.WHITE : PN.MUTED}/></span>
                           <div style={{flex:1}}>
-                            <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.AMBER : PN.TEXT, marginBottom: 2}}>{a.label}</div>
+                            <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.AMBER_TEXT : PN.TEXT, marginBottom: 2}}>{a.label}</div>
                             <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>{a.desc}</div>
                           </div>
                         </label>
@@ -7974,7 +7974,7 @@ function MCConfigura() {
                     <button key={m.id} data-qualificazione={m.id} onClick={() => setCoperto({ qualificazione: m.id, sospesa: false })} style={{
                       padding:'5px 13px', borderRadius: 999, border:'none',
                       background: on ? PN.PINK_SOFT : 'transparent',
-                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      color: on ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                       boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
                       transition:'background 150ms ease-out, color 150ms ease-out', whiteSpace:'nowrap',
@@ -7998,7 +7998,7 @@ function MCConfigura() {
                     <button key={m.id} data-forma={m.id} onClick={() => setServizioTipo(m.id)} style={{
                       padding:'5px 13px', borderRadius: 999, border:'none',
                       background: on ? PN.PINK_SOFT : 'transparent',
-                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      color: on ? PN.BRAND_TEXT : PN.MUTED,
                       fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                       boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
                       transition:'background 150ms ease-out, color 150ms ease-out', whiteSpace:'nowrap',
@@ -8131,7 +8131,7 @@ function MCConfigura() {
             <div style={{padding: '24px 24px 18px'}}>
               <div style={{
                 width: 44, height: 44, borderRadius: '50%',
-                background: PN.GREEN_SOFT, color: PN.GREEN,
+                background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
                 display:'grid', placeItems:'center', marginBottom: 14,
               }}><PnI.Plate size={20}/></div>
               <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
@@ -8171,7 +8171,7 @@ function FlowDiagram({ active }) {
         display:'grid', placeItems:'center',
         boxShadow: hi ? '0 4px 12px rgba(239,79,139,0.25)' : 'none',
       }}>{icon}</div>
-      <span style={{fontSize: 13.5, fontWeight: 700, color: hi ? PN.PINK_DARK : PN.MUTED}}>{label}</span>
+      <span style={{fontSize: 13.5, fontWeight: 700, color: hi ? PN.BRAND_TEXT : PN.MUTED}}>{label}</span>
     </div>
   );
 
@@ -8183,7 +8183,7 @@ function FlowDiagram({ active }) {
     }}>
       <span style={{
         position:'absolute', right: -6, top:'50%', transform:'translateY(-50%)',
-        display:'inline-flex', color: hi ? PN.PINK : PN.BORDER,
+        display:'inline-flex', color: hi ? PN.BRAND_TEXT : PN.BORDER,
       }}><BuIcons.chevronRight size={14}/></span>
     </div>
   );
@@ -8216,7 +8216,7 @@ function FlowDiagram({ active }) {
         fontSize: 14, color: PN.MUTED,
       }}>
         {active === 'diretto'
-          ? <>Tempo medio dall'ordine alla cucina: <b style={{color: PN.GREEN}}>~3 secondi</b></>
+          ? <>Tempo medio dall'ordine alla cucina: <b style={{color: PN.GREEN_TEXT}}>~3 secondi</b></>
           : <>Tempo medio dall'ordine alla cucina: <b style={{color: '#D97706'}}>~2 minuti</b> (dipende dalla risposta del cameriere)</>
         }
       </div>
@@ -8247,7 +8247,7 @@ function AiUploadCta({onClick, children}) {
         background: hover
           ? 'linear-gradient(135deg, #FFE0DD 0%, #FFD3D0 100%)'
           : 'linear-gradient(135deg, #FFF5F4 0%, #FFE7E4 100%)',
-        color: PN.PINK_DARK,
+        color: PN.BRAND_TEXT,
         fontSize: 15.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
         transition: 'background 200ms ease-out, transform 200ms ease-out, box-shadow 200ms ease-out',
@@ -8385,7 +8385,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
             display:'grid', placeItems:'center', color:'#fff', fontSize: 20,
           }}>✨</div>
           <div style={{flex:1}}>
-            <div style={{fontSize: 13, color: PN.PINK_DARK, textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 800}}>Importazione AI</div>
+            <div style={{fontSize: 13, color: PN.BRAND_TEXT, textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 800}}>Importazione AI</div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
               {stage === 'upload' && 'Carica il tuo menu'}
               {stage === 'processing' && 'Stiamo analizzando il menu…'}
@@ -8414,7 +8414,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
                   <>
                     <div style={{
                       width: 56, height: 56, borderRadius: 14,
-                      background: PN.PINK_SOFT, color: PN.PINK,
+                      background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                       display:'grid', placeItems:'center', margin:'0 auto 14px', fontSize: 26,
                     }}>📤</div>
                     <div style={{fontSize: 17, fontWeight: 700, marginBottom: 4, color: PN.TEXT}}>Trascina qui il tuo menu</div>
@@ -8574,7 +8574,7 @@ function AIProcessingPanel({ onDone }) {
       }}>
         <div style={{display:'flex', justifyContent:'space-between', marginBottom: 10}}>
           <span style={{fontSize: 14, fontWeight: 800, color: PN.TEXT}}>AVANZAMENTO</span>
-          <span style={{fontSize: 14, fontWeight: 800, color: PN.PINK}}>{Math.round(progress)}%</span>
+          <span style={{fontSize: 14, fontWeight: 800, color: PN.BRAND_TEXT}}>{Math.round(progress)}%</span>
         </div>
         <div style={{height: 6, background: '#EEF0F3', borderRadius: 999, overflow:'hidden', marginBottom: 18}}>
           <div style={{

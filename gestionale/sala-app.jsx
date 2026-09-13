@@ -616,7 +616,7 @@ function SalaAperiModal({ tavolo, onConfirm, onClose }) {
           Vuoi aprire il tavolo lo stesso?
         </div>
         {res && (
-          <div style={{fontSize: 17, color:'#6B7280', marginBottom: 20, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+          <div style={{fontSize: 17, color:'#636875', marginBottom: 20, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {res.time} · {res.name} · {res.posti} posti
           </div>
         )}

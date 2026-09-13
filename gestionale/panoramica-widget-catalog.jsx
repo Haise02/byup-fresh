@@ -73,12 +73,21 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
         transition: 'opacity 0.2s', zIndex: 50,
       }}/>
       {/* drawer */}
-      <div style={{
+      <div
+        aria-hidden={!open}
+        style={{
         position:'absolute', top: 0, right: 0, bottom: 0,
-        width: 420, maxWidth: '100vw', background: PN.WHITE,
+        // `100%` e non `100vw`: dentro il frame scalato i vw non vengono
+        // scalati, quindi a 2,9× «100vw» valeva 1920 px logici e non
+        // limitava niente. Il pannello deve stare dentro la TELA.
+        width: 420, maxWidth: '100%', background: PN.WHITE,
         boxShadow: '-12px 0 32px rgba(15,17,21,0.10)',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.25s cubic-bezier(.4,.0,.2,1)',
+        // Da chiuso il cassetto non esiste per nessuno: senza questo, i suoi
+        // trenta pulsanti restavano nel giro del tab e chi naviga da tastiera
+        // finiva dentro un pannello che non vede.
+        visibility: open ? 'visible' : 'hidden',
         zIndex: 60,
         display:'flex', flexDirection:'column',
       }}>

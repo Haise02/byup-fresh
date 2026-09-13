@@ -110,7 +110,7 @@ function AccPasswordSicurezza() {
                     <span style={{
                       fontSize: 12, fontWeight: 700,
                       padding:'2px 8px', borderRadius: 999,
-                      background: PN.GREEN_SOFT, color: PN.GREEN,
+                      background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
                     }}>Questa sessione</span>
                   )}
                 </div>

@@ -126,6 +126,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
         boxShadow:'0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
         transform:'translate(-50%, -50%)',
+        ...(window.byupPanelPieno ? window.byupPanelPieno() : null),
         animation:'artPopIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {/* Header */}
@@ -149,7 +150,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
           ) : (
             <div style={{
               width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-              background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+              background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
               boxShadow: PN.INSET_HIGHLIGHT,
               display:'grid', placeItems:'center',
             }}>
@@ -286,7 +287,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
           to   { opacity: 1; transform: none; }
         }
         .sala-art-modal input:focus {
-          border-color: ${PN.PINK};
+          border-color: ${PN.BRAND_TEXT};
           box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.14);
         }
       `}</style>
@@ -301,7 +302,7 @@ function CartLine({ it, onRemove }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 2}}>
       <div style={{display:'flex', alignItems:'center', gap: 8}}>
-        <span style={{fontSize: 15, fontWeight: 800, color: PN.PINK_DARK, minWidth: 26, fontVariantNumeric:'tabular-nums'}}>{it.qty}×</span>
+        <span style={{fontSize: 15, fontWeight: 800, color: PN.BRAND_TEXT, minWidth: 26, fontVariantNumeric:'tabular-nums'}}>{it.qty}×</span>
         <span style={{flex:1, fontSize: 16, color: PN.TEXT, fontWeight: 600,
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</span>
         <span style={{fontSize: 15.5, color: PN.MUTED, fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
@@ -313,7 +314,7 @@ function CartLine({ it, onRemove }) {
           style={{
           width: 24, height: 24, borderRadius: 7,
           background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
-          color: PN.MUTED_SOFT,
+          color: PN.MUTED,
           cursor:'pointer', fontFamily:'inherit', padding: 0,
           display:'grid', placeItems:'center',
           transition:'background 130ms ease, color 130ms ease, border-color 130ms ease',
@@ -323,7 +324,7 @@ function CartLine({ it, onRemove }) {
         </button>
       </div>
       {hasMods && (
-        <div style={{paddingLeft: 32, fontSize: 14.5, color:'#6B7280', lineHeight: 1.45}}>
+        <div style={{paddingLeft: 32, fontSize: 14.5, color:'#636875', lineHeight: 1.45}}>
           {m.variants?.map(v => <div key={v.id}>· {v.label}: <b>{v.value}</b></div>)}
           {m.removed?.length > 0 && <div style={{color:'#DC2626'}}>− senza {m.removed.join(', ')}</div>}
           {m.extras?.map(e => <div key={e.id} style={{color:'#15803D'}}>+ {e.qty}× {e.nome}</div>)}
@@ -355,7 +356,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
               padding:'10px 14px', borderRadius: 10,
               border: on ? `1px solid ${PN.PINK_SOFT}` : '1px solid transparent',
               background: on ? PN.PINK_BG_SOFT : 'transparent',
-              color: on ? PN.PINK_DARK : PN.MUTED,
+              color: on ? PN.BRAND_TEXT : PN.MUTED,
               fontSize: 16.5, fontWeight: on ? 700 : 500,
               cursor:'pointer', fontFamily:'inherit',
               transition:'background 130ms ease, color 130ms ease',
@@ -403,7 +404,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
 
         <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: 14, minHeight: 0}}>
           {items.length === 0 ? (
-            <div style={{padding: 30, textAlign:'center', color:'#9CA3AF', fontSize: 16.5}}>
+            <div style={{padding: 30, textAlign:'center', color:'#636875', fontSize: 16.5}}>
               Nessun articolo trovato
             </div>
           ) : (
@@ -441,7 +442,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{it.nome}</div>
                       {customizable && (
                         <div style={{
-                          fontSize: 14, color: PN.MUTED_SOFT, marginTop: 3,
+                          fontSize: 14, color: PN.MUTED, marginTop: 3,
                           display:'flex', alignItems:'center', gap: 5,
                           whiteSpace:'nowrap', overflow:'hidden',
                         }}>
@@ -458,7 +459,7 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
                     {inCart && (
                       <span style={{
                         fontSize: 15, fontWeight: 700, flexShrink: 0,
-                        color: PN.PINK_DARK, background: PN.PINK_BG_SOFT,
+                        color: PN.BRAND_TEXT, background: PN.PINK_BG_SOFT,
                         padding:'2px 8px', borderRadius: 999,
                       }}>×{inCart.qty}</span>
                     )}
@@ -496,7 +497,7 @@ function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
         padding:'16px 18px 12px', flexShrink: 0,
         display:'flex', alignItems:'baseline', gap: 8,
       }}>
-        <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED_SOFT, letterSpacing: 0.7, textTransform:'uppercase'}}>
+        <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.7, textTransform:'uppercase'}}>
           Comanda
         </span>
         {itemCount > 0 && (
@@ -514,7 +515,7 @@ function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
           <div style={{
             width: 46, height: 46, borderRadius: 14,
             background: PN.WHITE, border:`1px solid ${PN.BORDER_LIGHT}`,
-            boxShadow: PN.CARD_SHADOW, color: PN.MUTED_LIGHT,
+            boxShadow: PN.CARD_SHADOW, color: PN.MUTED,
             display:'grid', placeItems:'center',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -522,7 +523,7 @@ function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
               <path d="M6 4h13l-1.5 9H7.5L6 4z M6 4L5.4 2H3 M8 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
             </svg>
           </div>
-          <div style={{fontSize: 16, color: PN.MUTED_SOFT, lineHeight: 1.5}}>
+          <div style={{fontSize: 16, color: PN.MUTED, lineHeight: 1.5}}>
             Tap su un articolo per aggiungerlo
           </div>
         </div>
@@ -547,7 +548,7 @@ function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
         background: PN.WHITE, flexShrink: 0,
       }}>
         <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 12}}>
-          <span style={{fontSize: 13.5, color: PN.MUTED_SOFT, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.7}}>
+          <span style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.7}}>
             Totale
           </span>
           <span style={{flex:1}}/>
@@ -561,7 +562,7 @@ function CartPanel({ cart, itemCount, total, onCartChange, onConfirm }) {
           style={{
           width:'100%', padding:'12px 22px',
           background: itemCount === 0 ? PN.WHITE_FROST : PN.BTN_DARK,
-          color: itemCount === 0 ? PN.MUTED_SOFT : '#fff',
+          color: itemCount === 0 ? PN.MUTED : '#fff',
           border:'none', borderRadius: 12, fontSize: 17.5, fontWeight: 700,
           boxShadow: itemCount === 0 ? 'none' : `${PN.INSET_HIGHLIGHT_DARK}, 0 4px 14px rgba(15,17,21,0.20)`,
           cursor: itemCount === 0 ? 'not-allowed' : 'pointer', fontFamily:'inherit',
@@ -632,7 +633,7 @@ function CustomizeView({ c, setC, onAdd }) {
         {(it.variants || []).map(v => (
           <Section key={v.id} title={v.label}
             hint={!c.variants[v.id]
-              ? <span style={{color: PN.PINK_DARK, fontWeight: 600}}>Obbligatorio</span>
+              ? <span style={{color: PN.BRAND_TEXT, fontWeight: 600}}>Obbligatorio</span>
               : null}>
             <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
               {v.options.map(opt => {
@@ -664,7 +665,7 @@ function CustomizeView({ c, setC, onAdd }) {
                     padding:'8px 13px', borderRadius: 999,
                     border: out ? `1px solid ${PN.BORDER_LIGHT}` : `1px solid ${PN.GREEN_SOFT}`,
                     background: out ? PN.WHITE_HUSH : PN.GREEN_SOFT,
-                    color: out ? PN.MUTED_SOFT : '#14532D',
+                    color: out ? PN.MUTED : '#14532D',
                     fontSize: 16.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
                     textDecoration: out ? 'line-through' : 'none',
                     display:'inline-flex', alignItems:'center', gap: 5,
@@ -697,7 +698,7 @@ function CustomizeView({ c, setC, onAdd }) {
                   }}>
                     <div style={{flex:1, minWidth: 0}}>
                       <div style={{fontSize: 17, fontWeight: 600, color: PN.TEXT}}>{ex.nome}</div>
-                      <div style={{fontSize: 15.5, color: ex.prezzo === 0 ? PN.GREEN : PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>
+                      <div style={{fontSize: 15.5, color: ex.prezzo === 0 ? PN.GREEN_TEXT : PN.MUTED, marginTop: 1, fontVariantNumeric:'tabular-nums'}}>
                         {ex.prezzo === 0 ? 'gratis' : `+€${ex.prezzo.toFixed(2)}`}
                       </div>
                     </div>
@@ -755,7 +756,7 @@ function CustomizeView({ c, setC, onAdd }) {
         display:'flex', flexDirection:'column', background: PN.WHITE_OFF, minHeight: 0,
       }}>
         <div style={{padding:'16px 18px 12px', flexShrink: 0}}>
-          <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED_SOFT, letterSpacing: 0.7, textTransform:'uppercase'}}>
+          <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.7, textTransform:'uppercase'}}>
             Il piatto
           </span>
         </div>
@@ -770,7 +771,7 @@ function CustomizeView({ c, setC, onAdd }) {
           </div>
 
           {!hasChoices ? (
-            <div style={{padding:'22px 6px', fontSize: 15.5, color: PN.MUTED_SOFT, lineHeight: 1.5}}>
+            <div style={{padding:'22px 6px', fontSize: 15.5, color: PN.MUTED, lineHeight: 1.5}}>
               Le scelte che fai compaiono qui.
             </div>
           ) : (
@@ -790,7 +791,7 @@ function CustomizeView({ c, setC, onAdd }) {
                 </div>
               ))}
               {chosenExtras.map(e => (
-                <div key={e.id} style={{display:'flex', alignItems:'center', gap: 7, fontSize: 15.5, color: PN.GREEN}}>
+                <div key={e.id} style={{display:'flex', alignItems:'center', gap: 7, fontSize: 15.5, color: PN.GREEN_TEXT}}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     strokeWidth="3" strokeLinecap="round" style={{flexShrink:0}}><path d="M12 5v14 M5 12h14"/></svg>
                   <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{e.qty}× {e.nome}</span>
@@ -816,7 +817,7 @@ function CustomizeView({ c, setC, onAdd }) {
               <button onClick={()=>setC(s=>({...s, qty: Math.max(1, s.qty-1)}))} disabled={c.qty<=1} aria-label="Meno" style={{
                 width: 30, height: 30, borderRadius: 999,
                 background: c.qty<=1 ? 'transparent' : PN.WHITE_HUSH, border:'none',
-                color: c.qty<=1 ? PN.MUTED_LIGHT : PN.TEXT,
+                color: c.qty<=1 ? PN.MUTED : PN.TEXT,
                 cursor: c.qty<=1 ? 'default' : 'pointer', fontFamily:'inherit',
                 display:'grid', placeItems:'center',
               }}>
@@ -840,7 +841,7 @@ function CustomizeView({ c, setC, onAdd }) {
             </span>
           </div>
           {!canAdd && (
-            <div style={{fontSize: 14.5, color: PN.PINK_DARK, fontWeight: 600, marginBottom: 8}}>
+            <div style={{fontSize: 14.5, color: PN.BRAND_TEXT, fontWeight: 600, marginBottom: 8}}>
               Scegli prima: {variantsRequired.map(v => v.label).join(', ')}
             </div>
           )}
@@ -850,7 +851,7 @@ function CustomizeView({ c, setC, onAdd }) {
             style={{
             width:'100%', padding:'12px 16px',
             background: canAdd ? PN.BTN_DARK : PN.WHITE_FROST,
-            color: canAdd ? '#fff' : PN.MUTED_SOFT,
+            color: canAdd ? '#fff' : PN.MUTED,
             border:'none', borderRadius: 12,
             boxShadow: canAdd ? `${PN.INSET_HIGHLIGHT_DARK}, 0 4px 14px rgba(15,17,21,0.20)` : 'none',
             fontSize: 17.5, fontWeight: 700,
@@ -872,7 +873,7 @@ function Section({ title, hint, children }) {
     <div style={{marginBottom: 24}}>
       <div style={{display:'flex', alignItems:'baseline', gap: 6, marginBottom: 11}}>
         <span style={{fontSize: 17, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.2}}>{title}</span>
-        {hint && <span style={{fontSize: 15, color: PN.MUTED_SOFT, marginLeft: 'auto'}}>{hint}</span>}
+        {hint && <span style={{fontSize: 15, color: PN.MUTED, marginLeft: 'auto'}}>{hint}</span>}
       </div>
       {children}
     </div>
@@ -964,7 +965,7 @@ function SalaFuoriMenuModal({ onClose, onConfirm }) {
           }}>Annulla</button>
           <button onClick={conferma} disabled={!valid} className="pn-btn-feedback" style={{
             flex: 1, padding:'12px 16px', borderRadius: 12, border:'none',
-            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED_SOFT,
+            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED,
             fontSize: 15.5, fontWeight: 700, cursor: valid ? 'pointer' : 'not-allowed', fontFamily:'inherit',
             display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
           }}>

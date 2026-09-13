@@ -247,8 +247,8 @@ function AccDatiGenerali() {
           }}>
             <span style={{flex: 1, minWidth: 200}}>
               {emailVerifica.stato === 'verificata'
-                ? <><b style={{color: PN.GREEN}}>{emailVerifica.campo === 'email' ? 'Casella verificata.' : 'Numero verificato.'}</b> {emailVerifica.valore} è {emailVerifica.campo === 'email' ? 'la tua nuova email' : 'il tuo nuovo numero'}. Abbiamo avvisato del cambio anche {emailVerifica.precedente}, e il cambiamento è nel registro delle attività.</>
-                : <><b style={{color: PN.AMBER}}>Da verificare.</b> {emailVerifica.campo === 'email' ? <>Abbiamo scritto a {emailVerifica.valore}: la casella cambia quando apri il link, e fino ad allora resta {emailVerifica.precedente}.</> : <>Abbiamo mandato un codice al {emailVerifica.valore}: il numero cambia quando lo confermi, e fino ad allora resta {emailVerifica.precedente}.</>}</>}
+                ? <><b style={{color: PN.GREEN_TEXT}}>{emailVerifica.campo === 'email' ? 'Casella verificata.' : 'Numero verificato.'}</b> {emailVerifica.valore} è {emailVerifica.campo === 'email' ? 'la tua nuova email' : 'il tuo nuovo numero'}. Abbiamo avvisato del cambio anche {emailVerifica.precedente}, e il cambiamento è nel registro delle attività.</>
+                : <><b style={{color: PN.AMBER_TEXT}}>Da verificare.</b> {emailVerifica.campo === 'email' ? <>Abbiamo scritto a {emailVerifica.valore}: la casella cambia quando apri il link, e fino ad allora resta {emailVerifica.precedente}.</> : <>Abbiamo mandato un codice al {emailVerifica.valore}: il numero cambia quando lo confermi, e fino ad allora resta {emailVerifica.precedente}.</>}</>}
             </span>
             {emailVerifica.stato !== 'verificata' && (
               <button onClick={confermaRecapito}
@@ -274,7 +274,7 @@ function AccDatiGenerali() {
             background: PN.PINK_SOFT, border: `1px dashed ${PN.PINK}`,
             borderRadius: 10,
           }}>
-            <span style={{flex: 1, fontSize: 14.5, fontWeight: 600, color: PN.PINK_DARK}}>
+            <span style={{flex: 1, fontSize: 14.5, fontWeight: 600, color: PN.BRAND_TEXT}}>
               Hai modifiche non salvate.
             </span>
             <button
@@ -342,7 +342,11 @@ function AccDatiGenerali() {
                 <span style={{
                   position:'absolute', top: -9, left:'50%', transform:'translateX(-50%)',
                   fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5,
-                  background: PN.PINK, color: PN.WHITE,
+                  // Bianco su corallo pieno fa 3,05:1, e a 10,5 px la soglia è
+                  // 4,5 — è la pastiglia più piccola del prodotto. Il corallo
+                  // non si tocca: si scurisce al vinaccia, che è la sua
+                  // variante scura, e il bianco sale a 6,01.
+                  background: PN.BRAND_TEXT, color: PN.WHITE,
                   padding:'3px 10px', borderRadius: 999, whiteSpace:'nowrap',
                 }}>IN USO</span>
               )}
@@ -369,7 +373,7 @@ function AccDatiGenerali() {
                       cassa, cameriere — «Owner» e «Manager» non esistono da
                       nessuna parte. Chi non è titolare entra come collaboratore
                       per questa via, e il ruolo dice quale. */}
-                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'titolare' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{(window.PN_RUOLI_LABEL || {})[loc.role] || loc.role}</div>
+                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'titolare' ? PN.BRAND_TEXT : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{(window.PN_RUOLI_LABEL || {})[loc.role] || loc.role}</div>
                 </div>
               </div>
 
@@ -418,7 +422,7 @@ function AccDatiGenerali() {
                   </div>
                   <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, textAlign:'center', lineHeight: 1.4}}>
                     Hai perso l'accesso al tuo locale? Non è questa la strada:{' '}
-                    <a href="byup Supporto.html" onClick={e => e.stopPropagation()} style={{color: PN.PINK_DARK, fontWeight: 600}}>chiedi il ripristino all'assistenza</a>, meglio con una chiamata.
+                    <a href="byup Supporto.html" onClick={e => e.stopPropagation()} style={{color: PN.BRAND_TEXT, fontWeight: 600}}>chiedi il ripristino all'assistenza</a>, meglio con una chiamata.
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
@@ -493,7 +497,7 @@ function AccDatiGenerali() {
           >
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: PN.PINK_SOFT, color: PN.PINK,
+              background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
               display:'grid', placeItems:'center',
             }}>
               <PnI.Plus size={17} color={PN.PINK}/>
@@ -555,7 +559,7 @@ function AccDatiGenerali() {
             <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
               <div style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -668,7 +672,7 @@ function AccDatiGenerali() {
                     style={{
                       flex: 1, padding: '11px 14px', borderRadius: 999,
                       background: pronto ? '#0F1115' : 'rgba(255,255,255,0.75)',
-                      color: pronto ? '#fff' : PN.MUTED_SOFT,
+                      color: pronto ? '#fff' : PN.MUTED,
                       border: `1px solid ${pronto ? 'rgba(15,17,21,0.5)' : 'rgba(15,17,21,0.12)'}`,
                       fontSize: 14.5, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit',
                     }}>
@@ -976,7 +980,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.65)'}>
               <span style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -1049,7 +1053,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
               style={{
                 padding: '12px 18px', borderRadius: 999,
                 background: sedeOk ? PN.BTN_DARK : PN.WHITE_FROST,
-                color: sedeOk ? PN.WHITE : PN.MUTED_SOFT,
+                color: sedeOk ? PN.WHITE : PN.MUTED,
                 border: `1px solid ${sedeOk ? 'rgba(0,0,0,0.32)' : PN.BORDER_SOFT_A}`,
                 fontSize: 15, fontWeight: 700,
                 cursor: sedeOk ? 'pointer' : 'not-allowed', fontFamily:'inherit',
@@ -1110,7 +1114,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
                       <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{d.addr} · {d.city}</span>
                     </span>
                     {sel && (
-                      <span style={{display:'inline-flex', color: PN.PINK_DARK, flexShrink: 0}}>
+                      <span style={{display:'inline-flex', color: PN.BRAND_TEXT, flexShrink: 0}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                       </span>
                     )}
@@ -1126,7 +1130,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
               style={{
                 padding: '12px 18px', borderRadius: 999,
                 background: selected ? PN.BTN_DARK : PN.WHITE_FROST,
-                color: selected ? PN.WHITE : PN.MUTED_SOFT,
+                color: selected ? PN.WHITE : PN.MUTED,
                 border: `1px solid ${selected ? 'rgba(0,0,0,0.32)' : PN.BORDER_SOFT_A}`,
                 fontSize: 15, fontWeight: 700,
                 cursor: selected ? 'pointer' : 'not-allowed', fontFamily:'inherit',
@@ -1252,7 +1256,7 @@ function AcSelect({ label, value, onChange, options, full }) {
                   }}>
                   <span style={{flex: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{o}</span>
                   {selected && (
-                    <span style={{display:'inline-flex', color: PN.PINK_DARK, flexShrink: 0}}>
+                    <span style={{display:'inline-flex', color: PN.BRAND_TEXT, flexShrink: 0}}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                     </span>
                   )}
@@ -1457,7 +1461,7 @@ function AcSoggettoFiscale() {
             <span style={{color: PN.MUTED}}> · Cacio e Pepe e le sue sedi</span>
           </div>
           {inCorso && (
-            <div data-soggetto-in-corso style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 3}}>
+            <div data-soggetto-in-corso style={{fontSize: 13.5, color: PN.AMBER_TEXT, fontWeight: 600, marginTop: 3}}>
               Cambio di soggetto in corso verso {c.nuovo.denominazione}: manca {manca.map(p => p.label.toLowerCase()).join(', ')}
             </div>
           )}

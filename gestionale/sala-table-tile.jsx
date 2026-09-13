@@ -275,7 +275,7 @@ function TableTile({
           <div style={{display: 'flex', alignItems: 'baseline', lineHeight: 1}}>
             <span style={{
               fontSize: numSize, fontWeight: 800,
-              color: dim ? '#9CA3AF' : '#0F1115',
+              color: dim ? '#636875' : '#0F1115',
               fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
             }}>{numero}</span>
           </div>

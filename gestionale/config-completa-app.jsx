@@ -506,7 +506,12 @@ function ApBtn({variant = 'neutral', onClick, children, style = {}}) {
         background: styles.bg, color: styles.color, border: styles.border,
         boxShadow: styles.shadow,
         padding: '10px 20px', borderRadius: 10,
-        fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
+        // Testo bianco sul corallo: serve il testo GRANDE (>= 18,66 px in
+        // bold) perché 3:1 basti — stessa regola di PnButton e ImpButton.
+        // A 19/700 il pulsante passa anche i 44 px di altezza.
+        fontSize: variant === 'brand' ? 19 : 15,
+        fontWeight: variant === 'brand' ? 700 : 600,
+        fontFamily: 'inherit',
         cursor: 'pointer',
         transition: 'background 150ms ease-out, box-shadow 150ms ease-out',
         display: 'flex', alignItems: 'center', gap: 7,
@@ -573,7 +578,7 @@ function StaffGuidaLink({ onApri }) {
         style={{
           padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
           fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-          color: hover ? PN.PINK_DARK : PN.PINK,
+          color: hover ? PN.BRAND_TEXT : PN.BRAND_TEXT,
           textDecoration: 'underline', textUnderlineOffset: 4, textDecorationThickness: 1.5,
           transition: 'color 150ms ease',
         }}>
@@ -614,7 +619,7 @@ function StaffGuidaModal({ onClose }) {
               )}
               <span style={{
                 width: 25, height: 25, borderRadius: '50%', flexShrink: 0,
-                border: `1.5px solid ${PN.PINK}`, color: PN.PINK, background: PN.WHITE,
+                border: `1.5px solid ${PN.PINK}`, color: PN.BRAND_TEXT, background: PN.WHITE,
                 display: 'grid', placeItems: 'center',
                 fontSize: 12.5, fontWeight: 700, position: 'relative', zIndex: 1,
               }}>{i + 1}</span>
@@ -625,7 +630,7 @@ function StaffGuidaModal({ onClose }) {
         <div style={{
           padding: '12px 14px', borderRadius: 11, background: PN.PINK_BG_SOFT || '#FFF1EF',
           border: `1px solid ${PN.PINK_SOFT}`, fontSize: 13.2, fontWeight: 700,
-          color: PN.PINK_DARK, lineHeight: 1.45,
+          color: PN.BRAND_TEXT, lineHeight: 1.45,
         }}>
           Controlla che tutti abbiano aggiunto Byup Cameriere alla Home del proprio dispositivo!
         </div>
@@ -698,7 +703,7 @@ function MembriDispositivi({ team, setTeam }) {
               }}>{invitato ? 'Invito inviato' : 'Attivo'}</span>
               <button onClick={() => rimuovi(m.id)} className="pn-btn-feedback" style={{
                 padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: PN.PINK,
+                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: PN.BRAND_TEXT,
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>{invitato ? 'Annulla invito' : 'Rimuovi'}</button>
             </div>

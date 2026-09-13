@@ -153,7 +153,7 @@ function CliVoto({ d, stelleSel, onScegli }) {
               }}>
               <span style={{
                 display:'inline-flex', alignItems:'center', gap: 7,
-                color: sel ? PN.PINK_DARK : PN.MUTED, fontWeight: sel ? 700 : 400,
+                color: sel ? PN.BRAND_TEXT : PN.MUTED, fontWeight: sel ? 700 : 400,
                 fontVariantNumeric:'tabular-nums',
               }}>
                 {stelle}
@@ -162,7 +162,7 @@ function CliVoto({ d, stelleSel, onScegli }) {
                 </svg>
               </span>
               <span style={{
-                flex: 1, textAlign:'right', color: sel ? PN.PINK_DARK : PN.TEXT,
+                flex: 1, textAlign:'right', color: sel ? PN.BRAND_TEXT : PN.TEXT,
                 fontVariantNumeric:'tabular-nums', fontWeight: 700,
               }}>{riga.count}</span>
             </button>
@@ -577,13 +577,13 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                     andata bene la serata, e il nome di un piatto in fondo si
                     legge come se la recensione fosse di quel piatto. Il dato
                     resta nei dati, per quando avrà una sua colonna. */}
-                <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED_SOFT, minWidth: 0}}>
+                <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED, minWidth: 0}}>
                   <Icon name="status-success" size={13}/>
                   <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Ordine verificato</span>
                 </span>
 
                 {segn ? (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0, fontSize: 13.5, fontWeight: 600, color: PN.AMBER, whiteSpace:'nowrap'}}>
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0, fontSize: 13.5, fontWeight: 600, color: PN.AMBER_TEXT, whiteSpace:'nowrap'}}>
                     <Icon name="status-pending" size={13}/> Segnalata
                   </span>
                 ) : (
@@ -596,7 +596,7 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                     style={{
                       flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 5,
                       padding:'2px 4px', border:'none', background:'transparent', boxShadow:'none',
-                      color: PN.MUTED_LIGHT, fontSize: 13.5, fontWeight: 600,
+                      color: PN.MUTED, fontSize: 13.5, fontWeight: 600,
                       fontFamily:'inherit', cursor:'pointer', transition:'color 140ms ease',
                     }}><Icon name="status-warning" size={13}/> Segnala</button>
                 )}
@@ -608,7 +608,7 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
         {!visibili.length && (
           <div style={{
             gridColumn:'1 / -1', padding:'30px 0', textAlign:'center',
-            fontSize: 15, color: PN.MUTED_SOFT, lineHeight: 1.5,
+            fontSize: 15, color: PN.MUTED, lineHeight: 1.5,
           }}>
             {stelle && asp
               ? <>Nessuna delle ultime {elenco.length} recensioni ha {stelle} stell{stelle === 1 ? 'a' : 'e'} e la casella «{asp.et}».</>
@@ -725,7 +725,7 @@ function CliSegnala({ recensione, onChiudi, onInvia }) {
           <button onClick={onInvia} disabled={!motivo} style={{
             padding:'9px 16px', borderRadius: 10, border:'none',
             background: motivo ? PN.TEXT : PN.WHITE_FROST,
-            color: motivo ? '#fff' : PN.MUTED_SOFT,
+            color: motivo ? '#fff' : PN.MUTED,
             fontSize: 14.5, fontWeight: 700, fontFamily:'inherit',
             cursor: motivo ? 'pointer' : 'default',
           }}>Invia al team byup</button>
@@ -838,7 +838,7 @@ function CliCiclo({ dati }) {
   });
   const testata = (ultimo) => ({
     padding: ultimo ? '0 0 9px 16px' : '0 16px 9px 0',
-    fontSize: 12.5, color: PN.MUTED_SOFT,
+    fontSize: 12.5, color: PN.MUTED,
   });
 
   return (
@@ -889,7 +889,7 @@ function CliCiclo({ dati }) {
                   freccia in su col numero negativo accanto. */}
               <span style={{
                 ...cella(true, true), fontSize: 14.5, fontWeight: 700,
-                color: r.delta >= 0 ? PN.GREEN : PN.RED,
+                color: r.delta >= 0 ? PN.GREEN_TEXT : PN.RED_TEXT,
                 fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
               }} title={`Nel periodo precedente di pari durata erano ${String(Math.abs(r.delta)).replace('.', ',')}% in ${r.delta >= 0 ? 'meno' : 'più'}`}>
                 {r.delta >= 0 ? '↑' : '↓'} {String(Math.abs(r.delta)).replace('.', ',')}%
@@ -936,7 +936,7 @@ function StatFuori() {
       }}>
         <span style={{
           width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-          background: PN.WHITE, color: PN.PINK,
+          background: PN.WHITE, color: PN.BRAND_TEXT,
           display:'grid', placeItems:'center',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -980,7 +980,7 @@ function StatFuori() {
                     width: 24, height: 24, borderRadius:'50%', flexShrink: 0,
                     display:'grid', placeItems:'center',
                     background: podio ? PN.PINK_SOFT : PN.WHITE_FROST,
-                    color: podio ? PN.PINK_DARK : PN.MUTED,
+                    color: podio ? PN.BRAND_TEXT : PN.MUTED,
                     fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
                   }}>{pos}</span>
 

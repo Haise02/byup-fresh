@@ -148,7 +148,7 @@ function PnApp() {
         <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
           <div style={{
             width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-            background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
             display:'grid', placeItems:'center',
           }}>
             <Icon name="pencil" size={18}/>
@@ -230,7 +230,7 @@ function PnApp() {
                 padding:'10px 14px',
                 background: PN.PINK_SOFT, border: `1px dashed ${PN.PINK}`,
                 borderRadius: 10,
-                fontSize: 14, color: PN.PINK_DARK, fontWeight: 600, lineHeight: 1.4,
+                fontSize: 14, color: PN.BRAND_TEXT, fontWeight: 600, lineHeight: 1.4,
               }}>
                 <Icon name="pencil" size={14} color={PN.PINK_DARK}/>
                 Stai modificando la dashboard — rimuovi o aggiungi widget, poi premi Salva.
@@ -290,7 +290,7 @@ function PnApp() {
               padding:'10px 14px',
               background: PN.PINK_SOFT, border: `1px dashed ${PN.PINK}`,
               borderRadius: 10,
-              fontSize: 15, color: PN.PINK_DARK, fontWeight: 600,
+              fontSize: 15, color: PN.BRAND_TEXT, fontWeight: 600,
             }}>
               <Icon name="pencil" size={14} color={PN.PINK_DARK}/>
               Stai modificando la dashboard — trascina, rimuovi o aggiungi widget. Premi <em style={{fontStyle:'normal', textDecoration:'underline'}}>Salva</em> quando hai finito.

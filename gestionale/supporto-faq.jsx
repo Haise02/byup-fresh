@@ -32,7 +32,7 @@ function SupFAQ({ search }) {
             padding: '6px 14px',
             borderRadius: 999,
             background: tab === t.id ? PN.PINK_BG_SOFT : 'transparent',
-            color: tab === t.id ? PN.PINK_DARK : PN.MUTED,
+            color: tab === t.id ? PN.BRAND_TEXT : PN.MUTED,
             border: `1px solid ${tab === t.id ? PN.PINK_BG_SOFT : PN.BORDER}`,
             fontSize: 14, fontWeight: 600, fontFamily:'inherit',
             cursor:'pointer',

@@ -1187,11 +1187,23 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   // piu' stretta in cui «3x Spaghetti aglio e olio» e il suo tempo stanno
   // ancora sulla stessa riga. Cinque su un monitor 1920, tre su un tablet in
   // orizzontale, una in verticale.
-  const [larghezza, setLarghezza] = React.useState(() => window.innerWidth);
+  // La misura è la TELA LOGICA, non la finestra: dentro il frame del
+  // gestionale la UI è scalata dallo zoom, e a «Molto grande» la finestra resta
+  // 1920 mentre lo spazio vero è 646. Con `innerWidth` la board teneva tre
+  // colonne su una tela da 646 e ogni card finiva a 130 px, con l'intestazione
+  // «IN PREPARAZIONE» tranciata a metà. `byup:fit` arriva a ogni resize E a
+  // ogni cambio di scala, quindi la board si riorganizza anche senza toccare
+  // la finestra.
+  const misuraTela = () => (window.byupLogicalW ? window.byupLogicalW() : window.innerWidth);
+  const [larghezza, setLarghezza] = React.useState(misuraTela);
   React.useEffect(() => {
-    const r = () => setLarghezza(window.innerWidth);
+    const r = () => setLarghezza(misuraTela());
     window.addEventListener('resize', r);
-    return () => window.removeEventListener('resize', r);
+    window.addEventListener('byup:fit', r);
+    return () => {
+      window.removeEventListener('resize', r);
+      window.removeEventListener('byup:fit', r);
+    };
   }, []);
   // TRE COLONNE AL MASSIMO. Sotto i 360 la card non scende mai — e' la misura
   // in cui «3x Spaghetti aglio e olio» e il suo tempo stanno ancora sulla

@@ -27,7 +27,7 @@ function StatGateRuolo() {
         <h1 style={{fontSize: 25, fontWeight: 800, letterSpacing: -0.5, margin:'0 0 10px', lineHeight: 1.2}}>
           Questa sezione non è nel tuo ruolo
         </h1>
-        <p style={{fontSize: 15.5, fontWeight: 500, color:'#6B7280', lineHeight: 1.55, margin:'0 0 26px'}}>
+        <p style={{fontSize: 15.5, fontWeight: 500, color:'#636875', lineHeight: 1.55, margin:'0 0 26px'}}>
           Le Statistiche le vede il titolare e i ruoli a cui le abilita. Nel ruolo {PN_UTENTE.ruoloLabel} non ci sono.
         </p>
         <a href="byup Panoramica.html" style={{
@@ -36,7 +36,7 @@ function StatGateRuolo() {
           background:'linear-gradient(180deg,#2A2D36 0%,#15171C 100%)', color:'#fff',
           fontSize: 15.5, fontWeight: 700, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.10)',
         }}>Vai alla Panoramica</a>
-        <p style={{fontSize: 13, fontWeight: 600, color:'#9CA3AF', margin:'24px 0 0'}}>
+        <p style={{fontSize: 13, fontWeight: 600, color:'#636875', margin:'24px 0 0'}}>
           Se ti servono, chiedi al titolare: si abilitano da Impostazioni → Personale.
         </p>
       </div>

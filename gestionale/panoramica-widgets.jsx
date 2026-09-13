@@ -18,7 +18,7 @@ function WMetric({ label, value, sub, trend, trendColor, big }) {
           <div style={{
             display:'inline-flex', alignItems:'center', gap: 3,
             fontSize: 16, fontWeight: 700,
-            color: trendColor || PN.GREEN,
+            color: trendColor || PN.GREEN_TEXT,
             whiteSpace:'nowrap', flexShrink: 0,
           }}>
             {trend.startsWith('+') ? <Icon name="arrow-up-right" size={14}/> : trend.startsWith('-') ? <Icon name="arrow-down-right" size={14}/> : null}
@@ -211,7 +211,7 @@ function WidgetIncassi({ size }) {
             <div style={{flex: '1 1 auto', minHeight: 0}}>
               <WSparkline data={d.spark} color={PN.PINK} animated/>
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED, marginTop: 4, flexShrink: 0}}>
               {d.labels.map((l,i) => <span key={i}>{l}</span>)}
             </div>
           </div>
@@ -230,7 +230,7 @@ function WidgetIncassi({ size }) {
         <div style={{flex: '1 1 auto', minHeight: 0}}>
           <WSparkline data={d.spark} color={PN.PINK} animated/>
         </div>
-        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED, marginTop: 4, flexShrink: 0}}>
           {d.labels.map((l,i) => <span key={i}>{l}</span>)}
         </div>
       </div>
@@ -330,7 +330,7 @@ function WidgetRiempimento({ size }) {
         <div style={{minWidth: 0}}>
           <div style={{display:'flex', alignItems:'baseline', gap: sideBySide ? 8 : 14, minWidth: 0}}>
             <div style={{fontSize: sideBySide ? 42 : 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.2, lineHeight: 1, whiteSpace:'nowrap'}}>{d.pct}%</div>
-            <div style={{fontSize: 14, color: isPos ? PN.GREEN : PN.RED, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
+            <div style={{fontSize: 14, color: isPos ? PN.GREEN_TEXT : PN.RED_TEXT, fontWeight: 700, whiteSpace:'nowrap', flexShrink: 0}}>{d.delta}</div>
           </div>
           <div style={{fontSize: 13, color: PN.MUTED, marginTop: 3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.sub}</div>
         </div>
@@ -356,7 +356,7 @@ function WidgetRiempimento({ size }) {
                   <div style={{flex:1, minHeight: 0, width:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center', overflow:'hidden'}}>
                     <div style={{
                       fontSize: 11, fontWeight: isPeak ? 800 : 600,
-                      color: isPeak ? PN.PINK_DARK : PN.MUTED,
+                      color: isPeak ? PN.BRAND_TEXT : PN.MUTED,
                       marginBottom: 3, whiteSpace:'nowrap',
                     }}>{f.v}%</div>
                     <div style={{
@@ -402,7 +402,7 @@ function WidgetNotifiche() {
       <div style={{marginBottom: 10, flexShrink: 0, minWidth: 0}}>
         <WidgetHead name="Notifiche" href="byup Profilo.html?tab=notifiche"
           right={nonLette > 0
-            ? <span style={{fontSize: 13, fontWeight: 700, color: PN.PINK_DARK, whiteSpace: 'nowrap'}}>{nonLette} <span style={{color: PN.MUTED, fontWeight: 600}}>da leggere</span></span>
+            ? <span style={{fontSize: 13, fontWeight: 700, color: PN.BRAND_TEXT, whiteSpace: 'nowrap'}}>{nonLette} <span style={{color: PN.MUTED, fontWeight: 600}}>da leggere</span></span>
             : <span style={{fontSize: 13, fontWeight: 600, color: PN.MUTED, whiteSpace: 'nowrap'}}>sei in pari</span>}/>
       </div>
       <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6}}>
@@ -421,12 +421,12 @@ function WidgetNotifiche() {
             }}>
             <span style={{
               width: 26, height: 26, borderRadius: 8, display: 'grid', placeItems: 'center', marginTop: 1,
-              background: n.unread ? PN.PINK_BG_SOFT : '#F4F5F7', color: n.unread ? PN.PINK_DARK : PN.MUTED,
+              background: n.unread ? PN.PINK_BG_SOFT : '#F4F5F7', color: n.unread ? PN.BRAND_TEXT : PN.MUTED,
             }}><Icon name={icona[n.type] || 'bell'} size={13}/></span>
             <div style={{minWidth: 0}}>
               <div style={{fontSize: 14, fontWeight: n.unread ? 700 : 600, color: PN.TEXT, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{n.title}</div>
               <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{n.body}</div>
-              <div style={{fontSize: 12, color: '#A3A3AD', marginTop: 2}}>{n.time}</div>
+              <div style={{fontSize: 12, color: '#636875', marginTop: 2}}>{n.time}</div>
             </div>
           </div>
         ))}
@@ -785,7 +785,7 @@ function TopDishRow({ d, i, max }) {
                 flexShrink: 0,
               }}>{i+1}</span>
               <span style={{flex: 1, fontSize: 15, color: PN.TEXT, fontWeight: 600, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
-              <span style={{fontSize: 13.5, color: d.up ? PN.GREEN : PN.RED, fontWeight: 700, flexShrink: 0}}>{d.trend}</span>
+              <span style={{fontSize: 13.5, color: d.up ? PN.GREEN_TEXT : PN.RED_TEXT, fontWeight: 700, flexShrink: 0}}>{d.trend}</span>
             </div>
             <div style={{paddingLeft: 26, fontSize: 13, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
               <span style={{color: PN.MUTED}}>{d.sales} ordini · </span>
@@ -861,7 +861,7 @@ function WidgetRecensioni() {
         </div>
         {!nuovo && (
           <div style={{
-            fontSize: 13, fontWeight: 600, color: PN.GREEN,
+            fontSize: 13, fontWeight: 600, color: PN.GREEN_TEXT,
             background: PN.GREEN_SOFT, padding: '4px 8px', borderRadius: 6,
             whiteSpace:'nowrap', flexShrink: 0,
           }}>+{REC_BYUP.settimana} questa settimana</div>
@@ -971,7 +971,7 @@ function WidgetCopertiSettimana({ size }) {
           // disallineava dalle colonne reali (gap escluso dal conto).
           <div key={i} style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap: 6, minHeight: 0}}>
             <div style={{
-              fontSize: 12.5, color: d.today ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 12.5, color: d.today ? PN.BRAND_TEXT : PN.MUTED,
               fontWeight: d.today ? 700 : 600,
               opacity: d.future ? 0 : 1,
               flexShrink: 0, whiteSpace:'nowrap',
@@ -985,7 +985,7 @@ function WidgetCopertiSettimana({ size }) {
               border: d.future ? `1px dashed ${PN.MUTED_LIGHT}` : 'none',
             }}/>
             <div style={{
-              fontSize: 12.5, color: d.today ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 12.5, color: d.today ? PN.BRAND_TEXT : PN.MUTED,
               fontWeight: d.today ? 700 : 500, flexShrink: 0, whiteSpace:'nowrap',
             }}>{d.d}</div>
           </div>
@@ -1199,7 +1199,7 @@ function WidgetAndamento({ size, name, metric }) {
             <div style={{flex: '1 1 auto', minHeight: 0}}>
               <WSparkline data={d.spark} color={PN.PINK} animated/>
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED, marginTop: 4, flexShrink: 0}}>
               {d.labels.map((l, i) => <span key={i}>{l}</span>)}
             </div>
           </div>
@@ -1226,7 +1226,7 @@ function WidgetAndamento({ size, name, metric }) {
         <div style={{flex: '1 1 auto', minHeight: 0}}>
           <WSparkline data={d.spark} color={PN.PINK} animated/>
         </div>
-        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 4, flexShrink: 0}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: PN.MUTED, marginTop: 4, flexShrink: 0}}>
           {d.labels.map((l, i) => <span key={i}>{l}</span>)}
         </div>
       </div>

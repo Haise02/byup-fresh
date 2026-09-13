@@ -491,6 +491,10 @@ function GlassDarkBox({
 
   return (
     <Tag
+      // Su vetro scuro l'anello di focus nero non si vede: `data-byup-dark`
+      // ribalta `--byup-focus` sul rosa chiaro (#FFE0DD, 14,48:1 sul sunset).
+      // Lo dichiara il materiale, non ogni singolo bottone che ci sta sopra.
+      {...(isNight ? { 'data-byup-dark': '' } : null)}
       className={cls}
       onClick={onClick}
       title={title}

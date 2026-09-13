@@ -118,7 +118,7 @@ function AdeIncaricatoCard({ forma, titolare }) {
               {persona ? ' · titolare del locale.' : <> · nominata incaricata sul portale il {data(chi.nominato_il)}.</>}
               {credProvate
                 ? <> Password e PIN configurati{cred.verificata ? `, provati il ${cred.verificata}` : ''}: la password vale fino al {cred.scadenza}, e il rinnovo lo compie {persona ? 'il titolare' : 'lei'}.</>
-                : <> <b style={{color: PN.AMBER}}>Password e PIN non ancora provati:</b> finché la trasmissione di prova non passa, il canale non trasmette.</>}
+                : <> <b style={{color: PN.AMBER_TEXT}}>Password e PIN non ancora provati:</b> finché la trasmissione di prova non passa, il canale non trasmette.</>}
             </div>
           </div>
           <ImpButton variant={credProvate ? 'secondary' : 'primary'} onClick={apri}>{credProvate ? 'Modifica' : 'Inserisci le credenziali'}</ImpButton>
@@ -432,7 +432,7 @@ function PosCopia({ valore }) {
     <button onClick={copia} className="pn-btn-feedback" style={{
       display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0,
       padding:'5px 10px', borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
-      background: fatto ? PN.GREEN_SOFT : PN.WHITE, color: fatto ? PN.GREEN : PN.TEXT,
+      background: fatto ? PN.GREEN_SOFT : PN.WHITE, color: fatto ? PN.GREEN_TEXT : PN.TEXT,
       border: `1px solid ${fatto ? PN.GREEN_SOFT : PN.BORDER}`, fontSize: 13, fontWeight: 600,
     }}>
       {fatto ? BuIcons.check({size: 13, color:'currentColor'}) : BuIcons.copy({size: 13, color:'currentColor'})}
@@ -495,11 +495,11 @@ function PosStrumento({ r, aperto, onApri }) {
                     <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: PN.MUTED }}>{f.campo}</div>
-                        <div style={{ fontSize: 14.5, fontWeight: 700, color: f.aperto ? PN.AMBER : PN.TEXT, fontFamily: f.mono ? 'ui-monospace, Menlo, monospace' : 'inherit', wordBreak:'break-all' }}>{f.valore}</div>
+                        <div style={{ fontSize: 14.5, fontWeight: 700, color: f.aperto ? PN.AMBER_TEXT : PN.TEXT, fontFamily: f.mono ? 'ui-monospace, Menlo, monospace' : 'inherit', wordBreak:'break-all' }}>{f.valore}</div>
                       </div>
                       {f.copia && <PosCopia valore={f.valore}/>}
                     </div>
-                    {f.nota && <div style={{ fontSize: 13, color: f.aperto ? PN.AMBER : PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>{f.nota}</div>}
+                    {f.nota && <div style={{ fontSize: 13, color: f.aperto ? PN.AMBER_TEXT : PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>{f.nota}</div>}
                   </div>
                 ))}
               </div>
@@ -515,7 +515,7 @@ function PosStrumento({ r, aperto, onApri }) {
               <ol style={{ margin: 0, paddingLeft: 20, display:'flex', flexDirection:'column', gap: 6 }}>
                 {POS_PASSI.map((t, i) => <li key={i} style={{ fontSize: 14, color: PN.TEXT, lineHeight: 1.45 }}>{t}</li>)}
               </ol>
-              <a href={POS_PORTALE} target="_blank" rel="noopener" style={{ display:'inline-flex', alignItems:'center', gap: 6, marginTop: 10, fontSize: 14, fontWeight: 600, color: PN.PINK_DARK, textDecoration:'none' }}>
+              <a href={POS_PORTALE} target="_blank" rel="noopener" style={{ display:'inline-flex', alignItems:'center', gap: 6, marginTop: 10, fontSize: 14, fontWeight: 600, color: PN.BRAND_TEXT, textDecoration:'none' }}>
                 {BuIcons.link({size: 13, color:'currentColor'})} Apri Fatture e Corrispettivi
               </a>
             </div>
@@ -625,7 +625,7 @@ function PosCensimentoCard() {
           <div style={{ width: 34, height: 34, borderRadius: 9, background: PN.GREEN, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0 }}>
             {BuIcons.check({size: 16, color: PN.WHITE})}
           </div>
-          <div style={{ fontSize: 14.5, color: PN.GREEN, fontWeight: 600, lineHeight: 1.45 }}>{POS_TUTTO_OK}</div>
+          <div style={{ fontSize: 14.5, color: PN.GREEN_TEXT, fontWeight: 600, lineHeight: 1.45 }}>{POS_TUTTO_OK}</div>
         </div>
       )}
 
@@ -638,14 +638,14 @@ function PosCensimentoCard() {
             padding: '10px 14px', borderRadius: 11, cursor:'pointer', fontFamily:'inherit',
             background: '#F7F8FA', border: `1px solid ${PN.BORDER_SOFT}`,
           }}>
-            <span style={{ width: 24, height: 24, borderRadius: 999, flexShrink: 0, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center' }}>
+            <span style={{ width: 24, height: 24, borderRadius: 999, flexShrink: 0, background: PN.GREEN_SOFT, color: PN.GREEN_TEXT, display:'grid', placeItems:'center' }}>
               {BuIcons.check({size: 13, color:'currentColor'})}
             </span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: PN.TEXT }}>
               {fatti.length === 1 ? '1 strumento già dichiarato' : `${fatti.length} strumenti già dichiarati`}
               {ultimaData && <span style={{ fontWeight: 500, color: PN.MUTED }}> · {fatti.length === 1 ? 'il' : "l'ultimo il"} {ultimaData}</span>}
             </span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: PN.PINK_DARK, flexShrink: 0 }}>{mostraFatti ? 'Nascondi' : 'Mostra'}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: PN.BRAND_TEXT, flexShrink: 0 }}>{mostraFatti ? 'Nascondi' : 'Mostra'}</span>
             <span style={{ display:'inline-flex', color: PN.MUTED, flexShrink: 0, transform: mostraFatti ? 'rotate(180deg)' : 'none', transition:'transform .16s' }}>
               {BuIcons.chevronDown({size: 13, color:'currentColor'})}
             </span>
@@ -858,7 +858,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                     </div>
                   )}
                 </div>
-                <div style={{alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
+                <div style={{alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER_TEXT : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
                   {f.piva ? (pivaOk ? 'P.IVA: formato valido · nessuna verifica presso l\'Agenzia' : 'P.IVA: formato non valido, IT e undici cifre') : 'P.IVA: IT e undici cifre'}
                   {data.pivaPrecedente ? ` · precedente ${data.pivaPrecedente}, conservata` : ''}
                 </div>
@@ -869,7 +869,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 soggetto cambia: sono i suoi, non quelli di chi c'era prima. */}
             <div style={{display:'flex', flexDirection:'column', gap: 10, minWidth: 0}}>
               <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>
-                Dati per fatturazione{cambiaSoggetto && <span style={{color: PN.AMBER, fontWeight: 600}}> · del nuovo soggetto, da compilare</span>}
+                Dati per fatturazione{cambiaSoggetto && <span style={{color: PN.AMBER_TEXT, fontWeight: 600}}> · del nuovo soggetto, da compilare</span>}
               </div>
               {!persona && (
                 <React.Fragment>
@@ -952,7 +952,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
         <div style={{...MODAL_FOOT, padding: '12px 24px'}}>
           <button onClick={onClose} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
           <span style={{flex: 1}}/>
-          <button onClick={avvia} disabled={!pronto} style={{padding:'9px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
+          <button onClick={avvia} disabled={!pronto} style={{padding:'9px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#636875', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
             {cambiaSoggetto ? 'Avvia il cambiamento' : 'Salva'}
           </button>
         </div>
@@ -1125,7 +1125,7 @@ function AdeAttivazioniCard() {
       {stato}
     </div>
   );
-  const linkStile = { background:'transparent', border:'none', padding: 0, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset: 2 };
+  const linkStile = { background:'transparent', border:'none', padding: 0, color: PN.BRAND_TEXT, fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset: 2 };
   const spuntaDatata = (checked, onChange, testo, il, da) => (
     <label style={{display:'inline-flex', alignItems:'flex-start', gap: 8, color: PN.TEXT, cursor:'pointer', fontSize: 13.5, lineHeight: 1.45}}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{accentColor: PN.PINK_DARK, marginTop: 3}}/>
@@ -1268,7 +1268,7 @@ function ImpDelegaRiconfermaModal({ onClose, denominazione }) {
         <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
           {fatta ? (
             <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-              <b style={{color: PN.GREEN}}>Delega riconferita e precedente revocata.</b> {c && c.status === 'completed' ? 'Il cambiamento di soggetto è concluso.' : c ? 'Restano gli altri passi del cambio di soggetto.' : 'I due atti sono a registro con la loro data.'}
+              <b style={{color: PN.GREEN_TEXT}}>Delega riconferita e precedente revocata.</b> {c && c.status === 'completed' ? 'Il cambiamento di soggetto è concluso.' : c ? 'Restano gli altri passi del cambio di soggetto.' : 'I due atti sono a registro con la loro data.'}
             </div>
           ) : (
             <React.Fragment>
@@ -1400,7 +1400,7 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos, onFirma }) {
             <ImpButton variant="primary" disabled={!prontoPerFirma} onClick={onFirma}>{prontoPerFirma ? 'Firma a nome del nuovo soggetto' : 'Prima gli altri passi'}</ImpButton>)}
           {concluso && (
             <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
-              <b style={{color: PN.GREEN}}>Cambiamento concluso.</b> Il locale opera come {c.nuovo.denominazione}. La storia delle operazioni resta attribuita all'account: quello che il registro dice è quando e in che cosa il soggetto è cambiato.
+              <b style={{color: PN.GREEN_TEXT}}>Cambiamento concluso.</b> Il locale opera come {c.nuovo.denominazione}. La storia delle operazioni resta attribuita all'account: quello che il registro dice è quando e in che cosa il soggetto è cambiato.
             </div>
           )}
         </div>
@@ -1454,7 +1454,7 @@ function ImpRiaccettaTerminiModal({ onClose, onFirmato }) {
           <div style={{maxHeight: 260, overflowY:'auto', padding:'12px 14px', borderRadius: 10, border:`1px solid ${PN.BORDER_SOFT}`, background:'#FAFBFC'}}>
             {TC.clausole.map(cl => (
               <div key={cl.n} style={{marginBottom: 10}}>
-                <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Art. {cl.n} · {cl.h}{cl.vessatoria ? ' ·' : ''}{cl.vessatoria && <span style={{color: PN.PINK_DARK}}> 1341-1342</span>}</div>
+                <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Art. {cl.n} · {cl.h}{cl.vessatoria ? ' ·' : ''}{cl.vessatoria && <span style={{color: PN.BRAND_TEXT}}> 1341-1342</span>}</div>
                 <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.5, marginTop: 2}}>{cl.p}</div>
               </div>
             ))}
@@ -1567,7 +1567,7 @@ function ImpAccettaTerminiModal({ soggetti, onClose }) {
               </div>
               {fatto.map(r => (
                 <div key={r.soggettoId} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '9px 12px', borderRadius: 9, background: '#F0FDF4', border: `1px solid ${PN.GREEN_SOFT}`, fontSize: 13.5 }}>
-                  <span style={{ color: PN.GREEN, fontWeight: 800 }}>✓</span>
+                  <span style={{ color: PN.GREEN_TEXT, fontWeight: 800 }}>✓</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <b>{r.soggetto}</b> <span style={{ color: PN.MUTED }}>· P.IVA {r.piva}</span>
                   </span>
@@ -1590,12 +1590,12 @@ function ImpAccettaTerminiModal({ soggetti, onClose }) {
                 </div>
                 {soggetti.map(s => (
                   <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13.5, color: PN.TEXT, marginTop: 3 }}>
-                    <span style={{ color: PN.GREEN, fontWeight: 800 }}>•</span>
+                    <span style={{ color: PN.GREEN_TEXT, fontWeight: 800 }}>•</span>
                     <span><b>{s.denominazione}</b> <span style={{ color: PN.MUTED }}>· P.IVA {s.piva} · {s.sedi.map(x => x.nome).join(', ')}</span></span>
                   </div>
                 ))}
                 {altri.map(s => (
-                  <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 3 }}>
+                  <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13, color: PN.MUTED, marginTop: 3 }}>
                     <span>–</span>
                     <span>{s.denominazione} · non firmi per lui: su questo locale non sei il titolare</span>
                   </div>
@@ -1697,7 +1697,7 @@ function ImpSoggettoRiga({ data, onCambia }) {
           {data.pivaPrecedente && <span style={{color: PN.MUTED}}> · precedente {data.pivaPrecedente}, conservata sui documenti già emessi</span>}
         </div>
         {inCorso && (
-          <div style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 2}}>
+          <div style={{fontSize: 13.5, color: PN.AMBER_TEXT, fontWeight: 600, marginTop: 2}}>
             Cambio di soggetto in corso · {manca.length ? `manca ${manca.map(p => p.label.toLowerCase()).join(', ')}` : 'ci siamo'}
             {!c.steps.delegations_renewed ? ' · senza delega le fatture partono lo stesso, ma non sono conservate presso l\'Agenzia' : ''}
             {!c.steps.stripe_connected ? ' · niente pagamenti finché manca Stripe' : ''}
@@ -1852,7 +1852,7 @@ function ImpDatiFiscali() {
             flexShrink: 0,
           }}><BuIcons.alert size={18} color={PN.WHITE}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:16, fontWeight:700, color: PN.AMBER}}>
+            <div style={{fontSize:16, fontWeight:700, color: PN.AMBER_TEXT}}>
               {`${missing.length} ${missing.length===1?'campo mancante':'campi mancanti'} per emettere scontrini conformi`}
             </div>
             <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>

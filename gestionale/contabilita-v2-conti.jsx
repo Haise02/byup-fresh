@@ -401,7 +401,7 @@ function DocScartoSheet({ conto, payment, onClose }) {
           to   {opacity: 1; transform: none;}
         }
         .cont-scarto-sheet textarea:focus {
-          border-color: ${PN.PINK};
+          border-color: ${PN.BRAND_TEXT};
           box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.14);
         }
       `}</style>
@@ -516,7 +516,7 @@ function DocScartoSheet({ conto, payment, onClose }) {
             </div>
           </Blocco>
 
-          <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT, marginTop: 16, lineHeight: 1.5}}>
+          <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 16, lineHeight: 1.5}}>
             Lo scarto riguarda solo questo documento: gli altri pagamenti del conto {conto.idOrdine} sono stati trasmessi regolarmente.
           </div>
         </div>
@@ -527,7 +527,7 @@ function DocScartoSheet({ conto, payment, onClose }) {
             background: PN.WHITE_OFF,
             display:'flex', alignItems:'center', gap: 10,
           }}>
-            <div style={{flex: 1, fontSize: C.T_XS, color: PN.MUTED_SOFT}}>
+            <div style={{flex: 1, fontSize: C.T_XS, color: PN.MUTED}}>
               Finché lo scarto è aperto resta segnalato in Contabilità.
             </div>
             <button onClick={() => { window.byupFiscSegnaGestita(payment.id, nota); onClose(); }}
@@ -602,7 +602,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
   const Cifra = ({ label, children, color }) => (
     <div style={{minWidth: 0}}>
       <div style={{
-        fontSize: 11, fontWeight: 700, color: PN.MUTED_SOFT,
+        fontSize: 11, fontWeight: 700, color: PN.MUTED,
         textTransform:'uppercase', letterSpacing: 0.6, marginBottom: 4,
       }}>{label}</div>
       <div style={{
@@ -613,7 +613,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
     </div>
   );
 
-  const Sep = () => <span style={{color: PN.MUTED_LIGHT}}>·</span>;
+  const Sep = () => <span style={{color: PN.MUTED}}>·</span>;
   const Titolo = ({ children }) => (
     <div style={{
       fontSize: 11, fontWeight: 700, color: PN.MUTED,
@@ -806,7 +806,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
                     <div style={{
                       fontWeight: 800, fontVariantNumeric:'tabular-nums',
                       fontSize: C.T_MD, textAlign:'right',
-                      color: chiuso ? PN.MUTED_SOFT : PN.TEXT,
+                      color: chiuso ? PN.MUTED : PN.TEXT,
                       textDecoration: chiuso ? 'line-through' : 'none',
                     }}>€{p.amount.toFixed(2)}</div>
 
@@ -1064,7 +1064,7 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
                     </span>
                   )}
                   <span style={{
-                    fontSize: C.T_SM, fontWeight: 700, color: spenta ? PN.MUTED_SOFT : PN.TEXT,
+                    fontSize: C.T_SM, fontWeight: 700, color: spenta ? PN.MUTED : PN.TEXT,
                     fontVariantNumeric:'tabular-nums',
                     textDecoration: spenta ? 'line-through' : 'none',
                   }}>€{z.prezzo.toFixed(2)}</span>
@@ -1139,7 +1139,7 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
             <button onClick={() => onReso(totaleSel, [...sel])} disabled={!selValida} style={{
               flex:2, padding:'11px 14px', border:'none', borderRadius: C.R_SM,
               background: selValida ? PN.TEXT : '#E5E7EB',
-              color: selValida ? '#fff' : '#9CA3AF',
+              color: selValida ? '#fff' : '#636875',
               fontSize: C.T_SM, fontWeight: 700, cursor: selValida ? 'pointer' : 'default', fontFamily:'inherit',
             }}>{selValida ? `Rendi €${totaleSel.toFixed(2)}` : 'Scegli cosa rendere'}</button>
           </div>
@@ -1347,7 +1347,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
             style={{
               flex:2, padding:'11px 16px',
               background: canConfirm ? '#059669' : '#E5E7EB',
-              color: canConfirm ? '#fff' : '#9CA3AF',
+              color: canConfirm ? '#fff' : '#636875',
               border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700,
               cursor: canConfirm ? 'pointer' : 'default', fontFamily:'inherit',
             }}>
@@ -1418,7 +1418,7 @@ function ContaFondoModal({ open, fondoCassa, onClose, onConfirm }) {
   });
   const btnSecondary = { flex:1, padding:'11px 16px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius:9, fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit' };
   const btnPrimary = { flex:2, padding:'11px 16px', background: PN.TEXT, color:'#fff', border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit' };
-  const btnDisabled = { ...btnPrimary, background:'#E5E7EB', color:'#9CA3AF', cursor:'default' };
+  const btnDisabled = { ...btnPrimary, background:'#E5E7EB', color:'#636875', cursor:'default' };
   const btnWarn = { ...btnPrimary, background:'#D97706' };
 
   return (
@@ -1841,7 +1841,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           padding:'11px 16px', borderRadius: C.R_MD,
           background: PN.PINK_BG_SOFT, border:`1px solid ${PN.PINK_SOFT}`,
         }}>
-          <span style={{color: PN.PINK_DARK, display:'flex'}}><Ic.receipt size={16}/></span>
+          <span style={{color: PN.BRAND_TEXT, display:'flex'}}><Ic.receipt size={16}/></span>
           {/* Da dove sei arrivato cambia la frase, perché cambia la domanda.
               Da Cassa stai guardando UNA GIORNATA: la data è il soggetto. Dal
               numero della scheda stai guardando QUELLO CHE TI RESTA, che non
@@ -1860,7 +1860,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
               display:'inline-flex', alignItems:'center', gap: 6,
               padding:'6px 12px', borderRadius: C.R_SM,
               background:'transparent', border:`1px solid ${PN.PINK_SOFT}`,
-              fontSize: C.T_XS, fontWeight: 600, color: PN.PINK_DARK,
+              fontSize: C.T_XS, fontWeight: 600, color: PN.BRAND_TEXT,
               cursor:'pointer', fontFamily:'inherit',
               transition:'background 130ms ease',
             }}><Ic.close size={12}/> Mostra tutti i conti</button>
@@ -1998,6 +1998,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                   cursor:'pointer', userSelect:'none',
                   justifySelf:'start', alignSelf:'center',
                   display:'inline-flex', alignItems:'center', gap:4,
+                  ...(window.byupColonnaFerma ? window.byupColonnaFerma(C.TH_BG) : null),
                   color: sortData ? PN.TEXT : C.TH_TEXT,
                   transition:'color .15s',
                 }}
@@ -2055,6 +2056,11 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                       margin:'-12px 0', padding:'12px 8px',
                       background: sortData ? C.SURF_ALT : 'transparent',
                       transition:'background .15s',
+                      // La data resta ferma mentre le altre colonne scorrono:
+                      // è quella che dice di quale conto si sta leggendo.
+                      ...(window.byupColonnaFerma
+                        ? window.byupColonnaFerma(sortData ? C.SURF_ALT : (isAperto ? PN.PINK_SOFT : PN.WHITE))
+                        : null),
                     }}>{fmtData(conto.dataOra)}</span>
                     <span style={{
                       fontWeight: 500, color: PN.MUTED, fontSize: C.T_XS,
@@ -2063,7 +2069,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                     <span style={{fontWeight:600, color: PN.TEXT, display:'inline-flex', alignItems:'center', gap:6}}>
                       <span style={{
                         display:'inline-flex',
-                        color: isAperto ? PN.PINK_DARK : PN.MUTED_LIGHT,
+                        color: isAperto ? PN.BRAND_TEXT : PN.MUTED,
                         transition:'color .15s',
                       }}><PnI.ChevronRight size={11}/></span>
                       {conto.tavolo}
@@ -2099,7 +2105,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                     </span>
                     <span style={{
                       fontWeight: 600, fontSize: C.T_XS, fontVariantNumeric:'tabular-nums', textAlign:'center',
-                      color: conto.stato === 'saldato' ? PN.MUTED_SOFT : PN.TEXT,
+                      color: conto.stato === 'saldato' ? PN.MUTED : PN.TEXT,
                     }}>
                       {conto.stato === 'saldato' ? '—' : `€${conto.daSaldare.toFixed(2)}`}
                     </span>

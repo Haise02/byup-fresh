@@ -1082,7 +1082,11 @@ function PnStampaFasce() {
 
   return (
     <div data-stampa-fasce style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 450,
+      // `absolute` e non `fixed`: il `fixed` si ancora alla FINESTRA, quindi
+      // sbordava dal frame del margine che gli sta intorno. Ancorata al
+      // frame la fascia finisce esattamente dove finisce la pagina, a
+      // qualunque scala.
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 450,
       display: 'flex', flexDirection: 'column',
       boxShadow: (mute.length || daStampare.length) ? '0 12px 32px -16px rgba(15,17,21,0.35)' : 'none',
     }}>

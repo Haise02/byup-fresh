@@ -67,7 +67,7 @@ const ROLES = [
     id: 'cameriere',
     label: 'Cameriere',
     desc: 'Visibilità solo dall\'app cameriere',
-    color: PN.PINK_DARK, bg: PN.PINK_SOFT,
+    color: PN.BRAND_TEXT, bg: PN.PINK_SOFT,
     icon: 'waiter',
     areas: ['app'],
   },
@@ -325,7 +325,7 @@ function ImpPersonale() {
 
   const conta = (id) => id === 'all' ? righe.length : righe.filter(r => r.gruppo === id).length;
   const gruppi = [
-    { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.PINK_DARK, bg: PN.PINK_SOFT },
+    { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.BRAND_TEXT, bg: PN.PINK_SOFT },
     ...ROLES.map(r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg })),
     { id: '_monitor', label: 'Monitor cucina', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
     ...(customRoles.length
@@ -366,7 +366,7 @@ function ImpPersonale() {
         display:'inline-flex', alignItems:'center', gap: 6,
         padding:'6px 13px', borderRadius: 999,
         background: on ? PN.SIDE_ACTIVE_BG : PN.WHITE,
-        color: on ? PN.PINK_DARK : PN.MUTED,
+        color: on ? PN.BRAND_TEXT : PN.MUTED,
         border: `1px solid ${on ? 'rgba(255, 90, 95, 0.30)' : PN.BORDER}`,
         fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
         transition:'background 150ms ease, color 150ms ease, border-color 150ms ease',
@@ -374,7 +374,7 @@ function ImpPersonale() {
         {label}
         <span style={{
           fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
-          color: on ? PN.PINK_DARK : '#9CA3AF',
+          color: on ? PN.BRAND_TEXT : '#636875',
         }}>{contaStato[id]}</span>
       </button>
     );
@@ -467,14 +467,14 @@ function ImpPersonale() {
                       }}>{(BuIcons[g.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
                       <span style={{
                         flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600,
-                        color: on ? PN.PINK_DARK : PN.TEXT,
+                        color: on ? PN.BRAND_TEXT : PN.TEXT,
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                       }}>{g.label}</span>
                       {/* Niente margine destro: senza la matita da scansare i
                           conteggi si incolonnano da soli sul bordo della riga. */}
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
-                        color: on ? PN.PINK_DARK : PN.MUTED,
+                        color: on ? PN.BRAND_TEXT : PN.MUTED,
                       }}>{n}</span>
                     </button>
                 );
@@ -511,7 +511,7 @@ function ImpPersonale() {
             <div style={{position:'relative', flex: 1, minWidth: 0}}>
               <span style={{
                 position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)',
-                color: PN.MUTED_LIGHT, display:'inline-flex', pointerEvents:'none',
+                color: PN.MUTED, display:'inline-flex', pointerEvents:'none',
               }}><PnI.Search size={15}/></span>
               <input
                 value={query} onChange={e => setQuery(e.target.value)}
@@ -796,7 +796,7 @@ function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
           display:'block', fontSize: 13, color: PN.MUTED, marginTop: 1, lineHeight: 1.35,
         }}>{sotto}</span>
       </span>
-      {!spento && <span style={{display:'inline-flex', color: PN.MUTED_LIGHT, flexShrink: 0}}><BuIcons.chevronRight size={13}/></span>}
+      {!spento && <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0}}><BuIcons.chevronRight size={13}/></span>}
     </button>
   );
 }
@@ -853,7 +853,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
                 display:'inline-flex', alignItems:'center', gap: 5, marginTop: 4,
                 padding:'2px 9px', borderRadius: 999, border:'none', cursor:'pointer', fontFamily:'inherit',
                 background: r.censimento.fase === 'scaduta' ? '#FEF2F2' : PN.AMBER_SOFT,
-                color: r.censimento.fase === 'scaduta' ? '#991B1B' : PN.AMBER,
+                color: r.censimento.fase === 'scaduta' ? '#991B1B' : PN.AMBER_TEXT,
                 fontSize: 12.5, fontWeight: 700,
               }}>
               <span style={{width: 6, height: 6, borderRadius:'50%', background:'currentColor'}}/>
@@ -891,7 +891,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           display:'inline-flex', alignItems:'center', gap: 5,
           padding:'3px 10px', borderRadius: 999,
           background: r.attivo ? PN.GREEN_SOFT : '#F1F3F5',
-          color: r.attivo ? PN.GREEN : PN.MUTED,
+          color: r.attivo ? PN.GREEN_TEXT : PN.MUTED,
           fontSize: 13, fontWeight: 700,
         }}>
           <span style={{width: 6, height: 6, borderRadius:'50%', background: r.attivo ? PN.GREEN : '#9CA3AF'}}/>
@@ -1117,7 +1117,7 @@ function KdsViewCard({ v, on, onClick }) {
       </span>
       <span style={{
         width: 34, height: 34, borderRadius: 9, flexShrink: 0, display:'grid', placeItems:'center',
-        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.BRAND_TEXT : '#475569',
         transition:'background 150ms ease, color 150ms ease',
       }}>{(BuIcons[v.icon]||BuIcons.monitor)({size: 17, color:'currentColor'})}</span>
       <span style={{minWidth: 0}}>
@@ -1241,7 +1241,7 @@ function InviteModal({ onClose, prefill, ruoli }) {
               borderRadius: 12, padding: '14px 14px 12px',
             }}>
               <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 2}}>Ruolo selezionato:</div>
-              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.PINK_DARK, marginBottom: 12}}>{role.label}</div>
+              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.BRAND_TEXT, marginBottom: 12}}>{role.label}</div>
               <div style={{display:'flex', flexDirection:'column', gap: 10}}>
                 {perms.map((p, i) => (
                   <div key={i} style={{display:'flex', alignItems:'center', gap: 9}}>
@@ -1532,7 +1532,7 @@ function SelettoreRuolo({ ruoli, valore, onScegli }) {
       <span style={{minWidth: 0}}>
         <span style={{
           display:'block', fontSize: 15, fontWeight: 700,
-          color: on ? PN.PINK_DARK : PN.TEXT,
+          color: on ? PN.BRAND_TEXT : PN.TEXT,
         }}>{r.label}</span>
         <span style={{
           display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.35,
@@ -1731,7 +1731,7 @@ function PendingModal({ onClose }) {
                         <ImpButton variant="ghost" style={{padding:'7px 12px', fontSize: 14}}>Invita di nuovo</ImpButton>
                         <button className="pn-btn-feedback" style={{
                           padding:'7px 12px',
-                          background: PN.WHITE, color: PN.PINK_DARK,
+                          background: PN.WHITE, color: PN.BRAND_TEXT,
                           border:`1px solid rgba(224, 67, 71, 0.35)`, borderRadius: 9,
                           fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                         }}>Revoca invito</button>
@@ -1917,9 +1917,9 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
                   }}>
                     <input type="checkbox" checked={on} onChange={() => toggle(a.id)} style={{accentColor: PN.PINK, width: 16, height: 16}}/>
                     <span style={{display:'inline-flex'}}>{(BuIcons[a.icon]||BuIcons.doc)({size: 16, color: 'currentColor'})}</span>
-                    <span style={{fontSize: 15, fontWeight: 600, color: on ? PN.PINK_DARK : PN.TEXT, flex: 1}}>{a.label}</span>
+                    <span style={{fontSize: 15, fontWeight: 600, color: on ? PN.BRAND_TEXT : PN.TEXT, flex: 1}}>{a.label}</span>
                     {isSettings && on && (
-                      <span style={{fontSize: 13, color: PN.PINK_DARK, fontWeight: 600}}>
+                      <span style={{fontSize: 13, color: PN.BRAND_TEXT, fontWeight: 600}}>
                         {settingsMode === 'all' ? 'tutte le pagine' : `${settingsPages.length} pagine`}
                       </span>
                     )}
@@ -1942,7 +1942,7 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
                               padding: '6px 12px', borderRadius: 7,
                               border: `1.5px solid ${sel ? PN.PINK : PN.BORDER}`,
                               background: sel ? PN.WHITE : 'transparent',
-                              color: sel ? PN.PINK_DARK : PN.MUTED,
+                              color: sel ? PN.BRAND_TEXT : PN.MUTED,
                               fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                             }}>{opt.label}</button>
                           );
@@ -1962,7 +1962,7 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
                               }}>
                                 <input type="checkbox" checked={pOn} onChange={() => togglePage(p.id)} style={{accentColor: PN.PINK, width: 13, height: 13}}/>
                                 <span style={{display:'inline-flex'}}>{(BuIcons[p.icon]||BuIcons.doc)({size: 13, color: 'currentColor'})}</span>
-                                <span style={{fontSize: 13.5, fontWeight: 600, color: pOn ? PN.PINK_DARK : PN.TEXT}}>{p.label}</span>
+                                <span style={{fontSize: 13.5, fontWeight: 600, color: pOn ? PN.BRAND_TEXT : PN.TEXT}}>{p.label}</span>
                               </label>
                             );
                           })}
@@ -1999,7 +1999,7 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
               <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
                 <span style={{
                   width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  background: PN.PINK_SOFT, color: PN.BRAND_TEXT,
                   display:'grid', placeItems:'center',
                 }}>{BuIcons.alert({size: 15, color:'currentColor'})}</span>
                 <div style={{fontSize: 16.5, fontWeight: 800, color: PN.TEXT}}>{errore.titolo}</div>
@@ -2224,7 +2224,7 @@ function PersonaleStep({ team, setTeam }) {
         <div style={{display:'flex', alignItems:'baseline', gap: 8, marginBottom: 10}}>
           <span style={{fontSize: 14.5, fontWeight: 700}}>Invita il team</span>
           <span style={{fontSize: 13, color: PN.MUTED}}>
-            come <b style={{color: PN.PINK_DARK, fontWeight: 700}}>{roleLabel}</b>
+            come <b style={{color: PN.BRAND_TEXT, fontWeight: 700}}>{roleLabel}</b>
           </span>
         </div>
         <div style={{display:'flex', gap: 10, alignItems:'stretch'}}>
@@ -2276,7 +2276,7 @@ function StepDeviceCard({ d, on, onClick }) {
       </span>
       <span style={{
         width: 48, height: 48, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
-        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.BRAND_TEXT : '#475569',
         transition:'background 150ms ease, color 150ms ease',
       }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 22, color:'currentColor'})}</span>
       <span style={{minWidth: 0}}>
@@ -2322,7 +2322,7 @@ function StepRoleCard({ r, on, onClick }) {
           la stessa forma. */}
       <span style={{
         width: 46, height: 46, borderRadius:'50%', flexShrink: 0, display:'grid', placeItems:'center',
-        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.BRAND_TEXT : '#475569',
         transition:'background 150ms ease, color 150ms ease',
       }}>{(BuIcons[r.icon]||BuIcons.user)({size: 21, color:'currentColor'})}</span>
       <span style={{minWidth: 0}}>

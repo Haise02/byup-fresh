@@ -16,10 +16,10 @@ function StatPrenotazioni() {
   const [giornoSu, setGiornoSu] = React.useState(null);
   const [tavoliSu, setTavoliSu] = React.useState(null);
   const statoSegs = [
-    { id:'confermate', label:'Confermate', ...d.stato.confermate, color: PN.GREEN },
+    { id:'confermate', label:'Confermate', ...d.stato.confermate, color: PN.GREEN_TEXT },
     { id:'inattesa',   label:'In attesa', ...d.stato.inAttesa, color: PN.BLUE },
-    { id:'cancellate', label:'Cancellate', ...d.stato.cancellate, color: PN.PINK },
-    { id:'noshow',     label:'Assenti', ...d.stato.noShow, color: PN.MUTED_LIGHT },
+    { id:'cancellate', label:'Cancellate', ...d.stato.cancellate, color: PN.BRAND_TEXT },
+    { id:'noshow',     label:'Assenti', ...d.stato.noShow, color: PN.MUTED },
   ];
 
   // Occupazione per fascia — colonne invece di una lista di barre. Una lista

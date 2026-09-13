@@ -117,7 +117,7 @@ function CostoDelta({ value }) {
       display:'inline-flex', alignItems:'center', justifyContent:'center',
       padding:'2px 8px', borderRadius: 999,
       background: buono ? PN.GREEN_SOFT : (allarme ? PN.RED_SOFT : '#F3F4F6'),
-      color: buono ? PN.GREEN : (allarme ? PN.RED : PN.MUTED),
+      color: buono ? PN.GREEN_TEXT : (allarme ? PN.RED_TEXT : PN.MUTED),
       fontSize: 12.5, fontWeight: 700, whiteSpace:'nowrap',
       fontVariantNumeric:'tabular-nums',
     }}>{value > 0 ? '+' : ''}{value.toFixed(1).replace('.', ',')}%</span>
@@ -157,7 +157,7 @@ function StatAndamento({ serie, etichette, fmt, nota }) {
             <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{fmt(s.dati[s.dati.length-1])}</strong>
           </span>
         ))}
-        <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>{nota || 'ultimo mese'}</span>
+        <span style={{fontSize: 14, color: PN.MUTED}}>{nota || 'ultimo mese'}</span>
       </div>
 
       <div style={{position:'relative'}}
@@ -255,8 +255,8 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   const tr = d.totaleRicavi;
   const totRicavi = tr.byup + tr.contanti + tr.carte;
   const segs = [
-    { label:'byup',     val: tr.byup,     color: PN.PINK },
-    { label:'Contanti', val: tr.contanti, color: PN.GREEN },
+    { label:'byup',     val: tr.byup,     color: PN.BRAND_TEXT },
+    { label:'Contanti', val: tr.contanti, color: PN.GREEN_TEXT },
     { label:'Carte',    val: tr.carte,    color: PN.BLUE },
   ];
   let cum = 0; const R = 68, CX = 78, CY = 78;
@@ -443,7 +443,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
             </svg>
             <div style={{flex: 1, minWidth: 150, display:'flex', flexDirection:'column', gap: 10}}>
               {[
-                { et:'Ricavi', v: d.ricavi.val, col: PN.GREEN },
+                { et:'Ricavi', v: d.ricavi.val, col: PN.GREEN_TEXT },   // `col` fa anche il TESTO dell'importo: serve il verde da testo
                 { et:'Costi',  v: d.costi.val,  col: PN.RED },
               ].map((r, i) => (
                 <div key={i} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, fontSize: 14.5}}>
@@ -454,7 +454,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
               <div style={{height: 1, background: PN.BORDER_SOFT, margin:'2px 0'}}/>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, fontSize: 15}}>
                 <strong style={{color: PN.TEXT}}>Margine lordo</strong>
-                <strong style={{color: PN.GREEN, fontVariantNumeric:'tabular-nums'}}>{eur(d.utile.val)}</strong>
+                <strong style={{color: PN.GREEN_TEXT, fontVariantNumeric:'tabular-nums'}}>{eur(d.utile.val)}</strong>
               </div>
             </div>
           </div>
@@ -491,7 +491,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                 }}>{eur(d.costi.val)}</span>
                 <CostoDelta value={d.costi.delta}/>
               </div>
-              <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 2}}>rispetto al mese scorso</div>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>rispetto al mese scorso</div>
             </div>
 
             {/* Quanto dei ricavi se ne va in costi: è il numero che trasforma
@@ -504,7 +504,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                   {((d.costi.val / d.ricavi.val) * 100).toFixed(1).replace('.', ',')}%
                 </strong>
               </div>
-              <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 2}}>su {eur(d.ricavi.val)} di ricavi</div>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>su {eur(d.ricavi.val)} di ricavi</div>
             </div>
 
             {/* Quanto della spesa è incomprimibile: è il numero che dice se il
@@ -573,7 +573,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                     fontSize: 14.5, fontWeight: 600, color: PN.TEXT,
                     whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                   }}>{c.cat}</div>
-                  <div style={{fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 1}}>{mix(c)}</div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1}}>{mix(c)}</div>
                 </div>
 
                 {/* Lunghezza = quanto pesa la categoria, tinte = quanto di quel
@@ -724,7 +724,7 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
             <div style={{
               fontSize: 14.5, fontWeight: 600, color: PN.TEXT, marginTop: 5,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            }}>{re.nome} <span style={{color: PN.MUTED_SOFT, fontWeight: 500}}>· {re.cat}</span></div>
+            }}>{re.nome} <span style={{color: PN.MUTED, fontWeight: 500}}>· {re.cat}</span></div>
 
             {/* Food cost, prezzo e margine come righe accanto alla foto invece
                 che come tre riquadri su una fascia a parte: riempiono
@@ -738,7 +738,7 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
                 <div key={b.et} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, fontSize: 13.5}}>
                   <span style={{color: PN.MUTED, minWidth: 0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{b.et}</span>
                   <strong style={{
-                    color: b.forte ? PN.GREEN : PN.TEXT, flexShrink: 0,
+                    color: b.forte ? PN.GREEN_TEXT : PN.TEXT, flexShrink: 0,
                     fontVariantNumeric:'tabular-nums',
                   }}>{b.v}</strong>
                 </div>
@@ -763,7 +763,7 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
             }}>
               <span style={{
                 width: 16, flexShrink: 0, textAlign:'center',
-                fontSize: 12.5, fontWeight: 700, color: PN.MUTED_SOFT,
+                fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
                 fontVariantNumeric:'tabular-nums',
               }}>{i + 2}</span>
               <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
@@ -984,7 +984,7 @@ function VenditePiatti({ v }) {
                   display:'inline-flex', alignItems:'center',
                   padding:'3px 9px', borderRadius: 999,
                   background: p.marginePct >= 65 ? PN.GREEN_SOFT : (p.marginePct >= 55 ? PN.AMBER_SOFT : PN.RED_SOFT),
-                  color: p.marginePct >= 65 ? PN.GREEN : (p.marginePct >= 55 ? PN.AMBER : PN.RED),
+                  color: p.marginePct >= 65 ? PN.GREEN_TEXT : (p.marginePct >= 55 ? PN.AMBER_TEXT : PN.RED_TEXT),
                   fontSize: 14, fontWeight: 700,
                 }}>{p.marginePct}%</span>
               </span>

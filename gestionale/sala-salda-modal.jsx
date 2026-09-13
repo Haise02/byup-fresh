@@ -127,6 +127,13 @@ const PAY_INK = '#B45309';
 const PAY_BG  = '#FEF3C7';
 
 function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
+  // La finestra più critica del gestionale non si chiudeva con Esc e lasciava
+  // uscire il fuoco alle sue spalle: chi lavora da tastiera restava dentro un
+  // pannello da cui si poteva uscire solo col mouse. `useTrappolaFocus` tiene
+  // il giro del Tab qui dentro, chiude con Esc e alla chiusura riporta il
+  // fuoco dove l'utente l'aveva lasciato.
+  const pannelloSalda = React.useRef(null);
+  if (window.useTrappolaFocus) window.useTrappolaFocus(pannelloSalda, !!open, onClose);
   // Map<itemId, qty selezionata> — permette selezione parziale (1 di 3, 2 di 3, tutti)
   const [selectedItems, setSelectedItems] = React.useState(new Map());
   // Copia locale degli ordini editabile (prezzo, nome, delete, add) — non muta tavolo.ordini
@@ -845,7 +852,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           la riga di un piatto è nome, stato, chi l'ha ordinato e una cifra —
           messi in fila su 1080 restavano lontani, con una fascia vuota nel
           mezzo che faceva cercare il prezzo a fine corsa. */}
-      <div style={{
+      <div
+        ref={pannelloSalda}
+        role="dialog"
+        aria-modal="true"
+        aria-label={'Salda conto' + (tavolo && tavolo.nome ? ' · ' + tavolo.nome : '')}
+        style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
         width: (paying || done || storno) ? 420 : (passo === 'pagamento' ? 620 : 864),
@@ -854,6 +866,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
         transition:'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+        // Saldare è il flusso più critico del gestionale: su tela stretta la
+        // finestra prende tutto lo schermo, così importi e tastierino restano
+        // interi e il pulsante di conferma non finisce mai fuori dal bordo.
+        ...(window.byupPanelPieno ? window.byupPanelPieno() : null),
       }}>
         {/* Lo storno prende tutta la finestra, come l'attesa e come la
             conferma: invece di spegnere lista, metodi e pulsante uno per uno,
@@ -946,7 +962,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       {/* Un nome solo, per una finestra sola: qui dentro si
                           salda un conto, e i due passi sono due momenti di
                           quel gesto — non due schermate con due nomi. */}
-                      <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
+                      <div style={{fontSize: 14, color:'#636875', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
                         Salda conto
                       </div>
                       <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, minWidth: 0}}>
@@ -957,7 +973,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', minWidth: 0}}>
                           Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
                         </span>
-                        <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0, flexShrink: 0, whiteSpace:'nowrap'}}>
+                        <span style={{fontSize:16, fontWeight:600, color:'#636875', letterSpacing: 0, flexShrink: 0, whiteSpace:'nowrap'}}>
                           {tavolo.coperti || 1} coperti
                         </span>
                       </div>
@@ -1077,7 +1093,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     riscrive. Sotto il titolo perché è la sua didascalia, non
                     un avviso. */}
                 <div style={{
-                  fontSize: 14, color:'#6B7280', lineHeight: 1.35,
+                  fontSize: 14, color:'#636875', lineHeight: 1.35,
                   marginTop: 4, maxWidth: 720,
                 }}>
                   {edit
@@ -1171,7 +1187,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 }}>
                   <div style={{display:'flex', alignItems:'baseline', gap: 14, marginBottom: 14}}>
                     <span style={{
-                      fontSize: 15, fontWeight: 800, color:'#6B7280',
+                      fontSize: 15, fontWeight: 800, color:'#636875',
                       letterSpacing: 0.6, textTransform:'uppercase',
                     }}>{edit ? 'Totale conto' : 'Da incassare'}</span>
                     <span style={{flex:1}}/>
@@ -1645,7 +1661,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           // il verde dice «fatto».
                           width:'100%', padding:'17px 18px', borderRadius: 14,
                           background: attivo ? SALDA_VERDE : '#EFEFF1',
-                          color: attivo ? '#fff' : '#9CA3AF',
+                          color: attivo ? '#fff' : '#636875',
                           border:'none',
                           boxShadow: attivo ? '0 8px 20px -8px rgba(22,163,74,0.55)' : 'none',
                           fontSize: 18, fontWeight: 700,
@@ -1710,7 +1726,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       è l'unico posto dove serve di nuovo. */}
                   {preContoStampato && (
                     <div style={{
-                      fontSize: 14.5, color:'#9CA3AF', textAlign:'center',
+                      fontSize: 14.5, color:'#636875', textAlign:'center',
                       fontWeight: 600,
                     }}>
                       Pre-conto stampato {Math.floor((Date.now() - preContoStampato)/60000) || 'ora'}{Math.floor((Date.now() - preContoStampato)/60000) > 0 ? ' min fa' : ''}
@@ -1881,7 +1897,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           cosa che si aggiusta: lì il numero si legge e basta. */}
       {pagato ? (
         <span style={{
-          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
+          fontSize: 16, fontWeight: 800, color:'#636875',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           padding:'6px 0', width: 80, boxSizing:'border-box', textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
@@ -2009,7 +2025,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           padding:'5px 10px', borderRadius: 999,
           background: pagato ? '#EEF0F3' : (o.origin === 'byup' ? '#FFE9E9' : '#F4F5F7'),
           fontSize: 14, fontWeight: 600,
-          color: pagato ? '#9CA3AF' : '#6B7280',
+          color: pagato ? '#636875' : '#636875',
         }}>
           {/* Il nome di battesimo: accanto al canale basta a riconoscere chi
               è, e occupa la metà. */}
@@ -2050,7 +2066,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           facce restano sovrapponibili. */}
       {onUpdate && o.qty > 1 && (
         <span style={{
-          fontSize: 13.5, fontWeight: 600, color:'#9CA3AF', flexShrink: 0,
+          fontSize: 13.5, fontWeight: 600, color:'#636875', flexShrink: 0,
           fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
         }}>×{o.qty} · €{(o.qty * o.prezzo).toFixed(2)}</span>
       )}
@@ -2127,7 +2143,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
                 senza una parola in più. */}
             {saldoRiga < o.qty * o.prezzo - 0.004 && (
               <span style={{
-                fontSize: 13.5, fontWeight: 600, color:'#9CA3AF', flexShrink: 0,
+                fontSize: 13.5, fontWeight: 600, color:'#636875', flexShrink: 0,
                 fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
               }}>di €{(o.qty * o.prezzo).toFixed(2)}</span>
             )}
@@ -2141,7 +2157,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
         )
       ) : (
         <span style={{
-          fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
+          fontSize: 17, fontWeight: 700, color: pagato ? '#636875' : '#0F1115',
           width: 92, boxSizing:'border-box', textAlign:'right', fontVariantNumeric:'tabular-nums',
           padding:'2px 4px', flexShrink: 0,
         }}>
@@ -2174,7 +2190,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
             width: 28, height: 28, padding: 0, borderRadius: 7,
             background:'transparent', border:'none',
             cursor: puo ? 'pointer' : 'not-allowed',
-            color: !puo ? '#E5E7EB' : ((modifica || hover) ? '#9CA3AF' : 'transparent'),
+            color: !puo ? '#E5E7EB' : ((modifica || hover) ? '#636875' : 'transparent'),
             display:'inline-flex', alignItems:'center', justifyContent:'center',
             fontFamily:'inherit', transition:'color 120ms, background 120ms',
             flexShrink: 0,
@@ -2202,7 +2218,7 @@ const qtyBtn = {
 function EmptyOrdini({ testo }) {
   return (
     <div style={{
-      padding:'40px 20px', textAlign:'center', color:'#9CA3AF',
+      padding:'40px 20px', textAlign:'center', color:'#636875',
       fontSize: 17,
     }}>{testo || 'Nessun articolo ordinato'}</div>
   );
@@ -2404,7 +2420,7 @@ function SaldaAttesaPagamento({ tavolo, total, elapsed, onRitira, onClose }) {
 
       {/* Il contatore e' l'unica cosa che si muove: senza, una schermata
           ferma non distingue "sta aspettando" da "si e' piantata". */}
-      <div style={{fontSize: 16.5, color:'#6B7280', marginBottom: 14, textAlign:'center'}}>
+      <div style={{fontSize: 16.5, color:'#636875', marginBottom: 14, textAlign:'center'}}>
         Tavolo {tavolo.id} · in attesa da {mmss}
       </div>
 
@@ -2428,7 +2444,7 @@ function SaldaAttesaPagamento({ tavolo, total, elapsed, onRitira, onClose }) {
       {/* Le due uscite fanno cose opposte e finora si distinguevano solo dal
           verbo: qui si dice quale conseguenza ha ciascuna. */}
       <div style={{
-        fontSize: 14.5, color:'#9CA3AF', marginTop: 10,
+        fontSize: 14.5, color:'#636875', marginTop: 10,
         textAlign:'center', lineHeight: 1.45, maxWidth: 320,
       }}>
         «Ritira» riporta il conto in cassa e lo rende di nuovo modificabile.
@@ -2482,11 +2498,11 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
         }}>
         <span style={{display:'inline-flex', alignItems:'center', gap: 8, minWidth: 0}}>
           <span style={{
-            fontSize: 14.5, color:'#6B7280', fontWeight: 800,
+            fontSize: 14.5, color:'#636875', fontWeight: 800,
             letterSpacing: 0.8, textTransform:'uppercase',
           }}>Già incassato</span>
           <span style={{
-            fontSize: 12.5, fontWeight: 700, color:'#9CA3AF',
+            fontSize: 12.5, fontWeight: 700, color:'#636875',
             padding:'1px 7px', borderRadius: 999, background:'#F4F5F7',
             fontVariantNumeric:'tabular-nums',
           }}>{vivi.length}</span>
@@ -2497,7 +2513,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
             fontVariantNumeric:'tabular-nums',
           }}>€{totale.toFixed(2)}</span>
           <span style={{
-            display:'inline-flex', color:'#9CA3AF',
+            display:'inline-flex', color:'#636875',
             transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 180ms ease-out',
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -2526,23 +2542,23 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
                 <span style={{
                   padding:'3px 9px', borderRadius: 999, flexShrink: 0,
                   background: annullato ? '#F1F2F5' : meta.bg,
-                  color: annullato ? '#9CA3AF' : meta.ink,
+                  color: annullato ? '#636875' : meta.ink,
                   fontSize: 14, fontWeight: 700,
                 }}>{meta.label}</span>
                 <span style={{
-                  flex: 1, minWidth: 0, fontSize: 15, color:'#9CA3AF',
+                  flex: 1, minWidth: 0, fontSize: 15, color:'#636875',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>{[p.chi, p.ora].filter(Boolean).join(' · ')}</span>
                 {annullato && (
                   <span style={{
                     flexShrink: 0, padding:'2px 9px', borderRadius: 999,
-                    background:'#F1F2F5', color:'#6B7280',
+                    background:'#F1F2F5', color:'#636875',
                     fontSize: 13.5, fontWeight: 700, whiteSpace:'nowrap',
                   }}>Stornato {p.stornato}</span>
                 )}
                 <span style={{
                   fontSize: 16, fontWeight: 700,
-                  color: annullato ? '#9CA3AF' : '#0F1115',
+                  color: annullato ? '#636875' : '#0F1115',
                   textDecoration: annullato ? 'line-through' : 'none',
                   fontVariantNumeric:'tabular-nums', minWidth: 62, textAlign:'right',
                 }}>€{p.amount.toFixed(2)}</span>
@@ -2569,7 +2585,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9CA3AF'; }}
                     style={{
                       width: 30, height: 30, padding: 0, borderRadius: 8, flexShrink: 0,
-                      background:'transparent', border:'none', color:'#9CA3AF',
+                      background:'transparent', border:'none', color:'#636875',
                       cursor:'pointer', fontFamily:'inherit',
                       display:'grid', placeItems:'center',
                       transition:'background 150ms ease-out, color 150ms ease-out',
@@ -2757,7 +2773,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
       background:'#FAFBFC', border:'1px solid #EDEFF2',
     }}>
       <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
-        <span style={{fontSize: 15, fontWeight: 700, color:'#6B7280'}}>
+        <span style={{fontSize: 15, fontWeight: 700, color:'#636875'}}>
           Sconto sul totale
         </span>
         <span style={{flex:1}}/>
@@ -2770,7 +2786,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
               <button key={u.id} onClick={() => cambiaUnita(u.id)} title={u.id === 'sconto-eur' ? 'Sconto in euro' : 'Sconto in percentuale'} style={{
                 width: 38, padding:'6px 0', borderRadius: 9,
                 background: sel ? SALDA_BRAND : '#fff',
-                color: sel ? '#fff' : '#6B7280',
+                color: sel ? '#fff' : '#636875',
                 border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
                 fontSize: 16, fontWeight: 800, cursor:'pointer', fontFamily:'inherit',
                 transition:'background 0.14s, border-color 0.14s, color 0.14s',
@@ -2840,7 +2856,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
           Il totale grande qui sopra la mostra già aggiornata — questa riga
           serve al passaggio, non al risultato. */}
       {pct && num > 0 && (
-        <div style={{fontSize: 15, color:'#6B7280', marginTop: 8}}>
+        <div style={{fontSize: 15, color:'#636875', marginTop: 8}}>
           {num}% di €{subtotale.toFixed(2)} · <b style={{color:'#0F1115'}}>−€{(subtotale * num / 100).toFixed(2)}</b>
         </div>
       )}
@@ -2959,7 +2975,7 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
       <div style={{fontSize: 36, fontWeight: 800, color:'#0F1115', marginBottom: 4, letterSpacing:-1, fontVariantNumeric:'tabular-nums'}}>
         €{total.toFixed(2)}
       </div>
-      <div style={{fontSize: 16.5, color:'#6B7280', marginBottom: 18, textAlign:'center'}}>
+      <div style={{fontSize: 16.5, color:'#636875', marginBottom: 18, textAlign:'center'}}>
         Tavolo {tavolo.id} · {comeHaPagato}
       </div>
 
@@ -2972,7 +2988,7 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
           padding:'12px 16px', borderRadius: 12,
           background:'#F5F6F8', border:'1px solid #EDEFF2',
         }}>
-          <span style={{fontSize: 16.5, color:'#6B7280'}}>Resta da saldare sul tavolo</span>
+          <span style={{fontSize: 16.5, color:'#636875'}}>Resta da saldare sul tavolo</span>
           <span style={{
             fontSize: 20, fontWeight: 800, letterSpacing:-0.3, color:'#0F1115',
             fontVariantNumeric:'tabular-nums',
@@ -3007,7 +3023,7 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
           <div style={{flex:1, minWidth: 0}}>
             <div style={{fontSize: 16.5, fontWeight: 700, color:'#0F1115'}}>Fattura emessa</div>
             <div style={{
-              fontSize: 15, color:'#9CA3AF', marginTop: 1,
+              fontSize: 15, color:'#636875', marginTop: 1,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
             }}>{(invoiceData && invoiceData.ragione) || 'Dati inseriti al momento dell’incasso'}</div>
           </div>
@@ -3047,12 +3063,12 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
         </div>
       )}
       {stampato && stampato.via === 'richiesta' && (
-        <div data-stampa-avviso="richiesta" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#6B7280', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+        <div data-stampa-avviso="richiesta" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#636875', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
           Il foglio esce dalla postazione: la richiesta è in cima a ogni schermo del gestionale, e la prende chi è al banco.
         </div>
       )}
       {stampato && stampato.ripiego && stampato.via === 'browser' && (
-        <div data-stampa-avviso="ripiego" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#6B7280', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+        <div data-stampa-avviso="ripiego" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#636875', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
           La stampante non ha risposto: il lavoro in coda è stato annullato e il foglio esce da questa postazione.
         </div>
       )}
@@ -3181,7 +3197,7 @@ const saldaBtnPiede = {
 const saldaBtnCta = (attivo) => ({
   padding:'18px 38px', borderRadius: 14,
   background: attivo ? PN.BTN_BRAND : '#EDEFF2',
-  color: attivo ? PN.WHITE : '#9CA3AF',
+  color: attivo ? PN.WHITE : '#636875',
   border:'1px solid ' + (attivo ? 'rgba(180, 30, 35, 0.40)' : 'transparent'),
   boxShadow: attivo ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 10px rgba(255, 90, 95, 0.28)` : 'none',
   fontSize: 21, fontWeight: 700, letterSpacing:-0.2,
@@ -3211,7 +3227,7 @@ const btnGhost = {
 const saldaIconBtn = {
   width: 42, height: 42, borderRadius: 11, flexShrink: 0,
   background:'#fff', border:'1px solid #E5E7EB', cursor:'pointer',
-  fontFamily:'inherit', color:'#6B7280',
+  fontFamily:'inherit', color:'#636875',
   display:'grid', placeItems:'center',
 };
 const btnPrimaryV2 = {
@@ -3227,7 +3243,7 @@ const btnSecondaryV2 = {
 };
 const miniLink = {
   background:'none', border:'none',
-  padding:'2px 4px', color:'#6B7280',
+  padding:'2px 4px', color:'#636875',
   fontSize: 15.5, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
   display:'inline-flex', alignItems:'center', gap: 4,
@@ -3334,7 +3350,7 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
           style={{
             width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0,
             background:'transparent', border:'none', cursor:'pointer',
-            color:'#9CA3AF', fontFamily:'inherit',
+            color:'#636875', fontFamily:'inherit',
             display:'inline-flex', alignItems:'center', justifyContent:'center',
           }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -3349,7 +3365,7 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
           zIndex: 70, maxHeight: 300, overflow:'auto', padding: 5,
         }}>
           {matches.length === 0 ? (
-            <div style={{padding:'14px 12px', fontSize: 16.5, color:'#9CA3AF', textAlign:'center'}}>
+            <div style={{padding:'14px 12px', fontSize: 16.5, color:'#636875', textAlign:'center'}}>
               Nessun articolo trovato. <button
                 onClick={() => onPick({ nome: query.trim(), prezzo: 0 })}
                 style={{
@@ -3375,7 +3391,7 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <span style={{flex:1, fontSize: 16.5, color:'#0F1115'}}>{m.nome}</span>
-                <span style={{fontSize: 14.5, color:'#9CA3AF'}}>{m.categoria}</span>
+                <span style={{fontSize: 14.5, color:'#636875'}}>{m.categoria}</span>
                 <span style={{fontSize: 16.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums', minWidth: 50, textAlign:'right'}}>
                   €{m.prezzo.toFixed(2)}
                 </span>

@@ -281,7 +281,7 @@ function AcPayAddModal({ onClose, onAdd }) {
             <button onClick={submit} disabled={!ready} style={{
               padding: '11px 18px', borderRadius: 999, border: 'none',
               background: ready ? PN.BTN_DARK : PN.WHITE_FROST,
-              color: ready ? PN.WHITE : PN.MUTED_SOFT,
+              color: ready ? PN.WHITE : PN.MUTED,
               fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
               cursor: ready ? 'pointer' : 'not-allowed',
               boxShadow: ready ? PN.INSET_HIGHLIGHT_DARK : 'none',
@@ -396,7 +396,7 @@ function AccFatturazione() {
                   <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>•••• •••• •••• {c.last4}</span>
                   {i === 0 && (
                     <span style={{
-                      fontSize: 12, fontWeight: 700, color: PN.GREEN,
+                      fontSize: 12, fontWeight: 700, color: PN.GREEN_TEXT,
                       background: PN.GREEN_SOFT, padding: '2px 9px', borderRadius: 999,
                     }}>Predefinita</span>
                   )}
@@ -554,7 +554,7 @@ function AccFatturazione() {
                 <span style={{
                   fontSize: 13, fontWeight: 700,
                   padding:'3px 10px', borderRadius: 999,
-                  background: PN.GREEN_SOFT, color: PN.GREEN,
+                  background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
                 }}>{f.stato}</span>
               </span>
               <button style={{
@@ -628,7 +628,7 @@ function AccFatturazione() {
             <button onClick={() => setCancelStep('confirm')} disabled={!pronto} style={{
               padding: '9px 16px', borderRadius: 999, border: 'none',
               background: pronto ? PN.BTN_DARK : PN.WHITE_FROST,
-              color: pronto ? PN.WHITE : PN.MUTED_SOFT,
+              color: pronto ? PN.WHITE : PN.MUTED,
               fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit',
               cursor: pronto ? 'pointer' : 'not-allowed',
               boxShadow: pronto ? PN.INSET_HIGHLIGHT_DARK : 'none',
@@ -704,7 +704,7 @@ function AccFatturazione() {
                 <button onClick={confirmCancel} disabled={!cancelReady} style={{
                   padding: '9px 16px', borderRadius: 999, border: 'none',
                   background: cancelReady ? PN.RED : PN.WHITE_FROST,
-                  color: cancelReady ? PN.WHITE : PN.MUTED_SOFT,
+                  color: cancelReady ? PN.WHITE : PN.MUTED,
                   fontSize: 14.5, fontWeight: 700, fontFamily: 'inherit',
                   cursor: cancelReady ? 'pointer' : 'not-allowed',
                   transition: 'background 200ms, color 200ms',

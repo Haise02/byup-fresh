@@ -407,7 +407,12 @@ const pnAttivaRimanda = (id) => {
 // quando ci torna da solo.
 const PN_ATTIVA_DOVE = {
   'attiva-stripe': {
-    tinta: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
+    // `tinta` riempie il quadrato dell'icona (bianco sopra: 3,19:1, sopra i 3
+    // di 1.4.11 per un elemento non testuale). Il TITOLO invece è testo su
+    // AMBER_SOFT e chiede 4,5 — con l'ambra piena faceva 2,86. Da qui in poi
+    // le due cose sono separate: `tinta` per il riempimento, `inchiostro` per
+    // le parole.
+    tinta: PN.AMBER, inchiostro: PN.AMBER_TEXT, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
     azione: 'Collega Stripe',
     titoloDove: 'Per ricevere pagamenti serve Stripe',
     dove: 'Quando vuoi collegarlo: Impostazioni → Integrazioni, tessera Stripe. Finché non è collegato non incassi: né carte al tavolo, né in app, né online.',
@@ -416,14 +421,14 @@ const PN_ATTIVA_DOVE = {
   // Stripe chiede non li raccogliamo e non li conserviamo noi, mai — quindi
   // l'azione porta FUORI, sulla dashboard di Stripe.
   'attiva-stripe-limitato': {
-    tinta: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
+    tinta: PN.AMBER, inchiostro: PN.AMBER_TEXT, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
     azione: 'Completa su Stripe',
     esterno: 'https://dashboard.stripe.com/',
     titoloDove: 'La verifica si completa su Stripe',
     dove: 'I documenti che Stripe chiede li carichi sulla sua dashboard: noi non li raccogliamo e non li conserviamo, mai. Del tuo conto Stripe teniamo l\'identificativo e lo stato, e nient\'altro.',
   },
   fiscale: {
-    tinta: '#B91C1C', sfondo: '#FEF2F2', bordo: '#FECACA',
+    tinta: '#B91C1C', inchiostro: '#B91C1C', sfondo: '#FEF2F2', bordo: '#FECACA',
     azione: 'Apri Dati fiscali',
     titoloDove: 'Per emettere gli scontrini servono i dati fiscali',
     dove: 'Quando vuoi impostarli: Impostazioni → Dati fiscali. Lì inserisci le credenziali di chi trasmette — finché mancano, scontrini e fatture non partono — e dai la delega all\'Agenzia: le fatture partono lo stesso, ma senza delega non sono conservate presso l\'Agenzia e il censimento dei dispositivi resta da fare a mano.',
@@ -435,7 +440,18 @@ function PnAttivazioniFascia() {
   const items = window.byupUseNotifiche();
   const [rimandate, setRimandate] = React.useState(() => pnAttivaRimandate());
   const [dove, setDove] = React.useState(null);   // la notifica di cui si spiega il dove
-  const aperte = items.filter(n => String(n.id).indexOf('attiva-') === 0 && rimandate.indexOf(n.id) < 0);
+  const tutteAperte = items.filter(n => String(n.id).indexOf('attiva-') === 0 && rimandate.indexOf(n.id) < 0);
+  // ── Quante fasce ci stanno ────────────────────────────────────────────────
+  // Una fascia è alta poco a schermo largo e moltissimo quando la tela si
+  // stringe: a «Molto grande» (646 × 360) due fasce si prendevano metà
+  // schermo e coprivano la pagina che avvisano. Su tela stretta se ne mostra
+  // UNA per volta — quella più urgente, che è la prima — e un conto delle
+  // altre: rispondendo alla prima compare la seconda, quindi non si perde
+  // niente, si smette solo di chiedere due cose insieme.
+  const { bp } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const strettaF = bp === 'sm' || bp === 'xs';
+  const aperte = strettaF ? tutteAperte.slice(0, 1) : tutteAperte;
+  const altre = tutteAperte.length - aperte.length;
   const rimanda = (n) => { pnAttivaRimanda(n.id); setRimandate(pnAttivaRimandate()); setDove(n); };
   const vai = (n) => {
     window.byupNotificaLetta(n.id);
@@ -487,7 +503,11 @@ function PnAttivazioniFascia() {
       `}</style>
       {!!aperte.length && (
         <div data-attivazioni style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 440,
+          // `absolute` e non `fixed`: il `fixed` si ancora alla FINESTRA, quindi
+          // sbordava dal frame del margine che gli sta intorno. Ancorata al
+          // frame la fascia finisce esattamente dove finisce la pagina, a
+          // qualunque scala.
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 440,
           display: 'flex', flexDirection: 'column',
           animation: 'pnAttivaGiu 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           boxShadow: '0 12px 32px -16px rgba(15,17,21,0.35)',
@@ -496,12 +516,17 @@ function PnAttivazioniFascia() {
             const st = pnAttivaStile(n.id);
             return (
               <div key={n.id} style={{
-                display: 'flex', alignItems: 'center', gap: 16,
-                padding: '13px 24px',
+                display: 'flex', alignItems: 'center',
+                gap: strettaF ? 10 : 16,
+                padding: strettaF ? '9px 14px' : '13px 24px',
                 background: st.sfondo, borderBottom: `1px solid ${st.bordo}`,
+                // Su tela stretta il testo e i pulsanti si impilano invece di
+                // uscire dal bordo: la fascia diventa alta due righe, non sei.
+                flexWrap: strettaF ? 'wrap' : 'nowrap',
               }}>
                 <span style={{
-                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  width: strettaF ? 26 : 34, height: strettaF ? 26 : 34,
+                  borderRadius: strettaF ? 8 : 10, flexShrink: 0,
                   background: st.tinta, color: PN.WHITE, display: 'grid', placeItems: 'center',
                 }}>
                   {/* Il triangolo d'avviso, disegnato qui: BuIcons non c'è in
@@ -510,11 +535,16 @@ function PnAttivazioniFascia() {
                     <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
                   </svg>
                 </span>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 15.5, fontWeight: 800, color: st.tinta, letterSpacing: -0.1}}>{n.title}</div>
-                  <div style={{fontSize: 14, color: PN.TEXT, marginTop: 1, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{n.body}</div>
+                <div style={{flex: 1, minWidth: strettaF ? 160 : 0}}>
+                  <div style={{fontSize: strettaF ? 14.5 : 15.5, fontWeight: 800, color: st.inchiostro || st.tinta, letterSpacing: -0.1}}>{n.title}</div>
+                  <div style={{fontSize: strettaF ? 13 : 14, color: PN.TEXT, marginTop: 1, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: strettaF ? 1 : 2, WebkitBoxOrient: 'vertical'}}>{n.body}</div>
+                  {strettaF && altre > 0 && (
+                    <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, marginTop: 3}}>
+                      e {altre === 1 ? 'un altro avviso' : altre + ' altri avvisi'}
+                    </div>
+                  )}
                 </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto'}}>
                   <button onClick={() => rimanda(n)} className="pn-btn-feedback" style={{
                     padding: '9px 15px', borderRadius: 10, border: `1px solid ${PN.BORDER}`,
                     background: PN.WHITE, color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
@@ -577,7 +607,7 @@ function PnNotificheSection() {
         display:'inline-flex', alignItems:'center', gap: 6,
         padding:'6px 13px', borderRadius: 999,
         background: on ? PN.SIDE_ACTIVE_BG : '#fff',
-        color: on ? PN.PINK_DARK : PN.MUTED,
+        color: on ? PN.BRAND_TEXT : PN.MUTED,
         border: `1px solid ${on ? 'rgba(255,90,95,0.30)' : PN.BORDER}`,
         fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
         transition:'background 150ms ease, color 150ms ease, border-color 150ms ease',
@@ -586,7 +616,7 @@ function PnNotificheSection() {
         {count != null && (
           <span style={{
             fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
-            color: on ? PN.PINK_DARK : '#9CA3AF',
+            color: on ? PN.BRAND_TEXT : '#636875',
           }}>{count}</span>
         )}
       </button>
@@ -644,7 +674,7 @@ function PnNotificheSection() {
           <div style={{padding:'54px 22px', textAlign:'center'}}>
             <div style={{
               width: 46, height: 46, borderRadius:'50%', margin:'0 auto 12px',
-              background: PN.SIDE_ACTIVE_BG, color: PN.PINK_DARK,
+              background: PN.SIDE_ACTIVE_BG, color: PN.BRAND_TEXT,
               display:'grid', placeItems:'center',
             }}>
               <Icon name="bell" size={20} color={PN.PINK_DARK}/>
@@ -681,7 +711,7 @@ function PnNotificheSection() {
                 lineHeight: 1.35, marginBottom: 3,
               }}>{n.title}</div>
               <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5}}>{n.body}</div>
-              <div style={{fontSize: 13.5, color:'#A3A3AD', fontWeight: 500, marginTop: 5}}>{n.time}</div>
+              <div style={{fontSize: 13.5, color:'#636875', fontWeight: 500, marginTop: 5}}>{n.time}</div>
             </div>
             <button
               title="Elimina notifica"
@@ -984,16 +1014,16 @@ function PnGlobalSearch() {
             onKeyDown={e => { if (e.key === 'Enter' && first) go(first); }}
             placeholder="Cerca prenotazioni, conti, piatti, pagine…"
             style={{flex:1, border:'none', outline:'none', fontSize:17, fontFamily:'inherit', color:'#16181D', background:'transparent'}}/>
-          <span style={{padding:'3px 8px', borderRadius:7, background:'#F3F4F6', color:'#6B7280', fontSize:12.5, fontWeight:700}}>ESC</span>
+          <span style={{padding:'3px 8px', borderRadius:7, background:'#F3F4F6', color:'#636875', fontSize:12.5, fontWeight:700}}>ESC</span>
         </div>
         {query.length >= 2 && matches.length === 0 && (
-          <div style={{padding:'26px 18px', textAlign:'center', fontSize:14.5, color:'#9CA3AF'}}>Nessun risultato per “{q}”</div>
+          <div style={{padding:'26px 18px', textAlign:'center', fontSize:14.5, color:'#636875'}}>Nessun risultato per “{q}”</div>
         )}
         {groups.length > 0 && (
           <div style={{maxHeight:'54vh', overflowY:'auto', padding:'6px 0 8px'}}>
             {groups.map(g => (
               <div key={g.name}>
-                <div style={{padding:'10px 18px 5px', fontSize:11.5, fontWeight:800, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.07em'}}>{g.name}</div>
+                <div style={{padding:'10px 18px 5px', fontSize:11.5, fontWeight:800, color:'#636875', textTransform:'uppercase', letterSpacing:'0.07em'}}>{g.name}</div>
                 {g.items.map((it, i) => (
                   <div key={it.g + it.label + i} onClick={() => go(it)}
                     style={{display:'flex', alignItems:'center', gap:12, padding:'9px 18px', cursor:'pointer'}}
@@ -1001,7 +1031,7 @@ function PnGlobalSearch() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div style={{flex:1, minWidth:0}}>
                       <div style={{fontSize:15.5, fontWeight:600, color:'#16181D'}}>{it.label}
-                        {it === first && <span style={{marginLeft:9, padding:'2px 7px', borderRadius:6, background:'#F3F4F6', color:'#6B7280', fontSize:11.5, fontWeight:700}}>↵</span>}
+                        {it === first && <span style={{marginLeft:9, padding:'2px 7px', borderRadius:6, background:'#F3F4F6', color:'#636875', fontSize:11.5, fontWeight:700}}>↵</span>}
                       </div>
                       <div style={{fontSize:13, color:'#8A8F98', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{it.sub}</div>
                     </div>
@@ -1013,8 +1043,8 @@ function PnGlobalSearch() {
           </div>
         )}
         {query.length < 2 && (
-          <div style={{padding:'12px 18px 14px', fontSize:13, color:'#9CA3AF'}}>
-            Almeno 2 caratteri · <strong style={{color:'#6B7280'}}>Invio</strong> apre il primo risultato
+          <div style={{padding:'12px 18px 14px', fontSize:13, color:'#636875'}}>
+            Almeno 2 caratteri · <strong style={{color:'#636875'}}>Invio</strong> apre il primo risultato
           </div>
         )}
       </div>

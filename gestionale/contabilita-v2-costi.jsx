@@ -99,7 +99,7 @@ function ContCosti({ openNewCost }) {
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: C.R_SM,
-            background: PN.AMBER_SOFT, color: PN.AMBER,
+            background: PN.AMBER_SOFT, color: PN.AMBER_TEXT,
             display:'grid', placeItems:'center',
           }}><Ic.warn size={18}/></div>
           <div style={{flex:1}}>
@@ -117,7 +117,7 @@ function ContCosti({ openNewCost }) {
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
             style={{
             padding:'8px 16px', background: alertOnly ? '#fff' : PN.AMBER,
-            color: alertOnly ? PN.AMBER : '#fff',
+            color: alertOnly ? PN.AMBER_TEXT : '#fff',
             border: alertOnly ? `1px solid ${PN.AMBER}` : 'none',
             borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 700, cursor:'pointer',
             fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
@@ -263,7 +263,7 @@ function ContCosti({ openNewCost }) {
                     {c.type==='recurring'
                       ? <><Ic.recurring size={12}/> {c.freq}</>
                       : <><Ic.pin size={12}/> Una tantum</>}
-                    <span style={{color: PN.MUTED_SOFT}}>·</span>
+                    <span style={{color: PN.MUTED}}>·</span>
                     <span>{(COST_NATURES.find(n => n.id === (c.nature || COST_NATURE_DEFAULT)) || {}).label}</span>
                   </span>
                   <div style={{display:'flex', flexDirection:'column'}}>

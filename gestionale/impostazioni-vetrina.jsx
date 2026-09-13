@@ -97,7 +97,7 @@ function VetFasciaPrezzo() {
         <span style={{
           padding: '9px 16px', borderRadius: 12,
           background: fascia ? PN.PINK_BG_SOFT : '#F4F5F7',
-          color: fascia ? PN.PINK_DARK : PN.MUTED,
+          color: fascia ? PN.BRAND_TEXT : PN.MUTED,
           fontSize: 22, fontWeight: 800, letterSpacing: 1,
         }}>{fascia ? fascia.simbolo : '—'}</span>
         <span style={{flex: 1, minWidth: 200, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
@@ -262,7 +262,7 @@ function VetrinaCompletion({ stato, onGo }) {
         <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Vetrina pronta al {pct}%</div>
         {/* Il cancello, detto in una riga: la percentuale dice quanto manca,
             questa dice se si può pubblicare — e cosa lo impedisce. */}
-        <div style={{fontSize: 13, color: pubblicabile ? PN.GREEN : PN.MUTED, marginTop: 2}}>
+        <div style={{fontSize: 13, color: pubblicabile ? PN.GREEN_TEXT : PN.MUTED, marginTop: 2}}>
           {pubblicabile ? 'C\'è tutto quello che serve per pubblicarla' : `Per pubblicarla manca: ${mancanti.join(', ')}`}
         </div>
         <div style={{display:'flex', flexWrap:'wrap', gap: 6, marginTop: 6}}>
@@ -270,7 +270,7 @@ function VetrinaCompletion({ stato, onGo }) {
             <span key={i} style={{
               fontSize: 13, fontWeight: 600,
               padding:'3px 9px', borderRadius: 999,
-              background: PN.GREEN_SOFT, color: PN.GREEN,
+              background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
             }}>{`✓ ${c.label}`}</span>
           ) : (
             <VetrinaTodoChip key={i} c={c} onClick={() => onGo && onGo(c)}/>
@@ -301,7 +301,7 @@ function VetrinaTodoChip({ c, onClick }) {
         fontSize: 13, fontWeight: 600, fontFamily:'inherit',
         padding:'3px 9px', borderRadius: 999, border:'none',
         background: hover ? PN.PINK_BG_SOFT : '#F4F5F7',
-        color: hover ? PN.PINK_DARK : PN.MUTED,
+        color: hover ? PN.BRAND_TEXT : PN.MUTED,
         cursor:'pointer',
         transform: pressed ? 'scale(0.95)' : hover ? 'scale(1.08)' : 'scale(1)',
         boxShadow: hover ? '0 4px 12px rgba(255, 90, 95, 0.20)' : 'none',
@@ -475,7 +475,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
                 cursor:'pointer', fontFamily:'inherit',
                 transition: 'border-color 150ms ease, background 150ms ease',
               }}>
-                <div style={{fontSize:13, fontWeight:700, color: open ? PN.PINK_DARK : PN.MUTED, marginBottom: 4}}>{d}</div>
+                <div style={{fontSize:13, fontWeight:700, color: open ? PN.BRAND_TEXT : PN.MUTED, marginBottom: 4}}>{d}</div>
                 <div style={{fontSize:12.5, color: open ? PN.TEXT : PN.MUTED, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                   {open ? dayLabel(d) : 'Chiuso'}
                 </div>
@@ -541,7 +541,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
       <CollapsibleCard anchor="tag" title="Tag" sub="Il tono del locale in tre parole">
         <div style={{
           fontSize: 13.5, fontWeight: 600, marginBottom: 10,
-          color: tagLimitHit ? PN.PINK : PN.MUTED,
+          color: tagLimitHit ? PN.BRAND_TEXT : PN.MUTED,
           animation: tagLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
           transition: 'color 150ms ease',
         }}>
@@ -566,7 +566,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         {/* Cibo: cosa si mangia da te — massimo 4 categorie */}
         <div style={{
           fontSize: 13.5, fontWeight: 600, margin: '16px 0 10px',
-          color: foodLimitHit ? PN.PINK : PN.MUTED,
+          color: foodLimitHit ? PN.BRAND_TEXT : PN.MUTED,
           animation: foodLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
           transition: 'color 150ms ease',
         }}>
@@ -745,7 +745,7 @@ function OrariCustomModal({ days, initial, std, chiusure: chiusureIniziali = [],
                 {draft[d].length < 3 && (
                   <button onClick={() => addTurn(d)} style={{
                     alignSelf: 'flex-start', background: 'transparent', border: 'none',
-                    padding: '2px 0', color: PN.PINK, fontSize: 13, fontWeight: 600,
+                    padding: '2px 0', color: PN.BRAND_TEXT, fontSize: 13, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>+ Aggiungi fascia oraria</button>
                 )}
@@ -890,7 +890,7 @@ function VIconChip({ name, on, size = 38 }) {
     <span style={{
       width: size, height: size, borderRadius: Math.round(size * 0.28),
       background: on ? 'rgba(255, 90, 95, 0.14)' : '#F1F2F5',
-      color: on ? PN.PINK_DARK : PN.TEXT,
+      color: on ? PN.BRAND_TEXT : PN.TEXT,
       display: 'inline-grid', placeItems: 'center', flexShrink: 0,
       transition: 'background 150ms ease, color 150ms ease',
     }}>{I(Math.round(size * 0.55))}</span>
@@ -935,7 +935,7 @@ function ServiceTile({ label, icon, on, onToggle }) {
       )}
       <VIconChip name={icon} on={on}/>
       <div style={{fontSize: 13.4, fontWeight: 700, lineHeight: 1.25,
-        color: on ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
+        color: on ? PN.BRAND_TEXT : PN.TEXT}}>{label}</div>
     </button>
   );
 }
@@ -959,7 +959,7 @@ function CatTile({ cat, active, onPick }) {
       <div style={{marginBottom: 8}}><VIconChip name={cat.icon} on={active}/></div>
       <div style={{
         fontSize: 14.5, fontWeight: active ? 700 : 600,
-        color: active ? PN.PINK_DARK : PN.TEXT,
+        color: active ? PN.BRAND_TEXT : PN.TEXT,
       }}>{cat.label}</div>
       {/* Descrizione: appare in hover, lo spazio è riservato (box grandi) */}
       <div style={{
@@ -998,7 +998,7 @@ function SedeCard({ sede, onRemove }) {
               In attesa
             </span>
           ) : (
-            <span style={{fontSize: 10.5, fontWeight: 700, color: PN.GREEN, background: PN.GREEN_SOFT, padding: '1.5px 7px', borderRadius: 999, flexShrink: 0}}>● Attiva</span>
+            <span style={{fontSize: 10.5, fontWeight: 700, color: PN.GREEN_TEXT, background: PN.GREEN_SOFT, padding: '1.5px 7px', borderRadius: 999, flexShrink: 0}}>● Attiva</span>
           )}
         </div>
         <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{sede.addr}</div>
@@ -1024,7 +1024,7 @@ function AddSedeTile({ onClick }) {
         borderRadius: 12, background: hover ? PN.PINK_SOFT : 'transparent',
         cursor: 'pointer', fontFamily: 'inherit', minHeight: 96,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-        color: hover ? PN.PINK_DARK : PN.MUTED,
+        color: hover ? PN.BRAND_TEXT : PN.MUTED,
         transform: hover ? 'translateY(-1px)' : 'none',
         transition: 'border-color 150ms ease, background 150ms ease, color 150ms ease, transform 180ms ease',
       }}>
@@ -1192,7 +1192,7 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
           <>
             <div style={{
               width: 48, height: 48, borderRadius: 12, margin: '4px auto 12px',
-              background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+              background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
               display: 'grid', placeItems: 'center',
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg>
@@ -1261,12 +1261,12 @@ function CertCard({ cert, onOpenRejected }) {
   const clickable = !!cert.reason;
   const S = {
     // Approvata e rifiutata: solo il bordo colorato, dentro bianche.
-    approvata: { border: PN.GREEN,       color: PN.GREEN, label: 'Approvata',            bg: PN.WHITE },
+    approvata: { border: PN.GREEN,       color: PN.GREEN_TEXT, label: 'Approvata',            bg: PN.WHITE },
     rifiutata: { border: PN.RED,         color: PN.RED,   label: 'Rifiutata · vedi motivo', bg: PN.WHITE },
     // In attesa: grigiastra, con l'icona dell'attesa a destra.
     attesa:    { border: PN.BORDER_SOFT, color: PN.MUTED, label: 'In attesa',            bg: '#F4F5F7' },
     // Autodichiarata: presa d'atto, nessuna revisione — si dice così.
-    dichiarata:{ border: PN.GREEN,       color: PN.GREEN, label: 'Autodichiarata · senza documento', bg: PN.WHITE },
+    dichiarata:{ border: PN.GREEN,       color: PN.GREEN_TEXT, label: 'Autodichiarata · senza documento', bg: PN.WHITE },
     // Scaduta e revocata (P-193): sono state valide, e non lo sono più. Non
     // stanno col rifiuto — quello dice che non lo è mai stata — e in vetrina
     // non compaiono più finché non tornano buone.
@@ -1695,7 +1695,7 @@ function LogoDropCircle({ onClick, size = 128 }) {
         border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
         background: hover ? PN.PINK_SOFT : '#FAFBFC',
         display: 'grid', placeItems: 'center', cursor: 'pointer', textAlign: 'center',
-        color: hover ? PN.PINK_DARK : PN.MUTED, fontSize: 12, fontWeight: 600,
+        color: hover ? PN.BRAND_TEXT : PN.MUTED, fontSize: 12, fontWeight: 600,
         transform: hover ? 'scale(1.05)' : 'scale(1)',
         transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), border-color 150ms ease, background 150ms ease, color 150ms ease',
       }}>
@@ -1723,7 +1723,7 @@ function AddPhotoTile({ onClick }) {
         border: `2px dashed ${hover ? PN.PINK : PN.BORDER}`,
         background: hover ? PN.PINK_SOFT : PN.WHITE,
         display: 'grid', placeItems: 'center',
-        color: hover ? PN.PINK_DARK : PN.MUTED, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        color: hover ? PN.BRAND_TEXT : PN.MUTED, fontSize: 13, fontWeight: 600, cursor: 'pointer',
         transform: pressed ? 'scale(0.96)' : hover ? 'scale(1.045)' : 'scale(1)',
         boxShadow: hover ? '0 12px 26px rgba(15, 17, 21, 0.14)' : 'none',
         transition: 'transform 200ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 200ms ease, border-color 150ms ease, background 150ms ease, color 150ms ease',
@@ -2254,7 +2254,7 @@ function SocialConnectedBox({ s, link, onUnlink }) {
           width: 28, height:28, borderRadius: 7, background: s.bg, flexShrink: 0,
           display:'grid', placeItems:'center', color:'#fff', fontSize: s.abbr ? 12 : 14, fontWeight:800,
         }}>{s.abbr || s.name[0]}</div>
-        <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
+        <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN_TEXT, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
       </div>
       <div style={{minWidth: 0}}>
         <div style={{fontSize:14, fontWeight:700}}>{s.name}</div>
@@ -2293,7 +2293,7 @@ function SocialAddTile({ s, onClick }) {
         width:24, height:24, borderRadius:5, background:s.bg, flexShrink: 0,
         display:'grid', placeItems:'center', color:'#fff', fontSize:13, fontWeight:800,
       }}>{s.abbr || s.name[0]}</span>
-      <span style={{flex:1, minWidth: 0, textAlign:'left', fontSize:15, fontWeight:600, color: hover ? PN.PINK_DARK : PN.TEXT, transition:'color 150ms ease'}}>{s.name}</span>
+      <span style={{flex:1, minWidth: 0, textAlign:'left', fontSize:15, fontWeight:600, color: hover ? PN.BRAND_TEXT : PN.TEXT, transition:'color 150ms ease'}}>{s.name}</span>
       {hover && <PnI.Plus size={12} color={PN.PINK_DARK}/>}
     </button>
   );

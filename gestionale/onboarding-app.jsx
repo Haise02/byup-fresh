@@ -224,7 +224,12 @@ function Stepper({step}) {
     ? [{ id: 3, label: `Sala e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Verifica menù' }, { id: 5, label: 'Configurazione completa' }]
     : STEPS;
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: 0}}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 0,
+      // I quattro passi in fila sono più larghi della tela quando questa si
+      // stringe: vanno a capo invece di sbordare di diciotto pixel.
+      flexWrap: 'wrap', rowGap: 8, justifyContent: 'center', minWidth: 0,
+    }}>
       {passi.map((s, i) => {
         const done = s.id < step;
         const active = s.id === step;

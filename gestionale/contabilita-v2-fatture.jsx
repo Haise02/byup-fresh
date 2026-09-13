@@ -345,7 +345,7 @@ function CfRiga({ f, stornataDa, ultima, onApri }) {
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
         }}>{cfNomeCliente(f.cliente)}</span>
         {legame && (
-          <span style={{display:'block', fontSize: C.T_XS, color: PN.MUTED_SOFT, marginTop: 1}}>{legame}</span>
+          <span style={{display:'block', fontSize: C.T_XS, color: PN.MUTED, marginTop: 1}}>{legame}</span>
         )}
       </span>
       <span style={{fontSize: C.T_XS, color: PN.MUTED}}>{cfFmtData(f.data)}</span>
@@ -359,7 +359,7 @@ function CfRiga({ f, stornataDa, ultima, onApri }) {
           fontSize: C.T_XS, fontWeight: 700, whiteSpace:'nowrap',
         }}>{s.label}</span>
       </span>
-      <span style={{color: PN.MUTED_LIGHT, display:'inline-flex'}}><PnI.ChevronRight size={12}/></span>
+      <span style={{color: PN.MUTED, display:'inline-flex'}}><PnI.ChevronRight size={12}/></span>
     </div>
   );
 }
@@ -442,7 +442,7 @@ function CfDocumentoModal({ f, stornataDa, onClose, onNotaCredito, onCorreggi })
               {c.indirizzo && <span> · {c.indirizzo}, {c.cap} {c.comune}{c.provincia ? ` (${c.provincia})` : ''}</span>}
             </div>
             {(c.sdi || c.pec) && (
-              <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT, marginTop: 3}}>
+              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 3}}>
                 {c.sdi ? `SDI ${c.sdi}` : `PEC ${c.pec}`}
               </div>
             )}
@@ -511,7 +511,7 @@ function CfDocumentoModal({ f, stornataDa, onClose, onNotaCredito, onCorreggi })
               }}>Indietro</button>
               <button onClick={() => !manca && onCorreggi(corr)} disabled={!!manca} style={{
                 flex:2, padding:'11px 14px', border:'none', borderRadius: C.R_SM,
-                background: manca ? '#E5E7EB' : PN.TEXT, color: manca ? '#9CA3AF' : '#fff',
+                background: manca ? '#E5E7EB' : PN.TEXT, color: manca ? '#636875' : '#fff',
                 fontSize: C.T_SM, fontWeight: 700, cursor: manca ? 'default' : 'pointer', fontFamily:'inherit',
               }}>{manca || `Correggi e reinvia ${f.numero}`}</button>
             </div>

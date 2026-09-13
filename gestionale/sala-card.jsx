@@ -38,7 +38,7 @@ const NOTE_TYPE_META = {
   generica: {
     // Sticky note
     path: 'M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2z M16 21v-5a2 2 0 0 1 2-2h3',
-    color:'#6B7280', bg:'#F3F4F6', label:'Nota',
+    color:'#636875', bg:'#F3F4F6', label:'Nota',
   },
 };
 // Lettura uniforme delle note vecchio/nuovo schema
@@ -54,7 +54,7 @@ function readNote(note) {
 // piatto è uscito, i due momenti sono distinti — sul pass, e al tavolo. Erano
 // la stessa parola perché mancava il secondo.
 const ORDINE_STATO_META = {
-  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In attesa',       icon:'M12 7v5l3 2' },
+  ordinato:   { color:'#636875', bg:'#F3F4F6', label:'In attesa',       icon:'M12 7v5l3 2' },
   in_cottura: { color:'#A16207', bg:'#FEF3C7', label:'In preparazione', icon:'M12 3 v3 M9 6 c0 2 -3 2 -3 5 c0 4 6 4 6 0 c0 -3 -3 -3 -3 -5 M3 14 H21' },
   pronto:     { color:'#5B21B6', bg:'#EDE9FE', label:'Pronto',          icon:'M5 3h14l-1.2 7.2a6 6 0 0 1-11.6 0Z M9 21h6 M12 15v6' },
   consegnato: { color:'#065F46', bg:'#D1FAE5', label:'Consegnato',      icon:'M5 13 L9 17 L19 7' },
@@ -310,7 +310,7 @@ function CopertiChip({ coperti, posti, onAdjust }) {
         display: 'inline-flex', alignItems: 'center', gap: 5,
         height: 32, padding: '0 8px', borderRadius: 8,
         background: 'transparent', border: '1px solid transparent',
-        fontSize: 15.5, fontWeight: 600, color: '#6B7280',
+        fontSize: 15.5, fontWeight: 600, color: '#636875',
         cursor: editable ? 'pointer' : 'default', fontFamily: 'inherit',
         whiteSpace: 'nowrap', flexShrink: 0,
         transition: 'background 120ms ease-out, border-color 120ms ease-out',
@@ -379,12 +379,12 @@ const SALA_POP  = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // apertura elastica "gio
 // Riga info della card "Costa colorata" — un solo testo per stato
 function salaInfoText(t, { alert, isLate, lateMin }) {
   if (t.state === 'occupato') {
-    if (alert) return { text: alert.label, color: alert.tone === 'warn' ? '#92400E' : '#6B7280' };
-    return { text: t.sittingMin != null ? `Al tavolo da ${formatOpenDuration(t.sittingMin)}` : 'Al tavolo', color: '#6B7280' };
+    if (alert) return { text: alert.label, color: alert.tone === 'warn' ? '#92400E' : '#636875' };
+    return { text: t.sittingMin != null ? `Al tavolo da ${formatOpenDuration(t.sittingMin)}` : 'Al tavolo', color: '#636875' };
   }
   if (t.state === 'prenotato') {
     const res = t.nextReservation;
-    if (!res) return { text: 'Prenotato', color: '#6B7280' };
+    if (!res) return { text: 'Prenotato', color: '#636875' };
     // Ora e nome sono un dato quieto, sempre in nero: il ritardo lo dice il
     // testo ("· ritardo X'"), non la tinta della riga.
     return { text: `${res.time} · ${res.name}` + (isLate ? ` · ritardo ${lateMin}'` : ''), color: '#0F1115' };
@@ -400,7 +400,7 @@ function salaInfoText(t, { alert, isLate, lateMin }) {
     };
   }
   const res = t.nextReservation;
-  return { text: res ? `Prossima ${res.time} · ${res.name}` : 'Nessuna prenotazione', color: '#6B7280' };
+  return { text: res ? `Prossima ${res.time} · ${res.name}` : 'Nessuna prenotazione', color: '#636875' };
 }
 
 function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustReservationPosti, onLibera, onEdit, onClose }) {
@@ -589,7 +589,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
             aria-label="Chiudi dettaglio tavolo"
             style={{
               width: 30, height: 30, borderRadius: '50%',
-              background: 'rgba(15,17,21,0.04)', color: '#6B7280',
+              background: 'rgba(15,17,21,0.04)', color: '#636875',
               border: '1px solid rgba(15,17,21,0.10)',
               cursor: 'pointer', fontFamily: 'inherit',
               display: 'grid', placeItems: 'center', flexShrink: 0,
@@ -682,7 +682,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         {t.state === 'libero' && t.nextReservation && (
           <div style={{display:'flex', flexDirection:'column', gap: 4}}>
-            <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
+            <div style={{fontSize: 14.5, fontWeight: 700, color:'#636875', letterSpacing: 0.4, textTransform:'uppercase'}}>
               Prossima prenotazione
             </div>
             {/* Ora · nome e coperti sulla STESSA riga: i coperti a destra del
@@ -740,7 +740,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               {(() => { const seg = window.byupSegnoCanale ? window.byupSegnoCanale(t.id, t) : null; return seg ? (
                 <div data-segno-canale={seg.livello} title={seg.livello === 'verifica' ? (seg.motivo === 'rete' ? 'La rete del telefono non è della città del locale' : 'Ha superato un limite degli invii') : 'Tavolo aperto dal cliente con il QR'}
                   style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: 0.2,
-                    color: seg.livello === 'verifica' ? '#A16207' : '#6B7280'}}>
+                    color: seg.livello === 'verifica' ? '#A16207' : '#636875'}}>
                   <span style={{width: 7, height: 7, borderRadius: 999, background: seg.livello === 'verifica' ? '#F59E0B' : '#9CA3AF'}}/>
                   {seg.testo}
                 </div>
@@ -765,7 +765,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               leading={alert && (
                 <div style={{
                   fontSize: 15.5, fontWeight: 700,
-                  color: alert.tone === 'warn' ? '#92400E' : '#6B7280',
+                  color: alert.tone === 'warn' ? '#92400E' : '#636875',
                   display:'inline-flex', alignItems:'center',
                 }}>{alert.label}</div>
               )}
@@ -813,8 +813,8 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               const daInc = t.daIncassare != null ? t.daIncassare : (t.conto || 0);
               const pagatoInApp = Math.max(0, (t.conto || 0) - daInc);
               const row = {display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 12};
-              const label = {fontSize: 15, fontWeight: 600, color:'#9CA3AF'};
-              const amount = {fontSize: 15.5, fontWeight: 600, color:'#6B7280', fontVariantNumeric:'tabular-nums'};
+              const label = {fontSize: 15, fontWeight: 600, color:'#636875'};
+              const amount = {fontSize: 15.5, fontWeight: 600, color:'#636875', fontVariantNumeric:'tabular-nums'};
               if (occupatoSaldato) {
                 // SALDATO NON VUOL DIRE CHIUSO A CHIAVE. Finché il tavolo non è
                 // liberato la CTA diventa «Libera tavolo» e il conto non ha più
@@ -865,7 +865,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                     </>
                   )}
                   <div style={row}>
-                    <span style={{fontSize: 16, fontWeight: 700, color:'#6B7280'}}>Da incassare</span>
+                    <span style={{fontSize: 16, fontWeight: 700, color:'#636875'}}>Da incassare</span>
                     <span style={{fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums', color:'#0F1115'}}>
                       €{daInc.toFixed(2)}
                     </span>
@@ -891,7 +891,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                  prenotazione si aggiusta da qui, senza aspettare che il
                  tavolo torni libero. */
               <>
-                <div style={{fontSize: 14.5, fontWeight: 700, color:'#6B7280', letterSpacing: 0.4, textTransform:'uppercase'}}>
+                <div style={{fontSize: 14.5, fontWeight: 700, color:'#636875', letterSpacing: 0.4, textTransform:'uppercase'}}>
                   Prossima prenotazione
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
@@ -1087,7 +1087,7 @@ function OrdiniList({ ordini, tavolo }) {
         borderRadius: 6,
       }}>
         <span style={{
-          fontSize: 13.5, fontWeight: 700, color:'#6B7280',
+          fontSize: 13.5, fontWeight: 700, color:'#636875',
           letterSpacing: 0.6, textTransform:'uppercase',
         }}>Ordini · {totQty}</span>
         <span style={{flex: 1}}/>

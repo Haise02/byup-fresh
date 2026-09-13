@@ -132,7 +132,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
         <span style={{width:10, height:10, borderRadius:'50%', background: meta.dot, flexShrink:0}}/>
         <div style={{flex:1, minWidth:0}}>
           <div style={{fontSize:18, fontWeight:800, color:'#0F1115'}}>Tavolo {t.id}</div>
-          <div style={{fontSize:15.5, color:'#6B7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+          <div style={{fontSize:15.5, color:'#636875', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
             {subLabel || stateDescription(t)}
           </div>
         </div>
@@ -165,6 +165,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
         fontFamily:'inherit',
+        ...(window.byupPanelPieno ? window.byupPanelPieno() : null),
       }}>
         {/* HEADER */}
         <div style={{padding:'18px 22px 14px', borderBottom:'1px solid #F0F2F5', flexShrink:0}}>
@@ -173,14 +174,14 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
               <div style={{fontSize:22, fontWeight:800, color:'#0F1115', letterSpacing:'-0.02em'}}>
                 Modifica {tavLabel(tavolo)}
               </div>
-              <div style={{fontSize:17, color:'#6B7280', marginTop:4}}>
+              <div style={{fontSize:17, color:'#636875', marginTop:4}}>
                 Sposta, dividi o unisci il tavolo
               </div>
             </div>
             <button onClick={onClose} aria-label="Chiudi" style={{
               width:32, height:32, borderRadius:8,
               background:'#F1F2F5', border:'none', cursor:'pointer',
-              fontSize:22, color:'#6B7280', fontFamily:'inherit', flexShrink:0,
+              fontSize:22, color:'#636875', fontFamily:'inherit', flexShrink:0,
             }}>×</button>
           </div>
 
@@ -204,7 +205,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
                 display:'flex', alignItems:'center', gap: 10,
               }}>
                 <span style={{fontSize:15.5, fontWeight:700, color:'#374151'}}>Coperti seduti</span>
-                <span style={{fontSize:13.5, color:'#9CA3AF', fontWeight:500}}>max {maxP} posti</span>
+                <span style={{fontSize:13.5, color:'#636875', fontWeight:500}}>max {maxP} posti</span>
                 <span style={{flex:1}}/>
                 <button disabled={c <= 1} onClick={() => c > 1 && onAdjustCoperti(c - 1)} style={stepBtn(c > 1)}>−</button>
                 <span style={{minWidth: 24, textAlign:'center', fontSize: 17, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>{c}</span>
@@ -237,7 +238,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
                       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{o.icon}</svg>
                     <span style={{fontSize:16.5, fontWeight:800, color:'#0F1115'}}>{o.label}</span>
                   </span>
-                  <span style={{fontSize:13.5, color:'#6B7280', fontWeight:500}}>{o.desc}</span>
+                  <span style={{fontSize:13.5, color:'#636875', fontWeight:500}}>{o.desc}</span>
                 </button>
               );
             })}
@@ -270,12 +271,12 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
         <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'12px 22px 18px'}}>
           {op === 'sposta' && (
             spostaCandidates.length === 0 ? (
-              <div style={{padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17}}>
+              <div style={{padding:'48px 20px', textAlign:'center', color:'#636875', fontSize:17}}>
                 Nessun tavolo disponibile.
               </div>
             ) : (
               <div style={{display:'flex', flexDirection:'column', gap:6}}>
-                <div style={{fontSize:14.5, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:4}}>
+                <div style={{fontSize:14.5, fontWeight:800, color:'#636875', letterSpacing:0.6, textTransform:'uppercase', marginBottom:4}}>
                   Dove vuoi spostarlo?
                 </div>
                 {spostaCandidates.map(t => pickRow(t, spostaId === t.id, (id) => setSpostaId(cur => cur === id ? null : id)))}
@@ -285,12 +286,12 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
 
           {op === 'unisci' && (
             unisciCandidates.length === 0 ? (
-              <div style={{padding:'48px 20px', textAlign:'center', color:'#9CA3AF', fontSize:17}}>
+              <div style={{padding:'48px 20px', textAlign:'center', color:'#636875', fontSize:17}}>
                 {search.trim() ? 'Nessun tavolo corrisponde alla ricerca.' : 'Nessun tavolo disponibile.'}
               </div>
             ) : (
               <div style={{display:'flex', flexDirection:'column', gap:6}}>
-                <div style={{fontSize:14.5, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase', marginBottom:4}}>
+                <div style={{fontSize:14.5, fontWeight:800, color:'#636875', letterSpacing:0.6, textTransform:'uppercase', marginBottom:4}}>
                   Quali tavoli vuoi unire a {tavLabel(tavolo)}?
                 </div>
                 {unisciCandidates.map(t => pickRow(t, daUnire.has(t.id), toggleUnire, `${t.posti} posti · ${stateDescription(t)}`))}
@@ -301,7 +302,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
           {op === 'dividi' && (
             <div style={{display:'flex', flexDirection:'column', gap:6}}>
               <div style={{display:'flex', alignItems:'center', marginBottom:4}}>
-                <div style={{flex:1, fontSize:14.5, fontWeight:800, color:'#6B7280', letterSpacing:0.6, textTransform:'uppercase'}}>
+                <div style={{flex:1, fontSize:14.5, fontWeight:800, color:'#636875', letterSpacing:0.6, textTransform:'uppercase'}}>
                   Quali tavoli vuoi separare?
                 </div>
                 <button onClick={() => setDaStaccare(daStaccare.size === merged.length ? new Set() : new Set(merged))} style={{
@@ -312,7 +313,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
                 </button>
               </div>
               {dividiCandidates.map(t => pickRow(t, daStaccare.has(t.id), toggleStacca, `${t.posti} posti · unito a Tavolo ${tavolo.id}`))}
-              <div style={{fontSize:15, color:'#9CA3AF', marginTop:6, lineHeight:1.4}}>
+              <div style={{fontSize:15, color:'#636875', marginTop:6, lineHeight:1.4}}>
                 I tavoli separati tornano liberi e alla configurazione originale.
               </div>
             </div>
@@ -344,7 +345,7 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
             style={{
               minWidth: 280, padding:'11px 18px',
               background: cta.disabled ? '#E5E7EB' : '#0F1115',
-              color: cta.disabled ? '#9CA3AF' : '#fff',
+              color: cta.disabled ? '#636875' : '#fff',
               border:'none', borderRadius:10,
               fontSize:17, fontWeight:700,
               cursor: cta.disabled ? 'not-allowed' : 'pointer',

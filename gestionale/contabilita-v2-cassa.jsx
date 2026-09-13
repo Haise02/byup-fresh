@@ -1251,9 +1251,9 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               <span style={{textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, letterSpacing: -0.2}}>€ {r.totale.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.contanti.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
-              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.piattaforma ? PN.TEXT : PN.MUTED_SOFT}}>{r.piattaforma ? `€ ${r.piattaforma.toFixed(2)}` : '—'}</span>
+              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.piattaforma ? PN.TEXT : PN.MUTED}}>{r.piattaforma ? `€ ${r.piattaforma.toFixed(2)}` : '—'}</span>
               {/* I buoni (P-173): voce propria, credito e non contante. */}
-              <span data-buoni-giorno style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.buoni ? PN.TEXT : PN.MUTED_SOFT}}>{r.buoni ? `€ ${r.buoni.toFixed(2)}` : '—'}</span>
+              <span data-buoni-giorno style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.buoni ? PN.TEXT : PN.MUTED}}>{r.buoni ? `€ ${r.buoni.toFixed(2)}` : '—'}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
               <span style={{minWidth: 0}}>
@@ -1268,7 +1268,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
                     transition:'filter 140ms ease',
                   }}>
                   <GiornataChip info={r.giornata}/>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED_SOFT, flexShrink: 0}}><path d="M7 17 17 7M8 7h9v9"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED, flexShrink: 0}}><path d="M7 17 17 7M8 7h9v9"/></svg>
                 </button>
               </span>
             </div>
@@ -1387,7 +1387,7 @@ function ContBuoniPasto() {
               <span><b>{e.brand}</b>{e.brand !== e.name && <span style={{ color: PN.MUTED }}> · {e.name}</span>}</span>
               <span style={cella}>{r.voucher_count}</span>
               <span style={{ ...cella, fontWeight: 700 }}>{eur(r.total_face_value)}</span>
-              <span style={cella}>{r.discount_percent == null ? <span title="Senza convenzione lo sconto non si calcola" style={{ color: PN.MUTED_SOFT }}>—</span> : `${r.discount_percent}% · ${eur(r.sconto)}`}</span>
+              <span style={cella}>{r.discount_percent == null ? <span title="Senza convenzione lo sconto non si calcola" style={{ color: PN.MUTED }}>—</span> : `${r.discount_percent}% · ${eur(r.sconto)}`}</span>
               <span style={{ ...cella, fontWeight: 700 }}>{eur(r.expected_net)}</span>
               <select value={r.status} onChange={ev => scrivi({ status: ev.target.value })} style={INP}>
                 {Object.keys(PN_BUONI_STATI).map(k => <option key={k} value={k}>{PN_BUONI_STATI[k]}</option>)}

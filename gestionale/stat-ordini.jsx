@@ -53,7 +53,7 @@ function OrdiniPerCanale({ d }) {
                 }}><Icon name={c.icona} size={18}/></span>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.label}</div>
-                  <div style={{fontSize: 13, color: PN.MUTED_SOFT}}>{c.sub}</div>
+                  <div style={{fontSize: 13, color: PN.MUTED}}>{c.sub}</div>
                 </div>
                 <span style={{
                   flexShrink: 0, padding:'3px 10px', borderRadius: 999,
@@ -151,7 +151,7 @@ function StatOrdini() {
               padding:'5px 12px', fontSize: 14.5, fontWeight: 600,
               background: channel === ch ? PN.WHITE : 'transparent',
               border:'none', borderRadius: 999,
-              color: channel === ch ? PN.PINK_DARK : PN.MUTED,
+              color: channel === ch ? PN.BRAND_TEXT : PN.MUTED,
               cursor:'pointer', fontFamily:'inherit',
               boxShadow: channel === ch ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
             }}>{ch}</button>
@@ -165,10 +165,10 @@ function StatOrdini() {
           display:'flex', alignItems:'baseline', justifyContent:'flex-end',
           gap: 8, marginTop: -6, marginBottom: 12, minHeight: 22,
         }}>
-          <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>picco della settimana</span>
+          <span style={{fontSize: 13.5, color: PN.MUTED}}>picco della settimana</span>
           <span style={{fontSize: 14.5, color: PN.MUTED}}>{days[picco.ci]} · {d.heatmap[picco.ri].ora}</span>
           <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{picco.v}</strong>
-          <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ordini</span>
+          <span style={{fontSize: 14, color: PN.MUTED}}>ordini</span>
         </div>
 
         {/* Sul telefono la tabella scorre nel suo contenitore, colonne intatte */}
@@ -230,7 +230,7 @@ function StatOrdini() {
             <span key={c} style={{width: 26, height: 10, background: c, borderRadius: 3}}/>
           ))}
           <span style={{fontVariantNumeric:'tabular-nums'}}>{maxHeat}</span>
-          <span style={{marginLeft: 6, color: PN.MUTED_SOFT}}>ordini in un'ora</span>
+          <span style={{marginLeft: 6, color: PN.MUTED}}>ordini in un'ora</span>
         </div>
       </StatCard>
     </div>

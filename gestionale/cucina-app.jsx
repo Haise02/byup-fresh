@@ -155,7 +155,13 @@ function CucinaApp() {
     const tuttiC = canali[0], tutteCat = categorie[0];
     const Chip = window.KdsFilterChip;
     return (
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16, gap: 12}}>
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        marginBottom: 16, gap: 12,
+        // I due gruppi — filtri a sinistra, monitor e comandi a destra — vanno
+        // a capo invece di uscire dal bordo quando la tela si stringe.
+        flexWrap:'wrap', rowGap: 10,
+      }}>
         <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
           {Chip && (
             <Chip label="Canali" defaultLabel={tuttiC}

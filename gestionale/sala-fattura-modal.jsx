@@ -409,6 +409,7 @@ function SvFatturaModal({ open, lines, takeaway, sconto = 0, cliente, onClose, o
         position: 'fixed', inset: 0, background: 'rgba(10,14,24,0.62)',
         backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
         display: 'grid', placeItems: 'center', zIndex: 240, padding: 24,
+        ...(window.byupScrimPieno ? window.byupScrimPieno() : null),
       }}>
       <style>{`
         @keyframes svfEntra {
@@ -424,6 +425,7 @@ function SvFatturaModal({ open, lines, takeaway, sconto = 0, cliente, onClose, o
         width: larghezza, maxWidth: '100%', maxHeight: maxAltezza,
         boxShadow: '0 32px 80px rgba(5,10,25,0.45)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        ...(window.byupPanelPieno ? window.byupPanelPieno() : null),
       }}>
         {/* Testata. Non una X: da qui non si chiude niente, si torna
             all'incasso che sta ancora lì sotto col conto dov'era — e la strada
@@ -667,7 +669,7 @@ function SvFatturaModal({ open, lines, takeaway, sconto = 0, cliente, onClose, o
               style={{
                 flex: 1, padding: '15px 20px', borderRadius: 14,
                 background: pronto ? SVF_GREEN : '#EFEFF1',
-                color: pronto ? '#fff' : '#9CA3AF',
+                color: pronto ? '#fff' : '#636875',
                 border: 'none', fontSize: 18, fontWeight: 700,
                 cursor: pronto ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
                 boxShadow: pronto ? '0 8px 20px -8px rgba(22,163,74,0.55)' : 'none',

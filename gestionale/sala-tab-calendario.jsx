@@ -120,7 +120,7 @@ function SalaCalendario({ onNuova, onModifica }) {
                 Attenzione
               </div>
             </div>
-            <div style={{fontSize:17, color:'#6B7280', lineHeight:1.5}}>
+            <div style={{fontSize:17, color:'#636875', lineHeight:1.5}}>
               Questa è una prenotazione fatta da App{byupWarn.name ? <> a nome <strong style={{color:'#0F1115'}}>{byupWarn.name}</strong></> : ''}: sei proprio sicuro di volerla eliminare?
             </div>
             <div style={{display:'flex', gap:8}}>
@@ -279,7 +279,7 @@ function ToolbarCalendar({ today, selected, onPick }) {
       </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 4, marginBottom: 4}}>
         {CAL_DOW.map((d,i) => (
-          <span key={i} style={{fontSize: 14, fontWeight: 700, color:'#9CA3AF', textAlign:'center', padding: 2}}>{d}</span>
+          <span key={i} style={{fontSize: 14, fontWeight: 700, color:'#636875', textAlign:'center', padding: 2}}>{d}</span>
         ))}
       </div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap: 4}}>
@@ -325,7 +325,7 @@ function Segmented({ value, onChange, options, small }) {
           background: value === o.id ? '#fff' : 'transparent',
           border:'none', cursor:'pointer', fontFamily:'inherit',
           fontSize: small ? 16 : 16.5, fontWeight: value === o.id ? 700 : 600,
-          color: value === o.id ? '#0F1115' : '#6B7280',
+          color: value === o.id ? '#0F1115' : '#636875',
           boxShadow: value === o.id ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
           whiteSpace:'nowrap', transition:'all 0.12s',
         }}>{o.label}</button>
@@ -834,7 +834,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                   const label = min === 0 ? `${h}:00` : `${String(min).padStart(2,'0')}`;
                   ticks.push(<span key={m} style={{position:'absolute', left,
                     top: isHour ? 2 : 8, fontSize: isHour ? 16 : 13.5,
-                    fontWeight: isHour ? 800 : 500, color: isHour ? '#6B7280' : '#B0B7C3',
+                    fontWeight: isHour ? 800 : 500, color: isHour ? '#636875' : '#B0B7C3',
                     transform:tx, whiteSpace:'nowrap'}}>{label}</span>);
                 }
                 return ticks;
@@ -868,7 +868,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                   const label = isLast ? '00:00' : min === 0 ? `${h}:00` : `${String(min).padStart(2,'0')}`;
                   ticks.push(<span key={m} style={{position:'absolute', left,
                     top: isHour ? 2 : 8, fontSize: isHour ? 16 : 13.5,
-                    fontWeight: isHour ? 800 : 500, color: isHour ? '#6B7280' : '#B0B7C3',
+                    fontWeight: isHour ? 800 : 500, color: isHour ? '#636875' : '#B0B7C3',
                     transform:tx, whiteSpace:'nowrap', zIndex:1}}>{label}</span>);
                 }
                 return ticks;
@@ -913,7 +913,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
           }}>
             <div style={{display:'flex', flexDirection:'column', gap:1, paddingRight:8, borderRight:'1px solid #EDEEF2'}}>
               <span style={{fontSize:20, fontWeight:700, color:'#0F1115', lineHeight:1}}>Tavolo {t.id}</span>
-              <span style={{fontSize:15, fontWeight:500, color:'#9CA3AF', lineHeight:1}}>{t.p} posti</span>
+              <span style={{fontSize:15, fontWeight:500, color:'#636875', lineHeight:1}}>{t.p} posti</span>
             </div>
             {renderTurnoTrack(t, TURNI[0])}
             {/* Gap — chiuso: banda incassata quieta tra pranzo e cena */}
@@ -956,7 +956,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
       {/* Legenda */}
       <div style={{padding:'10px 18px', borderTop:'1px solid #EDEEF2',
         display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
-        fontSize:15, color:'#6B7280'}}>
+        fontSize:15, color:'#636875'}}>
         <Legend label="In arrivo" bg="rgba(124, 58, 237, 0.12)" border="rgba(124, 58, 237, 0.38)"/>
         <Legend label="In arrivo da Byup App" bg="#FFECEA" border="#FFA3A6"/>
         <Legend label="Tavolo attivo" bg="#EDF0F4" border="#D2D9E2"/>
@@ -987,7 +987,7 @@ function DayTimeline({ onNuova, onModifica, onByupBlock }) {
                 Sovrapposizione non consentita
               </div>
             </div>
-            <div style={{fontSize:17, color:'#6B7280', lineHeight:1.5}}>
+            <div style={{fontSize:17, color:'#636875', lineHeight:1.5}}>
               Lo slot si sovrappone a una prenotazione esistente sullo stesso tavolo. La modifica è stata annullata.
             </div>
             <button onClick={() => setConflictWarning(false)} style={{
@@ -1088,7 +1088,7 @@ function DayList({ onModifica }) {
       {past.length > 0 && <CalPastSection items={past} onModifica={onModifica} onDismiss={onDismiss}/>}
 
       {rest.length === 0 && (
-        <div style={{padding:'36px 18px', textAlign:'center', fontSize:16, color:'#9CA3AF', fontWeight:600}}>
+        <div style={{padding:'36px 18px', textAlign:'center', fontSize:16, color:'#636875', fontWeight:600}}>
           Nessuna prenotazione in programma
         </div>
       )}
@@ -1109,7 +1109,7 @@ function CalBandHeader({ hh }) {
         background:'#fff', marginLeft: 8,
         boxShadow:'inset 0 0 0 2px rgba(15,17,21,0.22)',
       }}/>
-      <span style={{fontSize: 14, fontWeight: 800, color:'#6B7280', fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em'}}>{hh}</span>
+      <span style={{fontSize: 14, fontWeight: 800, color:'#636875', fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em'}}>{hh}</span>
       <span style={{flex: 1, height: 1, background:'rgba(15,17,21,0.06)'}}/>
     </div>
   );
@@ -1181,7 +1181,7 @@ function CalResRow({ r, nowMin, dim, onModifica, onDismiss }) {
             <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:-0.3}}>
               Cancellare la prenotazione?
             </div>
-            <div style={{fontSize: 16, color:'#6B7280', lineHeight: 1.5}}>
+            <div style={{fontSize: 16, color:'#636875', lineHeight: 1.5}}>
               <strong style={{color:'#0F1115'}}>{r.name}</strong> · {r.time} · T{r.table}<br/>
               L'operazione non può essere annullata.
             </div>
@@ -1223,7 +1223,7 @@ function CalPastSection({ items, onModifica, onDismiss }) {
         border:'1px solid rgba(255,255,255,0.65)',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
-        <span style={{fontSize: 13, fontWeight: 700, color:'#9CA3AF', letterSpacing: 0.5, textTransform:'uppercase'}}>Passate</span>
+        <span style={{fontSize: 13, fontWeight: 700, color:'#636875', letterSpacing: 0.5, textTransform:'uppercase'}}>Passate</span>
         <span style={{fontSize: 14, color:'#B6BCC6', fontWeight: 600}}>
           · {servite} servite{noshow > 0 ? ` · ${noshow} no-show` : ''}
         </span>

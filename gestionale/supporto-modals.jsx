@@ -216,7 +216,7 @@ function SupEmailModal({ open, onClose }) {
 
         {sent ? (
           <div style={{padding: 40, textAlign:'center'}}>
-            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.doc size={26}/></div>
+            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN_TEXT, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.doc size={26}/></div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ticket aperto!</div>
             <div style={{fontSize: 14.5, color: PN.MUTED}}>Ti rispondiamo su <strong>admin@esempio.com</strong> entro 2 giorni lavorativi.</div>
           </div>
@@ -306,7 +306,7 @@ function SupCallScheduler({ open, onClose }) {
 
         {sent ? (
           <div style={{padding: 36, textAlign:'center'}}>
-            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.check size={28}/></div>
+            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN_TEXT, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.check size={28}/></div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Chiamata prenotata!</div>
             <div style={{fontSize: 14.5, color: PN.MUTED}}>Ti chiameremo al numero <strong>{phone}</strong> entro la fascia oraria scelta.</div>
           </div>
@@ -326,7 +326,7 @@ function SupCallScheduler({ open, onClose }) {
                     borderRadius: 10, textAlign:'left',
                     cursor:'pointer', fontFamily:'inherit',
                   }}>
-                    <div style={{fontSize: 15, fontWeight: 600, color: when === s.id ? PN.PINK_DARK : PN.TEXT}}>{s.label}</div>
+                    <div style={{fontSize: 15, fontWeight: 600, color: when === s.id ? PN.BRAND_TEXT : PN.TEXT}}>{s.label}</div>
                     <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{s.desc}</div>
                   </button>
                 ))}
@@ -361,7 +361,7 @@ function SupTutorialPlayer({ tutorial, onClose }) {
       <div style={{background: PN.WHITE, borderRadius: 16, width: 720, maxHeight: '88vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 24px 60px rgba(0,0,0,0.2)'}} onClick={e => e.stopPropagation()}>
         <div style={{padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
           <div>
-            <div style={{fontSize: 13, fontWeight: 600, color: PN.PINK, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 2}}>{tutorial.catTitle}</div>
+            <div style={{fontSize: 13, fontWeight: 600, color: PN.BRAND_TEXT, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 2}}>{tutorial.catTitle}</div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{tutorial.title}</div>
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={{background:'transparent', border:'none', cursor:'pointer', padding: 4, display:'grid', placeItems:'center'}}><BuIcons.x size={18} color={PN.MUTED}/></button>
@@ -399,8 +399,8 @@ function SupTutorialPlayer({ tutorial, onClose }) {
             background: PN.AMBER_SOFT, border:`1px solid ${PN.AMBER}33`,
             borderRadius: 10,
           }}>
-            <div style={{fontSize: 14, fontWeight: 700, color: PN.AMBER, marginBottom: 4, display:'inline-flex', alignItems:'center', gap: 6}}><BuIcons.bulb size={13}/> Hai bisogno di aiuto?</div>
-            <div style={{fontSize: 14, color: PN.AMBER, lineHeight: 1.5}}>
+            <div style={{fontSize: 14, fontWeight: 700, color: PN.AMBER_TEXT, marginBottom: 4, display:'inline-flex', alignItems:'center', gap: 6}}><BuIcons.bulb size={13}/> Hai bisogno di aiuto?</div>
+            <div style={{fontSize: 14, color: PN.AMBER_TEXT, lineHeight: 1.5}}>
               Se questa guida non risolve il tuo problema, puoi contattare il supporto via chat o email — risposta entro 4 ore.
             </div>
           </div>

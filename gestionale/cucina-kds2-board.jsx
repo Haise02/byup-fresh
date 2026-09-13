@@ -1090,7 +1090,7 @@ function Kds2Header({
   // intero, stesse misure. Due cucine dello stesso prodotto non possono avere
   // due grammatiche. Da sola, in anteprima, la board tiene la sua.
   return (
-    <div style={{flexShrink: 0, background: barra ? 'transparent' : K.FONDO,
+    <div data-byup-dark style={{flexShrink: 0, background: barra ? 'transparent' : K.FONDO,
       padding: barra ? 0 : '16px ' + PAD_X + 'px 12px'}}>
 
       {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie,
@@ -1099,7 +1099,13 @@ function Kds2Header({
       /* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
          che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
          guarda. Sta sopra la rail perché la rail è già contenuto. */
-      <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12}}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12,
+        // Orologio, due filtri e due comandi non stanno in riga su una tela
+        // stretta: vanno a capo invece di sbordare. Sul monitor a parete —
+        // dove questa board vive davvero — la riga resta una.
+        flexWrap: 'wrap', rowGap: 10,
+      }}>
         <span style={{
           fontSize: 34, fontWeight: 800, color: K.TESTO, letterSpacing: '-0.02em',
           fontVariantNumeric: 'tabular-nums', flexShrink: 0, paddingRight: 6,

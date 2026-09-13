@@ -100,11 +100,11 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
       <div style={{flexShrink: 0, textAlign: 'center', minWidth: compact ? 46 : 54}}>
         <div style={{
           fontSize: compact ? 18 : 21, fontWeight: 800, lineHeight: 1,
-          color: ghost ? '#9CA3AF' : (urgent ? '#E32459' : '#0F1115'),
+          color: ghost ? '#636875' : (urgent ? '#E32459' : '#0F1115'),
           fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
         }}>{r.time}</div>
         {!compact && r.dur && (
-          <div style={{fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginTop: 3, fontVariantNumeric: 'tabular-nums'}}>
+          <div style={{fontSize: 12, fontWeight: 600, color: '#636875', marginTop: 3, fontVariantNumeric: 'tabular-nums'}}>
             {r.dur}′
           </div>
         )}
@@ -118,7 +118,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
         <div style={{display: 'flex', alignItems: 'center', gap: 7, minWidth: 0}}>
           <span style={{
             fontSize: compact ? 15 : 16, fontWeight: 700,
-            color: ghost ? '#9CA3AF' : '#0F1115',
+            color: ghost ? '#636875' : '#0F1115',
             letterSpacing: '-0.01em',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             textDecoration: r.status === 'cancellata' ? 'line-through' : 'none',
@@ -127,7 +127,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
-          fontSize: compact ? 13 : 14, fontWeight: 500, color: '#6B7280',
+          fontSize: compact ? 13 : 14, fontWeight: 500, color: '#636875',
           marginTop: compact ? 1 : 3,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -139,7 +139,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
           {r.table != null && (
             <React.Fragment>
               <span style={{color: '#C5C8CE'}}>·</span>
-              <span><span style={{color: '#9CA3AF', fontWeight: 600}}>T</span><b style={{fontWeight: 700, color: '#6B7280'}}>{r.table}</b></span>
+              <span><span style={{color: '#636875', fontWeight: 600}}>T</span><b style={{fontWeight: 700, color: '#636875'}}>{r.table}</b></span>
             </React.Fragment>
           )}
           {r.phone && !compact && (

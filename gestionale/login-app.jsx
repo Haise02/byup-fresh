@@ -69,9 +69,52 @@ function LoginApp() {
     }, 250);
   };
 
+  // ── La scala si sceglie PRIMA di entrare ──────────────────────────────────
+  // Questa è la prima schermata che si incontra, e chi ha bisogno di caratteri
+  // più grandi ne ha bisogno già qui: se il controllo vivesse solo dentro le
+  // Impostazioni, per arrivarci bisognerebbe prima leggere questa pagina.
+  // Il Login non ha il frame del gestionale, quindi lo zoom si applica al
+  // gruppo logo + card: il video di sfondo resta dov'è e non viene ingrandito
+  // insieme al modulo.
+  const a11y = window.useA11y ? window.useA11y() : { scaleId: 'normale', setScale: () => {} };
+  const fattore = (window.BYUP_SCALES && window.BYUP_SCALES[a11y.scaleId]) || 1;
+  const livelli = window.BYUP_SCALE_INFO || [
+    { id: 'normale', nome: 'Normale' }, { id: 'grande', nome: 'Grande' }, { id: 'massima', nome: 'Molto grande' },
+  ];
+
   return (
     <>
       <VideoBackdrop/>
+
+      {/* Il controllo sta FUORI dal gruppo scalato: se crescesse con lui,
+          alzando la scala si allontanerebbe da sé stesso. */}
+      <div role="group" aria-label="Dimensione dell'interfaccia" style={{
+        position: 'absolute', top: 18, right: 18, zIndex: 3,
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: 5, borderRadius: 999,
+        background: 'rgba(20, 12, 11, 0.55)',
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        border: '1px solid rgba(255,255,255,0.16)',
+      }}>
+        {livelli.map((l, i) => {
+          const on = a11y.scaleId === l.id;
+          return (
+            <button key={l.id} type="button"
+              onClick={() => a11y.setScale(l.id)}
+              aria-pressed={on}
+              aria-label={'Dimensione ' + l.nome}
+              title={l.nome}
+              style={{
+                minWidth: 44, minHeight: 44, padding: '0 10px', borderRadius: 999,
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: on ? 'rgba(255,255,255,0.92)' : 'transparent',
+                color: on ? '#1A1D24' : 'rgba(255,255,255,0.86)',
+                fontSize: 13 + i * 4, fontWeight: 800, lineHeight: 1,
+                display: 'grid', placeItems: 'center',
+              }}>A</button>
+          );
+        })}
+      </div>
 
       <div style={{
         position: 'relative', zIndex: 1,
@@ -79,6 +122,9 @@ function LoginApp() {
         padding: '40px 24px',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
+        // Lo stesso meccanismo del gestionale: una sola proprietà, e tutto il
+        // modulo cresce insieme — caratteri, campi, bottoni, bordi.
+        zoom: fattore,
       }}>
         {/* Logo Fresh sopra la card. Drop-shadow scura sotto il PNG: contro il video
             di raso rosso il logo coral rischia di sciogliersi col background — la shadow

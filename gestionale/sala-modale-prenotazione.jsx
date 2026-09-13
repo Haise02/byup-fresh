@@ -1108,7 +1108,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
                 Sovrapposizione non consentita
               </div>
             </div>
-            <div style={{fontSize:16, color:'#6B7280', lineHeight:1.5}}>
+            <div style={{fontSize:16, color:'#636875', lineHeight:1.5}}>
               {submitConflict.length === 1
                 ? <>Il <strong>Tavolo {submitConflict[0]}</strong> è già occupato alle {selectedSlot}.</>
                 : <>I tavoli <strong>{submitConflict.join(', ')}</strong> sono già occupati alle {selectedSlot}.</>}

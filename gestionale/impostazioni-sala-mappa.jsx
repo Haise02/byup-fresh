@@ -73,7 +73,7 @@ const FURN_LOOK = {
   kitchen:  { box: { background: 'linear-gradient(180deg, #1E2128 0%, #252830 100%)', borderBottom: '3px solid #3A3D4A', borderRadius: 8 },
               label: { color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' } },
   bathroom: { box: { background: '#EAECF0', border: '2px solid #C8CDD8', borderRadius: 6 },
-              label: { color: '#6B7280', letterSpacing: 1.2, textTransform: 'uppercase' } },
+              label: { color: '#636875', letterSpacing: 1.2, textTransform: 'uppercase' } },
 };
 
 function FloorPlan({
@@ -813,7 +813,7 @@ function FloorPlan({
                 }}>
                   <span style={{
                     fontSize: numSize, fontWeight: 800, lineHeight: 1,
-                    color: dim ? '#9CA3AF' : '#0F1115',
+                    color: dim ? '#636875' : '#0F1115',
                     fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
                     whiteSpace: 'nowrap',
                   }}>{ordered.join('-')}</span>
@@ -919,7 +919,7 @@ function FloorPlan({
               pointerEvents:'none',
             }}>
               <div style={{textAlign:'center', color: PN.MUTED}}>
-                <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED_SOFT}}><BuIcons.table size={36}/></div>
+                <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED}}><BuIcons.table size={36}/></div>
                 <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Inizia a disegnare la tua sala</div>
                 <div style={{fontSize: 14.5}}>Trascina un tavolo o un elemento di arredo dal pannello a sinistra</div>
               </div>

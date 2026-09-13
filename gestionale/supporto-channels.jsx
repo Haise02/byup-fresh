@@ -145,7 +145,7 @@ function SupCard({ icon, iconBg, iconColor, badge, badgeBg, badgeColor, title, d
       </div>
       <div style={{fontSize: 17, fontWeight: 700, marginBottom: 6, letterSpacing: -0.2}}>{title}</div>
       <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5, marginBottom: 14, flex: 1}}>{desc}</div>
-      <div style={{fontSize: 14.5, fontWeight: 600, color: PN.PINK}}>{cta} →</div>
+      <div style={{fontSize: 14.5, fontWeight: 600, color: PN.BRAND_TEXT}}>{cta} →</div>
     </div>
   );
 }
@@ -170,7 +170,7 @@ function SupSearch({ value, onChange }) {
     }}>
       <span style={{
         width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-        background: PN.PINK_BG_SOFT, color: PN.PINK,
+        background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
         display:'grid', placeItems:'center',
       }}><PnI.Search size={16} color={PN.PINK}/></span>
       <input
@@ -194,7 +194,7 @@ function SupSearch({ value, onChange }) {
       ) : (
         // L'esempio esce dal placeholder: lì dentro faceva una riga lunghissima
         // che si leggeva come una frase, non come un suggerimento.
-        <span style={{fontSize: 13.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap', flexShrink: 0}}>
+        <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap', flexShrink: 0}}>
           es. come configurare i pagamenti
         </span>
       )}

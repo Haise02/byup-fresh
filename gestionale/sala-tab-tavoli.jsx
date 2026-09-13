@@ -334,7 +334,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
                 {/* Label */}
                 <span style={{
                   fontSize: 16, fontWeight: 500, lineHeight: 1,
-                  color: isActive ? kpi.accent : '#9CA3AF',
+                  color: isActive ? kpi.accent : '#636875',
                   transition: 'color 150ms ease-out',
                 }}>{kpi.label}</span>
               </button>
@@ -366,7 +366,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
             </svg>
             <span style={{
               fontSize: 16.5, fontWeight: 700,
-              color: alertCount === 0 ? '#9CA3AF' : '#DC2626',
+              color: alertCount === 0 ? '#636875' : '#DC2626',
               fontVariantNumeric:'tabular-nums', lineHeight: 1,
             }}>{alertCount}</span>
           </button>
@@ -519,7 +519,7 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, expandedId, 
       {sorted.length === 0 && (
         <div style={{
           gridColumn:'1/-1', padding: 50, textAlign:'center',
-          color:'#6B7280', fontSize: 18,
+          color:'#636875', fontSize: 18,
           background:'#fff', borderRadius: 12,
           border:'1px dashed #E5E7EB',
         }}>Nessun tavolo trovato</div>
@@ -1121,7 +1121,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 flexDirection: 'column', gap: 4,
               }}>
                 <span style={{
-                  fontSize: 14, fontWeight: 700, color: '#6B7280',
+                  fontSize: 14, fontWeight: 700, color: '#636875',
                   letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: 'inherit',
                 }}>Bagno</span>
               </div>
@@ -1362,7 +1362,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 }}>
                   <span style={{
                     fontSize: numSize, fontWeight: 800, lineHeight: 1,
-                    color: dim ? '#9CA3AF' : '#0F1115',
+                    color: dim ? '#636875' : '#0F1115',
                     fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
                     whiteSpace: 'nowrap',
                   }}>{ordered.join('-')}</span>
@@ -1481,7 +1481,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                       title="Chiudi"
                       style={{
                         width: 26, height: 26, borderRadius: 7,
-                        background: '#F3F4F6', color: '#6B7280',
+                        background: '#F3F4F6', color: '#636875',
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                         display: 'grid', placeItems: 'center', flexShrink: 0,
                       }}>
@@ -1536,7 +1536,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                         title="Ignora"
                         style={{
                           width: 26, height: 26, borderRadius: 7,
-                          background: '#F3F4F6', color: '#6B7280',
+                          background: '#F3F4F6', color: '#636875',
                           border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                           display: 'grid', placeItems: 'center', flexShrink: 0,
                         }}>
@@ -1599,7 +1599,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                   <button onClick={() => setSplitMenu(null)} style={{
                     width:20, height:20, borderRadius:5, background:'#F3F4F6',
                     border:'none', cursor:'pointer', display:'grid', placeItems:'center',
-                    color:'#6B7280', fontFamily:'inherit', flexShrink:0,
+                    color:'#636875', fontFamily:'inherit', flexShrink:0,
                   }}>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                   </button>
@@ -1696,14 +1696,14 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 <button onClick={doMerge} disabled={!canConfirm} style={{
                   height: 28, padding: '0 12px', borderRadius: 8,
                   background: canConfirm ? '#0F1115' : 'rgba(15,17,21,0.08)',
-                  color: canConfirm ? '#fff' : '#9CA3AF',
+                  color: canConfirm ? '#fff' : '#636875',
                   border: 'none', cursor: canConfirm ? 'pointer' : 'default',
                   fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
                   transition: 'background 150ms, color 150ms',
                 }}>Unisci</button>
                 <button onClick={() => onExitMerge && onExitMerge()} style={{
                   height: 28, padding: '0 10px', borderRadius: 8,
-                  background: 'transparent', color: '#6B7280',
+                  background: 'transparent', color: '#636875',
                   border: '1px solid rgba(15,17,21,0.10)',
                   cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
                 }}>Annulla</button>
@@ -1842,7 +1842,7 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
                 <div style={{fontSize: 17, fontWeight: 800, color: '#0F1115'}}>
                   {(confirmMerge.nOcc || 2) > 2 ? `Unire ${confirmMerge.nOcc} tavoli occupati?` : 'Unire due tavoli occupati?'}
                 </div>
-                <div style={{fontSize: 14.5, color: '#6B7280', marginTop: 4, lineHeight: 1.5}}>
+                <div style={{fontSize: 14.5, color: '#636875', marginTop: 4, lineHeight: 1.5}}>
                   I conti dei tavoli verranno uniti in un unico conto
                   {confirmMerge.totale > 0 && <> da <strong style={{color: '#0F1115'}}>€{confirmMerge.totale.toFixed(2)}</strong></>}.
                   {' '}Sei sicuro di quello che stai facendo?

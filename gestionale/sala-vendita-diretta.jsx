@@ -530,6 +530,26 @@ function SalaVenditaDiretta() {
   const total = lines.reduce((s, l) => s + l.lineTotal * l.qty, 0);
   const totQty = lines.reduce((s, l) => s + l.qty, 0);
 
+  // ── Menù e conto affiancati, finché c'è spazio ────────────────────────────
+  // Il pannello dell'ordine sta a 440 px e scende fino a 320 dove la colonna
+  // si stringe. Sotto, però, il clamp non basta più: su una tela da 646 due
+  // colonne da 320 sono due colonne inservibili — nel menù una card per riga,
+  // nel conto un importo che va a capo. Si passa a due VISTE che si danno il
+  // cambio, con l'interruttore in cima che dice sempre quanto c'è nel conto,
+  // così non si perde il totale mentre si scorre il menù.
+  // La scelta resta: chi lavora al banco tiene aperto il conto, chi prende
+  // ordinazioni tiene aperto il menù, e non deve ridirlo a ogni giro.
+  const { bp: bpPos } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const alterna = bpPos === 'sm' || bpPos === 'xs';
+  const [vistaPos, setVistaPos] = React.useState(() => {
+    try { return localStorage.getItem('byup_pos_vista') === 'conto' ? 'conto' : 'catalogo'; }
+    catch (e) { return 'catalogo'; }
+  });
+  const cambiaVista = (v) => {
+    setVistaPos(v);
+    try { localStorage.setItem('byup_pos_vista', v); } catch (e) {}
+  };
+
   // pinned: piatti più venduti (mock — primi 4)
 
   return (
@@ -537,8 +557,53 @@ function SalaVenditaDiretta() {
       {/* Il pannello ordine sta a 440px sul desktop e scende fino a 320 dove
           la colonna si stringe (tablet in portrait): senza il clamp il menù
           restava con 220px e una card per riga. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr clamp(320px, 42%, 440px)', gap: 18, flex: 1, minHeight: 0}}>
+      {alterna && (
+        <div role="tablist" aria-label="Menù o conto" style={{
+          display: 'flex', gap: 8, flexShrink: 0,
+        }}>
+          {[
+            { id: 'catalogo', label: 'Menù' },
+            { id: 'conto', label: 'Conto' },
+          ].map(v => {
+            const on = vistaPos === v.id;
+            return (
+              <button key={v.id} role="tab" aria-selected={on}
+                onClick={() => cambiaVista(v.id)}
+                style={{
+                  flex: 1, minHeight: 44, padding: '0 14px', borderRadius: 12,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  border: `1px solid ${on ? 'transparent' : PN.BORDER}`,
+                  background: on ? PN.BTN_DARK : PN.WHITE,
+                  color: on ? PN.WHITE : PN.TEXT,
+                  fontSize: 15.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                }}>
+                {v.label}
+                {v.id === 'conto' && totQty > 0 && (
+                  <span style={{
+                    minWidth: 22, height: 22, padding: '0 7px', borderRadius: 999,
+                    display: 'inline-grid', placeItems: 'center',
+                    background: on ? 'rgba(255,255,255,0.22)' : PN.PINK_SOFT,
+                    color: on ? PN.WHITE : PN.WINE,
+                    fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+                  }}>{totQty}</span>
+                )}
+                {v.id === 'conto' && total > 0 && (
+                  <span style={{fontWeight: 800, fontVariantNumeric: 'tabular-nums'}}>
+                    €{total.toFixed(2)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div style={{
+        display:'grid',
+        gridTemplateColumns: alterna ? '1fr' : '1fr clamp(320px, 42%, 440px)',
+        gap: 18, flex: 1, minHeight: 0,
+      }}>
       {/* === GRID PIATTI === */}
+      {(!alterna || vistaPos === 'catalogo') && (
       <section style={{
         background: PN.WHITE, borderRadius: 14,
         border: `1px solid ${PN.BORDER_HAIR}`,
@@ -663,7 +728,7 @@ function SalaVenditaDiretta() {
             <div style={{gridColumn:'1/-1', padding: 60, textAlign:'center', color: PN.MUTED, fontSize: 17.5}}>
               <div style={{
                 width: 44, height: 44, borderRadius: '50%', margin: '0 auto 10px',
-                background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+                background: PN.WHITE_FROST, color: PN.MUTED,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -710,8 +775,10 @@ function SalaVenditaDiretta() {
           </button>
         </div>
       </section>
+      )}
 
       {/* === CARRELLO === */}
+      {(!alterna || vistaPos === 'conto') && (
       <SaCartPanel
         lines={lines}
         takeaway={takeaway}
@@ -733,6 +800,7 @@ function SalaVenditaDiretta() {
         avvisoIva={avvisoIva}
         onChiudiAvvisoIva={() => setAvvisoIva(null)}
       />
+      )}
       </div>
 
       <SaIncassaModal
@@ -889,7 +957,7 @@ function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = '#FAFBFC'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_LIGHT; e.currentTarget.style.background = PN.WHITE; }}>
-      <span style={{color: vuoto ? PN.MUTED_SOFT : (tone === 'amber' ? PN.AMBER : PN.GREEN), display:'inline-flex'}}>{icon}</span>
+      <span style={{color: vuoto ? PN.MUTED : (tone === 'amber' ? PN.AMBER_TEXT : PN.GREEN_TEXT), display:'inline-flex'}}>{icon}</span>
       {label}
       <span style={{
         minWidth: 22, padding: '2px 7px', borderRadius: 999,
@@ -1021,7 +1089,7 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucin
             <div style={{textAlign:'center', padding:'48px 20px', display:'flex', flexDirection:'column', alignItems:'center'}}>
               <div style={{
                 width: 60, height: 60, borderRadius:'50%', marginBottom: 14,
-                background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+                background: PN.WHITE_FROST, color: PN.MUTED,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
@@ -1163,7 +1231,7 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucin
               <div style={{padding:'10px 16px 12px', display:'flex', flexDirection:'column', gap: 2}}>
                 {svResiduoOrdine(r).items.map((item, i) => (
                   <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15}}>
-                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 22, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
+                    <span style={{fontWeight: 700, color: PN.MUTED, minWidth: 22, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
                     <span style={{flex: 1, minWidth: 0, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
                   </div>
                 ))}
@@ -1315,7 +1383,7 @@ function SaPortaTavoloModal({ ordine, onClose, onScegli }) {
                 <span style={{display:'block', fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Tavolo {t.id}</span>
                 <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{t.posti} posti</span>
               </span>
-              <span style={{display:'inline-flex', color: PN.MUTED_SOFT}}><PnI.ChevronRight size={13}/></span>
+              <span style={{display:'inline-flex', color: PN.MUTED}}><PnI.ChevronRight size={13}/></span>
             </button>
           ))}
         </div>
@@ -1518,7 +1586,7 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
           }}>
             {ordine.items.map((item, i) => (
               <div key={i} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 15.5}}>
-                <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 26, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
+                <span style={{fontWeight: 700, color: PN.MUTED, minWidth: 26, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
                 <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
                 <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
               </div>
@@ -1670,7 +1738,7 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
                 style={{
                   display:'flex', alignItems:'center', gap: 10, padding: '9px 10px', borderRadius: 9,
                   cursor:'pointer', background: on ? PN.PINK_SOFT : 'transparent',
-                  color: on ? PN.PINK_DARK : PN.TEXT, transition:'background 120ms ease-out',
+                  color: on ? PN.BRAND_TEXT : PN.TEXT, transition:'background 120ms ease-out',
                 }}>
                 <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, lineHeight: 1.3}}>{t.label}</span>
               </div>
@@ -1783,7 +1851,7 @@ function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
           }}>Annulla</button>
           <button onClick={conferma} disabled={!valid} className="pn-btn-feedback" style={{
             padding: '11px 22px', borderRadius: 12, border: 'none',
-            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED_SOFT,
+            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED,
             fontSize: 15.5, fontWeight: 700, cursor: valid ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', gap: 10,
           }}>
@@ -2029,7 +2097,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
               <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 8}}>
                 <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{g.group}</span>
                 {g.required && variants[g.group] == null && (
-                  <span style={{fontSize: 14.5, color: PN.AMBER, fontWeight: 600}}>· Seleziona un'opzione</span>
+                  <span style={{fontSize: 14.5, color: PN.AMBER_TEXT, fontWeight: 600}}>· Seleziona un'opzione</span>
                 )}
               </div>
               <div style={{display:'flex', gap: 6, flexWrap:'wrap'}}>
@@ -2040,7 +2108,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                       padding: '8px 12px', borderRadius: 999,
                       border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                       background: on ? PN.PINK_SOFT : PN.WHITE,
-                      color: on ? PN.PINK_DARK : PN.TEXT,
+                      color: on ? PN.BRAND_TEXT : PN.TEXT,
                       fontSize: 16.5, fontWeight: 600, cursor:'pointer',
                       fontFamily:'inherit',
                     }}>
@@ -2064,7 +2132,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                       padding: '7px 12px', borderRadius: 999,
                       border: `1.5px solid ${isRemoved ? '#FECACA' : PN.GREEN_SOFT}`,
                       background: isRemoved ? '#FEF2F2' : PN.GREEN_SOFT,
-                      color: isRemoved ? '#B91C1C' : PN.GREEN,
+                      color: isRemoved ? '#B91C1C' : PN.GREEN_TEXT,
                       fontSize: 16.5, fontWeight: 600, cursor:'pointer',
                       fontFamily:'inherit',
                       textDecoration: isRemoved ? 'line-through' : 'none',
@@ -2099,7 +2167,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
                         <button onClick={() => setExtras(x => ({...x, [e.name]: Math.max(0, q - 1)}))} disabled={q === 0} style={{
                           width: 24, height: 24, borderRadius:'50%',
                           background: q === 0 ? '#F4F5F7' : PN.TEXT,
-                          color: q === 0 ? PN.MUTED_LIGHT : PN.WHITE,
+                          color: q === 0 ? PN.MUTED : PN.WHITE,
                           border:'none', fontSize: 17, fontWeight: 700,
                           cursor: q === 0 ? 'default' : 'pointer', fontFamily:'inherit',
                         }}>−</button>
@@ -2147,7 +2215,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
               flex: 1,
               padding: '12px 18px', borderRadius: 999,
               background: requiredOk ? SV_SUNSET_BG : PN.WHITE_FROST,
-              color: requiredOk ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
+              color: requiredOk ? SV_SUNSET_TEXT : PN.MUTED,
               border: `1px solid ${requiredOk ? 'transparent' : PN.BORDER_SOFT_A}`,
               fontSize: 17.5, fontWeight: 700,
               cursor: requiredOk ? 'pointer' : 'not-allowed',
@@ -2200,7 +2268,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
       }}>
         <span key={bump} style={{
           width: 28, height: 28, borderRadius: 8, background: PN.PINK_SOFT,
-          display:'grid', placeItems:'center', color: PN.PINK_DARK,
+          display:'grid', placeItems:'center', color: PN.BRAND_TEXT,
           animation: bump ? 'svCartBump 320ms ease-out' : 'none',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
@@ -2340,14 +2408,14 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
             }}>
               <div style={{
                 width: 76, height: 76, borderRadius: '50%', marginBottom: 16,
-                background: PN.PINK_BG_SOFT, color: PN.PINK,
+                background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
               </div>
               <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ordine da asporto vuoto</div>
               <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, maxWidth: 320}}>
-                Tocca <strong style={{color: PN.PINK, fontWeight: 700}}>+ Aggiungi</strong> per inserire prodotti da preparare per il ritiro.
+                Tocca <strong style={{color: PN.BRAND_TEXT, fontWeight: 700}}>+ Aggiungi</strong> per inserire prodotti da preparare per il ritiro.
                 Puoi anche assegnare un cliente prima di confermare.
               </div>
             </div>
@@ -2358,7 +2426,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
           }}>
             <div style={{
               width: 48, height: 48, borderRadius: '50%', margin: '0 auto 12px',
-              background: PN.WHITE_FROST, color: PN.MUTED_SOFT,
+              background: PN.WHITE_FROST, color: PN.MUTED,
               display:'grid', placeItems:'center',
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
@@ -2405,7 +2473,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
             <div style={{display:'flex', alignItems:'center', gap: 12, paddingBottom: 12}}>
               <span style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: PN.PINK_BG_SOFT, color: PN.PINK,
+                background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
@@ -2458,7 +2526,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
                   flex: 1,
                   padding: '11px 16px', borderRadius: 999,
                   background: lines.length === 0 ? PN.WHITE_FROST : SV_SUNSET_BG,
-                  color: lines.length === 0 ? PN.MUTED_SOFT : SV_SUNSET_TEXT,
+                  color: lines.length === 0 ? PN.MUTED : SV_SUNSET_TEXT,
                   border: `1px solid ${lines.length === 0 ? PN.BORDER_SOFT_A : 'transparent'}`,
                   fontSize: 17.5, fontWeight: 700,
                   cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
@@ -2553,13 +2621,13 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
             border: `1.5px solid ${aperto ? PN.TEXT : ora ? PN.PINK : PN.BORDER}`,
             background: ora ? PN.PINK_SOFT : PN.WHITE,
           }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: ora ? PN.PINK_DARK : PN.MUTED }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: ora ? PN.BRAND_TEXT : PN.MUTED }}>
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
           </svg>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{
               display: 'block', fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
-              color: ora ? PN.PINK_DARK : PN.MUTED_SOFT,
+              color: ora ? PN.BRAND_TEXT : PN.MUTED,
             }}>Ora del ritiro</span>
             <span style={{
               display: 'block', marginTop: 1,
@@ -2568,7 +2636,7 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
               color: ora ? PN.TEXT : PN.MUTED,
             }}>{ora || 'Senza orario'}</span>
           </span>
-          <span style={{ display: 'inline-flex', color: ora ? PN.PINK_DARK : PN.MUTED, flexShrink: 0, transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out' }}>
+          <span style={{ display: 'inline-flex', color: ora ? PN.BRAND_TEXT : PN.MUTED, flexShrink: 0, transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </button>
@@ -2587,7 +2655,7 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
                   style={{
                     padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
-                    background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.TEXT,
+                    background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.BRAND_TEXT : PN.TEXT,
                     fontSize: v ? 17 : 15, fontWeight: on ? 800 : 600, fontVariantNumeric: 'tabular-nums',
                     letterSpacing: v ? -0.2 : 0,
                     transition: 'background 120ms ease-out',
@@ -2603,7 +2671,7 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
         <span>Ritiro di <b style={{ color: PN.TEXT, fontWeight: 700 }}>{giornoLabel}</b></span>
         <button onClick={() => { if (giorniAperti && data !== oggiIso) onData(oggiIso); setGiorniAperti(v => !v); }} style={{
           background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK, textDecoration: 'underline', textUnderlineOffset: 3,
+          fontSize: 13.5, fontWeight: 700, color: PN.BRAND_TEXT, textDecoration: 'underline', textUnderlineOffset: 3,
         }}>{giorniAperti ? 'Torna a oggi' : 'Cambia giorno'}</button>
       </div>
 
@@ -2617,12 +2685,12 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
                 flex: '1 1 0', padding: '7px 0', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit',
                 border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                 background: on ? PN.PINK_SOFT : PN.WHITE,
-                color: on ? PN.PINK_DARK : PN.TEXT,
+                color: on ? PN.BRAND_TEXT : PN.TEXT,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                 transition: 'background 140ms ease-out, border-color 140ms ease-out',
               }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700 }}>{etichetta(d, i)}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? PN.PINK_DARK : PN.MUTED, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? PN.BRAND_TEXT : PN.MUTED, fontVariantNumeric: 'tabular-nums' }}>
                   {d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '')}
                 </span>
               </button>
@@ -2714,7 +2782,7 @@ function SaParcheggiaModal({ preparazione, nomeIniziale, onClose, onConferma }) 
         <div style={{ ...MODAL_FOOT, justifyContent: 'flex-end', alignItems: 'center' }}>
           <button onClick={conferma} disabled={!valido} className="pn-btn-feedback" style={{
             padding: '11px 26px', borderRadius: 12, border: 'none',
-            background: valido ? PN.BTN_DARK : '#F4F5F7', color: valido ? PN.WHITE : PN.MUTED_SOFT,
+            background: valido ? PN.BTN_DARK : '#F4F5F7', color: valido ? PN.WHITE : PN.MUTED,
             fontSize: 15.5, fontWeight: 700, cursor: valido ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
           }}>Conferma</button>
         </div>
@@ -2756,7 +2824,7 @@ function SaClienteBar({ cliente, onChange, onApri, righe = 0 }) {
       <span style={{
         width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
         background: cliente ? PN.PINK_BG_SOFT : PN.WHITE_FROST,
-        color: cliente ? PN.PINK : PN.MUTED_SOFT,
+        color: cliente ? PN.BRAND_TEXT : PN.MUTED,
         display: 'grid', placeItems: 'center',
       }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
@@ -2767,7 +2835,7 @@ function SaClienteBar({ cliente, onChange, onApri, righe = 0 }) {
             <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
               {cliente || 'Cliente non assegnato'}
             </span>
-            <span style={{display:'block', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 1}}>
+            <span style={{display:'block', fontSize: 13, color: PN.MUTED, marginTop: 1}}>
               {cliente ? 'Ritira quest\'ordine'
                 : righe > 0 ? 'Il conto passa in Da saldare, con ora di ritiro e cucina'
                 : 'Chi viene a ritirare?'}
@@ -2855,7 +2923,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   const modParts = !hasMods ? [] : [
     ...Object.entries(mods.variants || {}).map(([g, v]) => ({ key: `v-${g}`, text: v, color: PN.MUTED })),
     ...(mods.removed || []).map(r => ({ key: `r-${r}`, text: `− ${r}`, color: '#B91C1C' })),
-    ...Object.entries(mods.extras || {}).map(([n, q]) => ({ key: `e-${n}`, text: `+ ${q > 1 ? `${q}× ` : ''}${n}`, color: PN.GREEN })),
+    ...Object.entries(mods.extras || {}).map(([n, q]) => ({ key: `e-${n}`, text: `+ ${q > 1 ? `${q}× ` : ''}${n}`, color: PN.GREEN_TEXT })),
   ];
 
   return (
@@ -2913,7 +2981,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
           <div style={{fontSize: 15.5, fontWeight: 500, marginTop: 2, lineHeight: 1.4, overflow:'hidden', textOverflow:'ellipsis'}}>
             {modParts.map((p, i) => (
               <React.Fragment key={p.key}>
-                {i > 0 && <span style={{color: PN.MUTED_LIGHT}}> · </span>}
+                {i > 0 && <span style={{color: PN.MUTED}}> · </span>}
                 <span style={{color: p.color}}>{p.text}</span>
               </React.Fragment>
             ))}
@@ -2938,14 +3006,14 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
         <div style={{display:'flex', alignItems:'center', gap: 11, marginTop: 8}}>
           <button onClick={onDec} title={qty <= 1 ? 'Rimuovi dall\'ordine' : 'Diminuisci quantità'} style={{
             width: 30, height: 30, borderRadius:'50%',
-            background: PN.PINK_BG_SOFT, color: PN.PINK, border:'none',
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT, border:'none',
             fontSize: 18, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center', lineHeight: 1,
           }}>−</button>
           <span style={{fontSize: 18, fontWeight: 700, minWidth: 18, textAlign:'center'}}>{qty}</span>
           <button onClick={onInc} title="Aumenta quantità" style={{
             width: 30, height: 30, borderRadius:'50%',
-            background: PN.PINK_BG_SOFT, color: PN.PINK, border:'none',
+            background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT, border:'none',
             fontSize: 18, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             display:'grid', placeItems:'center', lineHeight: 1,
           }}>+</button>
@@ -3544,7 +3612,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                     marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(15,17,21,0.08)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                   }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: '#6B7280', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: '#636875', letterSpacing: 0.4, textTransform: 'uppercase' }}>
                       Codice ritiro
                     </span>
                     <span style={{
@@ -4036,7 +4104,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                     style={{
                       width: '100%', padding: '13px 18px', borderRadius: 14,
                       background: attivo ? SVI_GREEN : '#EFEFF1',
-                      color: attivo ? '#fff' : '#9CA3AF',
+                      color: attivo ? '#fff' : '#636875',
                       border: 'none', fontSize: 18, fontWeight: 700,
                       cursor: attivo ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 11,
@@ -4313,7 +4381,7 @@ function SvAttesaPagamento({ total, onRitira }) {
           decidere — l'unica scelta è aspettare o ritirare, e vale uguale al
           quinto o al cinquantesimo — mentre l'attesa la fanno sembrare più
           lunga di quanto sia. */}
-      <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24 }}>
+      <div style={{ fontSize: 17, color: '#636875', marginBottom: 24 }}>
         Richiesta inviata
       </div>
 

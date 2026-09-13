@@ -139,11 +139,11 @@ const INT_CONNESSIONI_MOCK = [
 ];
 
 const STATUS_LABEL = {
-  connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
-  predisposta: { label: 'Predisposta', color: PN.AMBER, bg: PN.AMBER_SOFT, dot: PN.AMBER },
+  connected: { label: 'Connesso', color: PN.GREEN_TEXT, bg: PN.GREEN_SOFT, dot: PN.GREEN },
+  predisposta: { label: 'Predisposta', color: PN.AMBER_TEXT, bg: PN.AMBER_SOFT, dot: PN.AMBER },
   // La piattaforma collegata dal foglio (P-157): stato letto dal registro
   // condiviso, lo stesso che il foglio scrive. L'add-on resta spento nell'MVP.
-  collegata:   { label: 'Collegata', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
+  collegata:   { label: 'Collegata', color: PN.GREEN_TEXT, bg: PN.GREEN_SOFT, dot: PN.GREEN },
   todo: { label: 'Da configurare', color: '#D97706', bg: PN.AMBER_SOFT, dot: '#F59E0B' },
   available: { label: 'Disponibile', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
   disconnected: { label: 'Non connesso', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
@@ -298,7 +298,7 @@ function PosVirtualeRimando() {
       style={{
         display:'inline-flex', alignItems:'center', gap: 5, marginTop: 8,
         padding:'2px 9px', borderRadius: 999, border:'none', cursor:'pointer', fontFamily:'inherit',
-        background: scaduta ? '#FEF2F2' : PN.AMBER_SOFT, color: scaduta ? '#991B1B' : PN.AMBER,
+        background: scaduta ? '#FEF2F2' : PN.AMBER_SOFT, color: scaduta ? '#991B1B' : PN.AMBER_TEXT,
         fontSize: 12.5, fontWeight: 700,
       }}>
       <span style={{width: 6, height: 6, borderRadius:'50%', background:'currentColor'}}/>
@@ -397,7 +397,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
         )}
         {suggested && (
           <span style={{
-            fontSize: 11, fontWeight: 800, color: PN.PINK_DARK, letterSpacing: 0.4,
+            fontSize: 11, fontWeight: 800, color: PN.BRAND_TEXT, letterSpacing: 0.4,
             padding: '1px 6px', borderRadius: 3, background: PN.PINK_SOFT,
           }}>POPOLARE</span>
         )}
@@ -437,7 +437,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
             mai a «limitato», e quella schermata non si potrebbe guardare. Da
             qui si sceglie quale dei due casi mostrare. */}
         {stripeCard && (
-          <div style={{marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: PN.MUTED_LIGHT, alignItems: 'baseline'}}>
+          <div style={{marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: PN.MUTED, alignItems: 'baseline'}}>
             <span>Prototipo:</span>
             {[['payouts', 'versamenti fermi'], ['charges', 'incassi fermi']].map(([k, label]) => (
               <button key={k} data-stripe-simula={k} onClick={() => window.byupStripeLimita(k)} style={{
@@ -1075,7 +1075,7 @@ function ImpBuoniPastoCard() {
         </div>
       )}
       {tutte.filter(c => c.valid_to).length > 0 && (
-        <div style={{ fontSize: 12.5, color: PN.MUTED_SOFT || PN.MUTED, marginTop: 6 }}>{tutte.filter(c => c.valid_to).length} {tutte.filter(c => c.valid_to).length === 1 ? 'convenzione terminata resta' : 'convenzioni terminate restano'} a registro: i riepiloghi dei periodi passati si ricostruiscono con lo sconto di allora.</div>
+        <div style={{ fontSize: 12.5, color: PN.MUTED || PN.MUTED, marginTop: 6 }}>{tutte.filter(c => c.valid_to).length} {tutte.filter(c => c.valid_to).length === 1 ? 'convenzione terminata resta' : 'convenzioni terminate restano'} a registro: i riepiloghi dei periodi passati si ricostruiscono con lo sconto di allora.</div>
       )}
       {nuova ? (
         <div data-nuova-convenzione style={{ marginTop: 12, padding: '13px 15px', borderRadius: 12, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}` }}>

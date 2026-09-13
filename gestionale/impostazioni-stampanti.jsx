@@ -174,12 +174,12 @@ function TesseraStampante({ d, uso, sola, onConfigura, onScollega }) {
         <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.2 }}>{d.name}</span>
         <span style={{
           fontSize: 11, fontWeight: 800, letterSpacing: 0.4, padding: '1px 6px', borderRadius: 3,
-          background: comande ? '#EEF2FF' : PN.PINK_SOFT, color: comande ? '#3730A3' : PN.PINK_DARK,
+          background: comande ? '#EEF2FF' : PN.PINK_SOFT, color: comande ? '#3730A3' : PN.BRAND_TEXT,
         }}>{comande ? 'COMANDE' : 'CORTESIA'}</span>
       </div>
       <div style={{ fontSize: 14.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>
         {marca ? `${marca} ` : ''}{d.device_model}
-        {d.paper_width && <span style={{ color: PN.MUTED_SOFT }}> · {window.pnCartaLabel(d.paper_width)}</span>}
+        {d.paper_width && <span style={{ color: PN.MUTED }}> · {window.pnCartaLabel(d.paper_width)}</span>}
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 14 }}>
@@ -208,7 +208,7 @@ function TesseraStampante({ d, uso, sola, onConfigura, onScollega }) {
             ? ((d.routing || []).length ? `${proto.label} · ${d.routing.map(window.pnRoutingLabel).join(', ')}` : `${proto.label} · nessuna categoria instradata`)
             : posAssociati.length ? <>{proto.label} · <span style={{ color: PN.TEXT, fontWeight: 600 }}>{posAssociati.map(p => p.name).join(', ')}</span></>
             : sola ? `${proto.label} · tutte le casse stampano qui`
-            : <>{proto.label} · <span style={{ color: PN.AMBER }}>nessuna cassa assegnata</span></>}
+            : <>{proto.label} · <span style={{ color: PN.AMBER_TEXT }}>nessuna cassa assegnata</span></>}
         </div>
         <div style={{ marginTop: 10 }}>
           <ImpButton variant="ghost" onClick={onConfigura} style={{ width: '100%', justifyContent: 'center', padding: '9px 14px', fontSize: 14.5 }}>
@@ -269,7 +269,7 @@ function ImpPrnCopia({ valore }) {
   return (
     <button onClick={copia} className="pn-btn-feedback" style={{
       flexShrink: 0, padding: '6px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-      background: fatto ? PN.GREEN_SOFT : PN.WHITE, color: fatto ? PN.GREEN : PN.TEXT,
+      background: fatto ? PN.GREEN_SOFT : PN.WHITE, color: fatto ? PN.GREEN_TEXT : PN.TEXT,
       border: `1px solid ${fatto ? PN.GREEN_SOFT : PN.BORDER}`, fontSize: 13, fontWeight: 600,
     }}>{fatto ? 'Copiato' : 'Copia'}</button>
   );
@@ -365,7 +365,7 @@ function ImpAggiungiStampanteModal({ onClose, onScelta }) {
                       {proto(c).label} · si è presentata {relativo(c.visto_at)} · <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{c.cloud_client_id}</span>
                     </div>
                   </div>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK, flexShrink: 0 }}>Imposta →</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: PN.BRAND_TEXT, flexShrink: 0 }}>Imposta →</span>
                 </button>
               ))}
             </div>
@@ -500,7 +500,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
               <ImpButton variant="ghost" disabled={prova === 'corso'} onClick={() => provaStampa()} style={{ padding: '9px 15px', fontSize: 14 }}>
                 {prova === 'corso' ? 'Prova in corso…' : 'Prova di stampa'}
               </ImpButton>
-              <span data-prova={prova} style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, maxWidth: 280, color: prova === 'ok' ? PN.GREEN : prova === 'ko' ? PN.RED : PN.MUTED }}>
+              <span data-prova={prova} style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, maxWidth: 280, color: prova === 'ok' ? PN.GREEN_TEXT : prova === 'ko' ? PN.RED : PN.MUTED }}>
                 {prova === 'ok' ? 'Ha risposto: è collegata, il foglio di prova è uscito.'
                   : prova === 'ko' ? 'Non ha risposto: controlla che sia accesa e che l\'indirizzo sia quello giusto.'
                   : prova === 'corso' ? 'Sto aspettando il suo prossimo sondaggio…'
@@ -575,7 +575,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
                             style={{
                               padding: '5px 11px', borderRadius: 999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: da ? 'default' : 'pointer',
                               border: `1.5px solid ${on ? PN.TEXT : PN.BORDER_SOFT}`, background: on ? PN.TEXT : da ? PN.BG : PN.WHITE,
-                              color: on ? PN.WHITE : da ? PN.MUTED_SOFT : PN.TEXT,
+                              color: on ? PN.WHITE : da ? PN.MUTED : PN.TEXT,
                             }}>{c.label}</button>
                         );
                       })}

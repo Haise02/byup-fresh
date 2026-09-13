@@ -245,7 +245,7 @@ function ContEsibizione({ onClose }) {
           ); })}
         </div>
 
-        <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT}}>{ESIB_CHIUSURA(esibIso(adesso))}</div>
+        <div style={{fontSize: C.T_XS, color: PN.MUTED}}>{ESIB_CHIUSURA(esibIso(adesso))}</div>
       </div>
       </div>
 

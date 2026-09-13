@@ -402,7 +402,7 @@ function AccPianiAbbonamenti() {
             onClick={() => setFreeModal(true)}
             style={{
               background: 'none', border: 'none', padding: 0,
-              color: PN.PINK_DARK, fontWeight: 600, fontSize: 13.5,
+              color: PN.BRAND_TEXT, fontWeight: 600, fontSize: 13.5,
               cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
             }}>Passa al piano Gratuito</button>
         </div>
@@ -1268,7 +1268,7 @@ function PianoCard({p, fmtPrice, displayPrezzo, periodo, totaleAnnuo, onCta}) {
       <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 14, flex: 1}}>
         {p.feat.map((f, i) => (
           <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 14, color: PN.TEXT, lineHeight: 1.4}}>
-            <span aria-hidden="true" style={{color: PN.GREEN, marginTop: 2, flexShrink: 0}}>
+            <span aria-hidden="true" style={{color: PN.GREEN_TEXT, marginTop: 2, flexShrink: 0}}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </span>
             {f}
@@ -1531,14 +1531,14 @@ function ConfrontoTable() {
         <span role="img" aria-label="Incluso" style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 22, height: 22, borderRadius: 999,
-          background: PN.GREEN_SOFT, color: PN.GREEN,
+          background: PN.GREEN_SOFT, color: PN.GREEN_TEXT,
         }}>
           <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </span>
       );
     }
     if (c === '—') {
-      return <span role="img" aria-label="Non incluso" style={{color: PN.MUTED_LIGHT, fontSize: 16, fontWeight: 500}}>—</span>;
+      return <span role="img" aria-label="Non incluso" style={{color: PN.MUTED, fontSize: 16, fontWeight: 500}}>—</span>;
     }
     return <span style={{color: PN.TEXT, fontWeight: 500}}>{c}</span>;
   };

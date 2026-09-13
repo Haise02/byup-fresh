@@ -23,7 +23,14 @@
 // pagine (byup-ai-fab.jsx) non ha una chat sua: rimanda a questo widget, e
 // questa è l'unica regola che vale.
 
+// Il corallo del byuppino, per riempimenti e segni: come elemento non testuale
+// sta sopra i 3:1 di 1.4.11 e resta il colore del personaggio.
 const BYU_BRAND = '#FC585D';
+// Quando ci deve stare sopra del TESTO BIANCO — la bolla dei messaggi, 16/500 —
+// il corallo pieno fa 3,14:1 e serve 4,5. Questa è la stessa tinta portata alla
+// soglia: bianco a 6,01. È il PN.WINE del gestionale, scritto qui perché questo
+// file disegna il personaggio e tiene la sua palette insieme.
+const BYU_BRAND_TESTO = '#B53338';
 const BYU_VERDE = '#0F9D58';
 const BYU_VERDE_BG = '#E8F6EE';
 
@@ -251,7 +258,12 @@ function ByuBolla({ da, testo }) {
         // 14.5 — la chat è il contenuto, non una didascalia.
         maxWidth: '84%', padding: '11px 16px',
         borderRadius: mio ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
-        background: mio ? BYU_BRAND : '#F4F5F7',
+        // La bolla di chi scrive porta testo bianco a 16/500: il corallo pieno
+        // lì sopra fa 3,14:1 e la soglia è 4,5. Si usa la variante scura della
+        // STESSA tinta — 6,01:1 — e la bolla resta coral, non diventa un'altra
+        // cosa. Il corallo pieno continua a fare tutto il resto: il bottone
+        // d'invio, i segni, i bordi.
+        background: mio ? BYU_BRAND_TESTO : '#F4F5F7',
         color: mio ? '#fff' : PN.TEXT,
         fontSize: 16, fontWeight: 500, lineHeight: 1.45,
       }}>{testo}</div>
@@ -333,7 +345,12 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
       {/* Sotto: che cosa si può ancora decidere, allineato a destra. Da
           annullata resta solo il verdetto, perché non c'è più niente da
           premere. */}
-      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0}}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0,
+        // Su una tela stretta i due pulsanti non stanno in riga: vanno a capo
+        // invece di uscire dalla scheda.
+        flexWrap: 'wrap',
+      }}>
         {annullata && (
           <span style={{
             fontSize: 14.5, fontWeight: 700, color: PN.MUTED,
@@ -743,7 +760,7 @@ function WidgetByuppino() {
         </div>
 
         <div style={{
-          fontSize: 13, fontWeight: 500, color: PN.MUTED_SOFT,
+          fontSize: 13, fontWeight: 500, color: PN.MUTED,
           marginTop: 7, flexShrink: 0,
         }}>
           Sala e impostazioni le cambia subito, e puoi annullare. Prenotazioni e menù: ti chiede prima.

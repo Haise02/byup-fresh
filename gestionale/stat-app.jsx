@@ -19,7 +19,7 @@ function ConvFoto({ nome, lato = 38, raggio = 9 }) {
       }}/>
     : <span style={{
         width: lato, height: lato, borderRadius: raggio, flexShrink: 0,
-        background: PN.WHITE_HUSH, color: PN.MUTED_SOFT,
+        background: PN.WHITE_HUSH, color: PN.MUTED,
         display:'grid', placeItems:'center',
       }}><Icon name={convGlifo(nome)} size={Math.round(lato * 0.5)}/></span>;
 }
@@ -179,7 +179,7 @@ function ConvFunnel({ passi, rimborsi }) {
                       whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                     }}>{step.label}</div>
                     <div style={{
-                      fontSize: 13, color: PN.MUTED_SOFT, marginTop: 2, lineHeight: 1.3,
+                      fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.3,
                       whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                     }}>{step.sub}</div>
                   </div>
@@ -257,7 +257,7 @@ function ConvFunnel({ passi, rimborsi }) {
 
           <div style={{minWidth: 0}}>
             <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Rimborsi</div>
-            <div style={{fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 1, whiteSpace:'nowrap'}}>
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>
               dopo un pagamento riuscito
             </div>
           </div>
@@ -367,7 +367,7 @@ function StatApp() {
                 {/* Lo zero resta scritto, ma in chiaro: «mai modificato» è una
                     risposta, non un buco. */}
                 <span title={`${p.mod} ordini con ingredienti aggiunti o tolti`}
-                  style={{color: p.mod ? PN.TEXT : PN.MUTED_LIGHT}}>
+                  style={{color: p.mod ? PN.TEXT : PN.MUTED}}>
                   {p.mod.toLocaleString('it-IT', {useGrouping: true})}
                 </span>
                 <span>{p.ord.toLocaleString('it-IT', {useGrouping: true})}</span>

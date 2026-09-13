@@ -97,7 +97,7 @@ function CucinaCollega() {
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
         </div>
         <div style={{fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: -0.8}}>Collegato</div>
-        <div style={{fontSize: 'clamp(17px, 2vw, 22px)', color: '#9CA3AF', marginTop: 10, lineHeight: 1.5}}>
+        <div style={{fontSize: 'clamp(17px, 2vw, 22px)', color: '#636875', marginTop: 10, lineHeight: 1.5}}>
           Questo schermo è <b style={{color: '#F5F6F8'}}>{m.nome}</b>, con la visualizzazione {m.vista === 'pub' ? 'Pub' : 'Ristorante'}.
           Resta collegato finché non lo disconnetti dal gestionale.
         </div>
@@ -114,7 +114,7 @@ function CucinaCollega() {
     <div data-cucina-collega="attesa" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26, maxWidth: 860}}>
       <div style={{textAlign: 'center'}}>
         <div style={{fontSize: 'clamp(26px, 3.6vw, 40px)', fontWeight: 800, letterSpacing: -0.8}}>Collega questo schermo</div>
-        <div style={{fontSize: 'clamp(16px, 1.9vw, 21px)', color: '#9CA3AF', marginTop: 10, lineHeight: 1.5}}>
+        <div style={{fontSize: 'clamp(16px, 1.9vw, 21px)', color: '#636875', marginTop: 10, lineHeight: 1.5}}>
           Inquadra il codice con il telefono, oppure scrivi il codice qui sotto nel gestionale, in Impostazioni → Personale.
         </div>
       </div>
@@ -126,7 +126,7 @@ function CucinaCollega() {
           fontSize: 'clamp(48px, 9vw, 104px)', fontWeight: 800, letterSpacing: 'clamp(6px, 1.4vw, 16px)',
           fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', lineHeight: 1,
         }}>{code}</div>
-        <div style={{fontSize: 'clamp(14px, 1.6vw, 18px)', color: '#6B7280', marginTop: 14}}>
+        <div style={{fontSize: 'clamp(14px, 1.6vw, 18px)', color: '#636875', marginTop: 14}}>
           {/* Il codice scade, e si vede: chi lo sta dettando al telefono deve
               sapere se sta ancora dettando quello giusto. */}
           Il codice cambia fra {Math.floor(resta / 60)}:{String(resta % 60).padStart(2, '0')} · lo approva il titolare

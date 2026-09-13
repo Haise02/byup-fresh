@@ -76,7 +76,7 @@ const TAVOLI_INIT = Array.from({length: 8}).map((_, i) => ({
 
 const FURNITURE_INIT = [
   { id: 'f1', label: 'Cucina', x: 0.3, y: 4.5, w: 2, h: 1.3, color: '#E04347', kind: 'furniture' },
-  { id: 'f2', label: 'Bagno', x: 8, y: 4.5, w: 1.5, h: 1.2, color: '#9CA3AF', kind: 'furniture' },
+  { id: 'f2', label: 'Bagno', x: 8, y: 4.5, w: 1.5, h: 1.2, color: '#636875', kind: 'furniture' },
 ];
 
 // ─── Dimensione sala → griglia mappa + capienza tavoli ───
@@ -647,7 +647,7 @@ function ImpSalaTavoli() {
                         (fuori dal flusso) così non viene mai spinto fuori card:
                         paddingRight riserva la sua corsia. */}
                     <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6, marginBottom: 4, paddingRight: 24}}>
-                      <span style={{fontSize:15.5, fontWeight:700, flex:'1 1 auto', minWidth: 0, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
+                      <span style={{fontSize:15.5, fontWeight:700, flex:'1 1 auto', minWidth: 0, color: isOpen ? PN.BRAND_TEXT : PN.TEXT}}>{s.name}</span>
                       {/* Anche la sala si accende con l'interruttore: è la
                           stessa domanda del tavolo e del menù, e si fa nello
                           stesso modo dappertutto. */}
@@ -694,7 +694,7 @@ function ImpSalaTavoli() {
                         position:'absolute', inset:0, borderRadius: 10,
                         background: 'linear-gradient(135deg, rgba(245, 200, 220, 0.55), rgba(220, 38, 100, 0.18))',
                         display:'flex', alignItems:'center', justifyContent:'center', gap: 6,
-                        fontSize: 14, fontWeight: 800, color: PN.PINK_DARK,
+                        fontSize: 14, fontWeight: 800, color: PN.BRAND_TEXT,
                         letterSpacing: 0.4, textTransform: 'uppercase',
                         pointerEvents: 'none',
                         animation: 'dropHintIn .14s ease-out',
@@ -858,7 +858,7 @@ function ImpSalaTavoli() {
                   padding:'10px 14px', marginBottom: 14,
                   background: PN.PINK_BG_SOFT, border: `1px solid rgba(255, 90, 95, 0.38)`, borderRadius: 9,
                 }}>
-                  <span style={{fontSize: 15, fontWeight: 700, color: PN.PINK_DARK}}>
+                  <span style={{fontSize: 15, fontWeight: 700, color: PN.BRAND_TEXT}}>
                     {selected.size} {selected.size===1?'tavolo selezionato':'tavoli selezionati'}
                   </span>
                   <span style={{flex:1}}/>
@@ -909,7 +909,7 @@ function ImpSalaTavoli() {
                                 fontSize:11.5, fontWeight:700, letterSpacing:0.3,
                                 padding:'1px 6px', borderRadius:999,
                                 background: s.active ? PN.GREEN_SOFT : '#F1F3F5',
-                                color: s.active ? PN.GREEN : PN.MUTED,
+                                color: s.active ? PN.GREEN_TEXT : PN.MUTED,
                               }}>{s.active ? 'ATTIVA' : 'DISATTIVATA'}</span>
                             </button>
                           ))}
@@ -932,14 +932,14 @@ function ImpSalaTavoli() {
               {visible.length === 0 ? (
                 isFiltering ? (
                   <div style={{padding: '50px 20px', textAlign:'center', border:`1.5px dashed ${PN.BORDER}`, borderRadius: 12, background:'#FAFBFC'}}>
-                    <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED_SOFT}}><BuIcons.search size={36}/></div>
+                    <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED}}><BuIcons.search size={36}/></div>
                     <div style={{fontSize: 17, fontWeight: 700, marginBottom: 6}}>Nessun tavolo trovato</div>
                     <div style={{fontSize: 14.5, color: PN.MUTED, marginBottom: 16}}>Prova a modificare i filtri.</div>
                     <ImpButton variant="ghost" onClick={() => { setSearch(''); setFilterStato('all'); }}>Resetta filtri</ImpButton>
                   </div>
                 ) : (
                   <div style={{padding: '60px 20px', textAlign:'center'}}>
-                    <div style={{display:'inline-flex', marginBottom: 12, color: PN.MUTED_SOFT}}><BuIcons.table size={40}/></div>
+                    <div style={{display:'inline-flex', marginBottom: 12, color: PN.MUTED}}><BuIcons.table size={40}/></div>
                     <div style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginBottom: 16}}>Nessun tavolo in questa sala</div>
                     <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={() => {
                       const center = { x: 4, y: 2.5 };
@@ -1389,7 +1389,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
                       fontSize:11.5, fontWeight:700, letterSpacing:0.3,
                       padding:'1px 6px', borderRadius:999,
                       background: s.active ? PN.GREEN_SOFT : '#F1F3F5',
-                      color: s.active ? PN.GREEN : PN.MUTED,
+                      color: s.active ? PN.GREEN_TEXT : PN.MUTED,
                     }}>{s.active ? 'ATTIVA' : 'DISATTIVATA'}</span>
                   </button>
                 ))}
@@ -1479,14 +1479,14 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
               background: PN.PINK_SOFT, border:`1px solid ${PN.PINK}`, borderRadius: 9,
             }}>
               <div style={{flex: 1}}>
-                <div style={{fontSize: 14, fontWeight: 700, color: PN.PINK_DARK}}>Parte dell'unione {unionLabel}</div>
+                <div style={{fontSize: 14, fontWeight: 700, color: PN.BRAND_TEXT}}>Parte dell'unione {unionLabel}</div>
                 <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Clicca per rimuovere solo questo tavolo</div>
               </div>
               <button
                 onClick={onRemoveFromGroup}
                 style={{
                   padding:'6px 12px', borderRadius: 7, whiteSpace:'nowrap',
-                  background: PN.WHITE, color: PN.PINK_DARK,
+                  background: PN.WHITE, color: PN.BRAND_TEXT,
                   border:`1.5px solid ${PN.PINK}`,
                   fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                 }}
@@ -1554,14 +1554,14 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                     <span style={{
                       display:'inline-flex', alignItems:'center', paddingLeft: 10, paddingRight: 8,
                       fontSize: 12.5, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase',
-                      color: PN.PINK_DARK, whiteSpace: 'nowrap',
+                      color: PN.BRAND_TEXT, whiteSpace: 'nowrap',
                     }}>Personalizzato</span>
                     <button
                       onClick={() => onUpdate({coperti: Math.max(1, tavolo.coperti - 1)})}
                       title="Diminuisci"
                       style={{
                         width: 26, border:'none', background:'transparent',
-                        cursor:'pointer', fontSize: 17, color: PN.PINK_DARK,
+                        cursor:'pointer', fontSize: 17, color: PN.BRAND_TEXT,
                         fontFamily:'inherit',
                       }}
                     >−</button>
@@ -1578,7 +1578,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                         flex: 1, minWidth: 0, width: '100%', padding: '8px 0',
                         border:'none', background:'transparent',
                         fontSize: 17, fontWeight: 800,
-                        color: PN.PINK_DARK,
+                        color: PN.BRAND_TEXT,
                         textAlign:'center', outline:'none', fontFamily:'inherit',
                       }}
                     />
@@ -1587,7 +1587,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                       title="Aumenta"
                       style={{
                         width: 26, border:'none', background:'transparent',
-                        cursor:'pointer', fontSize: 17, color: PN.PINK_DARK,
+                        cursor:'pointer', fontSize: 17, color: PN.BRAND_TEXT,
                         fontFamily:'inherit',
                       }}
                     >+</button>
@@ -1606,7 +1606,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
                     onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.borderColor = PN.PINK; }}
                     onMouseLeave={e => { e.currentTarget.style.background = '#FFF7F6'; e.currentTarget.style.borderColor = 'rgba(255, 90, 95, 0.55)'; }}
                   >
-                    <span style={{display:'inline-flex', color: PN.PINK, flexShrink: 0}}><BuIcons.edit size={17}/></span>
+                    <span style={{display:'inline-flex', color: PN.BRAND_TEXT, flexShrink: 0}}><BuIcons.edit size={17}/></span>
                     <span style={{minWidth: 0}}>
                       <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Personalizzato</span>
                       <span style={{display:'block', fontSize: 13, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>Imposta un numero su misura</span>
@@ -1651,7 +1651,7 @@ function TablePopover({ tavolo, isNew, onUpdate, onCreateMore, onClose, onDelete
         </div>
 
         <div style={{...MODAL_FOOT, justifyContent: (!isNew && onDelete) ? 'space-between' : 'flex-end'}}>
-          {!isNew && onDelete && <ImpButton variant="ghost" icon={<BuIcons.trash size={14}/>} onClick={onDelete} style={{color: PN.PINK_DARK, padding:'11px 18px', borderRadius: 11}}>Elimina</ImpButton>}
+          {!isNew && onDelete && <ImpButton variant="ghost" icon={<BuIcons.trash size={14}/>} onClick={onDelete} style={{color: PN.BRAND_TEXT, padding:'11px 18px', borderRadius: 11}}>Elimina</ImpButton>}
           <ImpButton variant="pink" onClick={handleConfirm} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>
             {isNew ? (quantity > 1 ? `Crea ${quantity} tavoli` : 'Crea tavolo') : 'Salva'}
           </ImpButton>
@@ -1721,7 +1721,7 @@ function QRModal({ data, onClose }) {
                 <input type="radio" name="qr-format" checked={on} onChange={() => setFormat(f.id)} style={{accentColor: PN.PINK}}/>
                 <span style={{fontSize: 20}}>{f.icon}</span>
                 <div style={{flex: 1}}>
-                  <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{f.label}</div>
+                  <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.BRAND_TEXT : PN.TEXT}}>{f.label}</div>
                   <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{f.desc}</div>
                 </div>
               </label>
@@ -1793,7 +1793,7 @@ function SalaModal({ sala, onSave, onClose }) {
             background: PN.PINK_BG_SOFT, border:'1px solid rgba(255, 90, 95, 0.22)',
             borderRadius: 12, fontSize: 14.5, color: PN.MUTED,
           }}>
-            <span style={{display:'inline-flex', color: PN.PINK, flexShrink: 0}}><BuIcons.bulb size={16}/></span>
+            <span style={{display:'inline-flex', color: PN.BRAND_TEXT, flexShrink: 0}}><BuIcons.bulb size={16}/></span>
             <span>Superficie {(w * d).toFixed(1)} m² · capienza stimata <strong style={{color: PN.TEXT}}>{maxTavoli} tavoli</strong></span>
           </div>
           <label style={{
@@ -1877,7 +1877,7 @@ function ConfirmDialog({ title, msg, danger, confirmLabel, cancelLabel, singleAc
           <div style={{
             width: 44, height: 44, borderRadius: '50%',
             background: danger ? PN.PINK_SOFT : PN.SIDE_BG,
-            color: danger ? PN.PINK_DARK : PN.MUTED,
+            color: danger ? PN.BRAND_TEXT : PN.MUTED,
             display:'grid', placeItems:'center',
             marginBottom: 14,
           }}>{danger ? <BuIcons.alert size={20}/> : <BuIcons.info size={20}/>}</div>
@@ -2138,10 +2138,10 @@ function ImportPlanModal({ onClose, onImport }) {
               fontSize: 12.5, fontWeight: 800, letterSpacing: 0.6,
               padding:'3px 8px', background: PN.PINK_DARK, color: PN.WHITE, borderRadius: 4,
             }}><BuIcons.sparkle size={11} color={PN.WHITE}/> AI</span>
-            <span style={{fontSize: 13.5, fontWeight: 600, color: PN.PINK_DARK}}>Generazione automatica</span>
+            <span style={{fontSize: 13.5, fontWeight: 600, color: PN.BRAND_TEXT}}>Generazione automatica</span>
           </div>
-          <div style={{fontSize: 20, fontWeight: 800, color: PN.PINK_DARK, marginBottom: 4}}>Importa la tua planimetria</div>
-          <div style={{fontSize: 15, color: PN.PINK_DARK, opacity: 0.85}}>
+          <div style={{fontSize: 20, fontWeight: 800, color: PN.BRAND_TEXT, marginBottom: 4}}>Importa la tua planimetria</div>
+          <div style={{fontSize: 15, color: PN.BRAND_TEXT, opacity: 0.85}}>
             Carica un PDF, una foto o un disegno della tua sala. L'AI riconoscerà tavoli, muri e arredo automaticamente.
           </div>
           {step !== 'processing' && (
@@ -2167,7 +2167,7 @@ function ImportPlanModal({ onClose, onImport }) {
               onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
               onMouseLeave={e => e.currentTarget.style.background = '#FFFAFB'}
             >
-              <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED_SOFT}}><BuIcons.upload size={36}/></div>
+              <div style={{display:'inline-flex', marginBottom: 10, color: PN.MUTED}}><BuIcons.upload size={36}/></div>
               <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Trascina o seleziona un file</div>
               <div style={{fontSize: 14, color: PN.MUTED}}>PDF, JPG, PNG · max 10MB</div>
               <input
@@ -2216,7 +2216,7 @@ function ImportPlanModal({ onClose, onImport }) {
                 borderRadius: 4, transition: 'width 0.5s ease-out',
               }}/>
             </div>
-            <div style={{fontSize: 14, color: PN.PINK_DARK, fontWeight: 600, textAlign:'center'}}>
+            <div style={{fontSize: 14, color: PN.BRAND_TEXT, fontWeight: 600, textAlign:'center'}}>
               {progressLabel}
             </div>
           </div>
@@ -2231,8 +2231,8 @@ function ImportPlanModal({ onClose, onImport }) {
             }}>
               <span style={{display:'inline-flex'}}><BuIcons.check size={18} color={PN.GREEN}/></span>
               <div style={{flex:1}}>
-                <div style={{fontSize: 15, fontWeight: 700, color: PN.GREEN}}>Layout generato</div>
-                <div style={{fontSize: 14, color: PN.GREEN, display:'inline-flex', alignItems:'center', gap:4, flexWrap:'wrap'}}>
+                <div style={{fontSize: 15, fontWeight: 700, color: PN.GREEN_TEXT}}>Layout generato</div>
+                <div style={{fontSize: 14, color: PN.GREEN_TEXT, display:'inline-flex', alignItems:'center', gap:4, flexWrap:'wrap'}}>
                   <span>Riconosciuti <b>{generated.tavoli.length} tavoli</b></span>
                   {(() => {
                     const cop = generated.tavoli.reduce((a,t)=>a+t.coperti,0);

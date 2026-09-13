@@ -83,6 +83,22 @@ function ContabilitaApp() {
   // così il numero del menù e i numeri delle linguette non possono divergere —
   // è la stessa funzione a dirli tutti e due.
   const daFare = window.byupContabilitaDaFare ? window.byupContabilitaDaFare() : { totale: 0 };
+
+  // Le sette sezioni, in un posto solo: le disegnano sia il nastro di
+  // linguette sia — su tela stretta — l'elenco nativo che lo sostituisce.
+  const { bp: bpC } = window.useA11y ? window.useA11y() : { bp: 'lg' };
+  const strettaC = bpC === 'sm' || bpC === 'xs';
+  const vociContabilita = [
+    {id:'cassa', label:'Cassa', icon:'commerce-coins'},
+    {id:'conti', label:'Conti', icon:'commerce-wallet'},
+    {id:'costi', label:'Costi', icon:'commerce-price-tag'},
+    {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
+    {id:'fatture', label:'Fatture', icon:'commerce-register'},
+    // Il riepilogo per emittente e periodo: fuori dal primo rilascio
+    // (P-195 · D-155), vedi sopra.
+    buoni ? {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'} : null,
+    {id:'export', label:'Export', icon:'download'},
+  ].filter(Boolean);
   React.useEffect(() => {
     const agg = () => setScartiFisc(window.byupScartiAperti ? window.byupScartiAperti() : 0);
     window.addEventListener('byup-fisc-change', agg);
@@ -130,28 +146,42 @@ function ContabilitaApp() {
             <Kpi label="Saldo IVA"       value={ivaSaldo}    delta="+2,1%" up  icon={Ic.invoice}   tooltip="vs trimestre scorso"/>
           </GlassDarkBox>
 
-          {/* Primary tabs — underline pattern (più sobrio, meno brand-loaded) */}
-          <div style={{
-            display:'flex', gap: 4, marginBottom: 22,
-            borderBottom: `1px solid ${PN.BORDER}`,
+          {/* Primary tabs — underline pattern (più sobrio, meno brand-loaded).
+              Sette linguette non stanno in 600 px logici. Su tela stretta
+              diventano un elenco nativo — che le mostra TUTTE, mentre un
+              nastro che scorre nasconde quelle di là dal bordo senza dirlo — e
+              i due comandi fiscali scendono accanto su una riga che va a capo. */}
+          <div className="pn-scroll" style={{
+            display:'flex', gap: strettaC ? 10 : 4, marginBottom: 22,
+            borderBottom: strettaC ? 'none' : `1px solid ${PN.BORDER}`,
+            overflowX: strettaC ? 'visible' : 'auto', flexShrink: 0,
+            flexWrap: strettaC ? 'wrap' : 'nowrap',
+            alignItems: strettaC ? 'center' : 'stretch',
           }}>
+            {strettaC && (
+              <select
+                value={tabVero}
+                aria-label="Sezione della contabilità"
+                onChange={e => vaiA(e.target.value)}
+                style={{
+                  flex: '1 1 220px', minHeight: 44, padding: '0 12px', borderRadius: 10,
+                  border: `1px solid ${PN.BORDER}`, background: PN.WHITE,
+                  fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+                }}>
+                {vociContabilita.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}{daFare[t.id] ? ' (' + daFare[t.id] + ')' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
             {/* PnSectionTab: il linguaggio unico delle tab di sezione — la
                 ricetta è nata qui e ora vive nei token, condivisa. */}
-            {[
-              {id:'cassa', label:'Cassa', icon:'commerce-coins'},
-              {id:'conti', label:'Conti', icon:'commerce-wallet'},
-              {id:'costi', label:'Costi', icon:'commerce-price-tag'},
-              {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
-              {id:'fatture', label:'Fatture', icon:'commerce-register'},
-              // Il riepilogo per emittente e periodo: fuori dal primo
-              // rilascio (P-195 · D-155), vedi sopra.
-              buoni ? {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'} : null,
-              {id:'export', label:'Export', icon:'download'},
-            ].filter(Boolean).map(t => (
+            {!strettaC && vociContabilita.map(t => (
               <PnSectionTab key={t.id} id={t.id} active={tabVero === t.id} onClick={vaiA}
                 label={t.label} icon={t.icon} badge={daFare[t.id] || undefined}/>
             ))}
-            <span style={{flex: 1}}/>
+            {!strettaC && <span style={{flex: 1}}/>}
             {/* Nel regime della Soluzione apre la console fiscale (P-96) in una
                 scheda propria del browser, con l'utente già riconosciuto nel
                 profilo che gli spetta: è la via di comodità che le Specifiche

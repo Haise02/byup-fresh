@@ -17,7 +17,7 @@ function ContIva({ month, setMonth }) {
             <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Movimenti IVA · 2026</div>
             <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2}}>
               {selected
-                ? <><strong style={{color: PN.TEXT}}>{selected.m} 2026</strong> · saldo <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {(selected.deb-selected.cred).toFixed(2)}</strong> · <button onClick={() => setMonth(null)} style={{background:'none', border:'none', color: PN.PINK, cursor:'pointer', fontWeight:600, padding:0, fontFamily:'inherit', fontSize: C.T_SM}}>Rimuovi filtro</button></>
+                ? <><strong style={{color: PN.TEXT}}>{selected.m} 2026</strong> · saldo <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {(selected.deb-selected.cred).toFixed(2)}</strong> · <button onClick={() => setMonth(null)} style={{background:'none', border:'none', color: PN.BRAND_TEXT, cursor:'pointer', fontWeight:600, padding:0, fontFamily:'inherit', fontSize: C.T_SM}}>Rimuovi filtro</button></>
                 : 'Seleziona un mese per vederne il dettaglio'}
             </div>
           </div>
@@ -99,7 +99,7 @@ function ContIva({ month, setMonth }) {
                 <span style={{fontWeight: 600}}>{m.m} 2026</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {m.deb.toFixed(2)}</span>
                 <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {m.cred.toFixed(2)}</span>
-                <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700, color: saldo>0 ? PN.GREEN : PN.RED}}>{saldo>0?'+':''}€ {saldo.toFixed(2)}</span>
+                <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700, color: saldo>0 ? PN.GREEN_TEXT : PN.RED}}>{saldo>0?'+':''}€ {saldo.toFixed(2)}</span>
               </div>
             );
           })}
@@ -195,7 +195,7 @@ function ContExport({ openShare }) {
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: C.R_SM,
-                background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+                background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
                 display:'grid', placeItems:'center',
               }}><Ic.invoice size={18}/></div>
               <div style={{flex:1, minWidth:0}}>
@@ -213,10 +213,10 @@ function ContExport({ openShare }) {
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 18}}>
           <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 14}}>
-            <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}><Ic.calendar size={18}/></div>
+            <div style={{width: 36, height: 36, borderRadius: C.R_SM, background: PN.GREEN_SOFT, color: PN.GREEN_TEXT, display:'grid', placeItems:'center', flexShrink: 0}}><Ic.calendar size={18}/></div>
             <div style={{flex: 1, fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>Invio automatico</div>
             <span style={{
-              fontSize: C.T_XS, color: PN.GREEN, fontWeight: 700,
+              fontSize: C.T_XS, color: PN.GREEN_TEXT, fontWeight: 700,
               display:'inline-flex', alignItems:'center', gap: 5,
               background: PN.GREEN_SOFT, padding:'3px 10px', borderRadius: 999, flexShrink: 0,
             }}>
@@ -419,7 +419,7 @@ function ContNuovoCosto({ open, onClose, onSave }) {
           <div style={{display:'flex', alignItems:'center', gap: 14}}>
             <div style={{
               width: 42, height: 42, borderRadius: C.R_MD, flexShrink: 0,
-              background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+              background: PN.PINK_BG_SOFT, color: PN.BRAND_TEXT,
               display:'grid', placeItems:'center',
               boxShadow: PN.INSET_HIGHLIGHT,
             }}><Ic.invoice size={19}/></div>
@@ -539,7 +539,7 @@ function ContNuovoCosto({ open, onClose, onSave }) {
           background: PN.WHITE_OFF,
           display:'flex', alignItems:'center', gap: 10,
         }}>
-          <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT}}>
+          <div style={{fontSize: C.T_XS, color: PN.MUTED}}>
             {isValid ? 'Pronto da salvare' : 'Nome e importo sono obbligatori'}
           </div>
           <div style={{flex: 1}}/>
@@ -557,7 +557,7 @@ function ContNuovoCosto({ open, onClose, onSave }) {
             style={{
               padding:'11px 24px',
               background: isValid ? PN.BTN_BRAND : PN.WHITE_FROST,
-              color: isValid ? '#fff' : PN.MUTED_SOFT,
+              color: isValid ? '#fff' : PN.MUTED,
               border:'none', borderRadius: 10,
               boxShadow: isValid ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.24)` : 'none',
               fontSize: C.T_SM, fontWeight: 700, fontFamily:'inherit',
@@ -574,7 +574,7 @@ function ContNuovoCosto({ open, onClose, onSave }) {
             to   { opacity: 1; transform: none; }
           }
           .cont-costo-modal input:focus {
-            border-color: ${PN.PINK};
+            border-color: ${PN.BRAND_TEXT};
             box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.14);
           }
         `}</style>
@@ -587,7 +587,7 @@ function ContNuovoCosto({ open, onClose, onSave }) {
 function Overline({ children }) {
   return (
     <div style={{
-      fontSize: C.T_XS, fontWeight: 700, color: PN.MUTED_SOFT,
+      fontSize: C.T_XS, fontWeight: 700, color: PN.MUTED,
       textTransform:'uppercase', letterSpacing: 0.7, marginBottom: 12,
     }}>{children}</div>
   );
@@ -619,9 +619,9 @@ function TypeBtn({ active, onClick, icon: I, label, desc }) {
       textAlign:'left', display:'flex', alignItems:'center', gap: 11,
       transition:'background 130ms ease, border-color 130ms ease',
     }}>
-      <span style={{color: active ? PN.PINK_DARK : PN.MUTED, display:'flex'}}><I size={18}/></span>
+      <span style={{color: active ? PN.BRAND_TEXT : PN.MUTED, display:'flex'}}><I size={18}/></span>
       <div>
-        <div style={{fontSize: C.T_SM, fontWeight: 700, color: active ? PN.PINK_DARK : PN.TEXT}}>{label}</div>
+        <div style={{fontSize: C.T_SM, fontWeight: 700, color: active ? PN.BRAND_TEXT : PN.TEXT}}>{label}</div>
         <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>{desc}</div>
       </div>
     </button>
@@ -692,10 +692,10 @@ function ContShareModal({ open, onClose }) {
               }}/>
             </div>
             <div style={{flex: 1}}>
-              <div style={{fontSize: C.T_SM, fontWeight: 700, color: auto ? PN.PINK_DARK : PN.TEXT}}>Attiva invio automatico mensile</div>
+              <div style={{fontSize: C.T_SM, fontWeight: 700, color: auto ? PN.BRAND_TEXT : PN.TEXT}}>Attiva invio automatico mensile</div>
               <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>
                 {auto
-                  ? <>Verrà inviato automaticamente <strong style={{color: PN.PINK_DARK}}>ogni 1° del mese</strong> all'email indicata</>
+                  ? <>Verrà inviato automaticamente <strong style={{color: PN.BRAND_TEXT}}>ogni 1° del mese</strong> all'email indicata</>
                   : 'Invia l\'export ogni mese senza doverci pensare'}
               </div>
             </div>
