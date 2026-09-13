@@ -748,19 +748,38 @@ window.ByupKit = {
     stato: leggi,
     // 'concesso' | 'negato' | null (non ancora chiesto)
     permesso() { return leggi().permesso || null; },
-    concedi() { const v = leggi(); v.permesso = 'concesso'; v.quando = new Date().toISOString(); scrivi(v); },
+    // Concedendo il permesso, la città in cui la persona SI TROVA è quella su
+    // cui è posata l'app in quel momento: nel mockup non esiste una posizione
+    // vera da cui dedurla, e questa è l'unica informazione disponibile.
+    concedi() { const v = leggi(); v.permesso = 'concesso'; v.quando = new Date().toISOString(); v.sono = v.citta || CITTA[0].id; scrivi(v); },
     // Negando si sceglie la città: finché non la sceglie vale la prima.
     nega() { const v = leggi(); v.permesso = 'negato'; v.quando = new Date().toISOString(); scrivi(v); },
     scegliCitta(id) { const v = leggi(); v.citta = id; scrivi(v); },
     citta() { const id = leggi().citta; return CITTA.find(c => c.id === id) || CITTA[0]; },
-    // I numeri che dipendono dalla posizione vera: senza permesso non si
-    // mostrano, e non si sostituiscono con una stima presa dal centro città.
-    distanze() { return leggi().permesso === 'concesso'; },
-    // Il cancello: il punto da cui si misura cambia, la soglia no. Con il
-    // permesso vale la città in cui la persona si trova — nel mockup la prima,
-    // che è Roma.
+    // Dove la persona si trova davvero, quando l'ha concesso: serve a
+    // distinguere «sono qui» da «sto guardando un'altra città».
+    cittaDiPosizione() { const v = leggi(); return v.permesso === 'concesso' ? (CITTA.find(c => c.id === (v.sono || v.citta)) || CITTA[0]) : null; },
+    // I NUMERI CHE DIPENDONO DALLA POSIZIONE VERA (P-210 · D-163). Non basta
+    // il permesso: serve anche che la città guardata sia quella in cui la
+    // persona si trova. Se sto a Roma e guardo Palermo le distanze non si
+    // mostrano — non perché manchi il permesso, ma perché sarebbero distanze
+    // da Roma a locali di Palermo. E non si stimano dal centro: si tolgono.
+    distanze() {
+      const v = leggi();
+      if (v.permesso !== 'concesso') return false;
+      const qui = window.ByupPosizione.cittaDiPosizione();
+      return !!qui && qui.id === window.ByupPosizione.citta().id;
+    },
+    // IL CANCELLO SI MISURA DALLA CITTÀ CHE SI STA GUARDANDO (P-210 · D-163),
+    // qualunque sia lo stato del permesso: la soglia e i raggi non cambiano,
+    // cambia il punto da cui il raggio parte — la posizione vera quando c'è,
+    // il centro della città scelta quando non c'è. Nel mockup la posizione
+    // vera non esiste e la città scelta è l'unica informazione disponibile,
+    // quindi vale anche a permesso concesso; così il cancello si vede
+    // funzionare in tutti e due i rami, che prima era impossibile perché si
+    // misurava sempre da Roma.
     scopertaAperta() {
-      const c = leggi().permesso === 'concesso' ? CITTA[0] : window.ByupPosizione.citta();
+      const c = window.ByupPosizione.citta();
       return c.urbano > SOGLIA_URBANO || c.esteso > SOGLIA_ESTESO;
     },
   };

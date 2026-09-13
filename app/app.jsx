@@ -628,7 +628,11 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
   let list = venues;
   if (chip === 'open') list = venues.filter(v => v.open);
   if (chip === 'top') list = [...venues].sort((a, b) => b.rating - a.rating);
-  if (chip === 'near') list = [...venues].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+  // L'ordinamento per vicinanza lascia il posto agli altri criteri quando non
+  // c'è una posizione da cui misurare (P-210 · D-163): qui la valutazione.
+  if (chip === 'near') list = byupDistanze()
+    ? [...venues].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
+    : [...venues].sort((a, b) => b.rating - a.rating);
 
   const Card = ({ v, i, tall }) => (
     <button className="bk-press" onClick={() => { BK.haptic.light(); onOpenVenue(v); }} style={{
@@ -655,7 +659,7 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
             background: v.open ? '#3ddc7f' : '#ff6b6b', boxShadow: `0 0 6px ${v.open ? '#3ddc7f' : '#ff6b6b'}` }}/>
           <span style={{ flexShrink: 0 }}>{v.open ? (window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(v.name) ? 'Aperto · cucina chiusa' : 'Aperto') : 'Chiuso'}</span>
           <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.distance} · {v.price}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{byupDistanze() ? v.distance : byupCittaNome()} · {v.price}</span>
         </div>
       </div>
     </button>
@@ -1122,7 +1126,7 @@ function RestaurantBigCard({ name, cuisine, distance, rating, price, photo, slot
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5,
               fontSize: 12, color: 'rgba(255,255,255,.88)', fontWeight: 600 }}>
               <Icon.Pin size={11} color="#ffd3de"/>
-              <span>{distance}</span>
+              <span>{byupDistanze() ? distance : byupCittaNome()}</span>
               <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cuisine}</span>
               <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)' }}/>
@@ -1199,7 +1203,7 @@ function PremiumBigCard({ name, cuisine, distance, rating, price, photo, slots, 
         <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.62)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>{cuisine}</span>
           <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.35)' }}/>
-          <span>{distance}</span>
+          <span>{byupDistanze() ? distance : byupCittaNome()}</span>
         </div>
         {slots && slots.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
@@ -2186,7 +2190,10 @@ function HomeSections({
           <AutoLoopScroll speed={28}>
             {favorites.map((f, i) => (
               <FavoriteCard key={i} {...f}
-                onClick={() => click({ ...f, title: f.name, place: [f.type, f.distance].filter(Boolean).join(' · ') })}/>
+                onClick={() => click({ ...f, title: f.name,
+                  // La card nasconde «0,4 km» senza posizione: il foglio che
+                  // apre non deve rimostrarla (P-210 · D-163).
+                  place: [f.type, byupDistanze() ? f.distance : byupCittaNome()].filter(Boolean).join(' · ') })}/>
             ))}
           </AutoLoopScroll>
 

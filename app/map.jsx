@@ -25,6 +25,12 @@ const CUISINE_EMOJI = {
   Italiana: '🍝', Pizza: '🍕', Cocktail: '🍸', Pub: '🍺', Gelato: '🍦',
 };
 
+// Le distanze si mostrano solo se la posizione è vera E la città guardata è
+// quella in cui la persona si trova (P-210 · D-163): dal centro città
+// sarebbero numeri inventati, e non si stimano — si tolgono.
+const mapDistanze = () => !window.ByupPosizione || window.ByupPosizione.distanze();
+const mapCitta = () => (window.ByupPosizione ? window.ByupPosizione.citta().nome : '');
+
 const VENUES_BY_CITY = {
   roma: [
     // ── Prati / Vaticano ─────────────────────────────────────────────
@@ -531,7 +537,7 @@ function VenueCardsTray({ venues, onSelect }) {
                   {v.cat}
                 </span>
                 <span style={{ flexShrink: 0, marginLeft: 6, color: TEXT, fontWeight: 600 }}>
-                  {v.distance}
+                  {mapDistanze() ? v.distance : mapCitta()}
                 </span>
               </div>
             </div>
@@ -774,7 +780,7 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
                   {venue.name}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', marginTop: 2 }}>
-                  {venue.cat} · {venue.distance}
+                  {venue.cat} · {mapDistanze() ? venue.distance : mapCitta()}
                 </div>
               </div>
               <div style={{
