@@ -951,3 +951,105 @@ Il progetto usa style inline JSX. Lo manteniamo. Per i token, leggere sempre dal
 // NO
 <div style={{padding: 24, borderRadius: 10, background: '#FAFBFC'}}/>
 ```
+
+---
+
+## Accessibilità e scala d'interfaccia — 13 settembre 2026
+
+Il gestionale ha tre misure, scelte dall'utente: **Normale · Grande · Molto
+grande**. Non è un redesign: nessuna schermata è stata ridisegnata, nessuna
+palette rifatta, nessuna scala tipografica aggiunta.
+
+### La decisione architetturale
+
+L'ingrandimento **non** si ottiene convertendo px in rem né duplicando i
+componenti in versione «large». Tutta la UI vive dentro un `.frame` scalato da
+una sola proprietà `zoom`: si alza quello e si **riduce la tela logica**.
+
+```
+zoom        = zoom_di_base × fattore_di_scala
+tela logica = (viewport − margine) / zoom
+```
+
+A 2,5× ogni `fontSize: 15` diventa 37,5 px fisici e ogni bottone da 36 px
+diventa 90. **Zero px da riscrivere.** Il costo si sposta tutto sul fatto che la
+tela si stringe, e i layout devono rifluire.
+
+Misure verificate in Chrome, perché sono la ragione per cui questo funziona:
+dentro `zoom` un `width: 100px` rende 250 px fisici, il `fontSize` calcolato
+resta `15px`, le **container query leggono la misura logica** (funzionano), le
+**media query leggono la finestra** (sono cieche qui), le **unità di viewport
+non vengono scalate** (`92vh` a 2,93× vale quasi tre schermate: si usa
+`--pn-vh`/`--pn-vw`), e `position: fixed` scala ma si ancora alla finestra.
+
+### Chi possiede che cosa
+
+- **`byup-fit.js`** — JS puro nell'`<head>`. Possiede la geometria del frame
+  (larghezza, altezza, zoom, margine) in entrambi i modi: tela di design
+  1440×900 sul desktop, frame a piena finestra su telefono, tablet e monitor a
+  parete. Legge la scala, pubblica `BYUP_FIT`, emette `byup:fit`. Ha sostituito
+  le undici copie del vecchio `fit()` in fondo agli HTML.
+- **`pn-device.js`** — classifica lo SCHERMO (fisico) e tiene il gate del
+  telefono. Il predicato `statStretto()` misura invece la **tela logica**.
+- **`byup-a11y.jsx`** — il lato React: `useA11y()`, `useTrappolaFocus()`,
+  l'anello di focus unico, `byupPanelPieno()`, `byupColonnaFerma()`.
+
+### I breakpoint sono sulla tela, non sul viewport
+
+`lg` ≥ 1100 · `md` 760–1099 · `sm` 480–759 · `xs` < 480, pubblicati come
+`data-bp` su `<html>` e sul frame e via `useA11y()`. **Le media query CSS qui
+non servono**: misurano la finestra, non il frame scalato.
+
+Il minimo di reflow è **320 px logici** (non 1280): è il limite di WCAG 1.4.10,
+e con esso il prototipo regge il 400%. Lo zoom si ferma dove la tela arriverebbe
+al minimo, così non si perde mai contenuto per ingrandire troppo.
+
+### La preferenza è del DISPOSITIVO
+
+`localStorage['byup_ui_scale']`, non l'account. Lo stesso account gira sul
+tablet del KDS, sul portatile di chi tiene i conti e sulla cassa in sala: la
+scala scelta davanti a un monitor a due metri non deve seguire la stessa persona
+su un portatile da 13". Stessa regola per `byup_riduci_moto`.
+
+### Colori: il riempimento e l'inchiostro sono due cose diverse
+
+Il corallo del marchio `#FF5A5F` è nato per RIEMPIRE: come fondo, bordo, icona e
+indicatore fa 3,05:1 e passa 1.4.11. Come **testo** no. Quindi:
+
+| Token | Valore | Quando |
+|---|---|---|
+| `PINK`, `GREEN`, `AMBER`, `RED` | invariati | riempimenti, bordi, icone, indicatori |
+| `BRAND_TEXT` | `#B53338` (= `WINE`) | il corallo quando fa testo — 6,01:1 |
+| `GREEN_TEXT` / `AMBER_TEXT` | `#15803D` / `#B45309` | i colori di stato quando fanno testo — 5,02:1 |
+| `RED_TEXT` / `BLUE_TEXT` | `#B91C1C` / `#1D4ED8` | idem su fondo tenue |
+| `MUTED` | `#6B7280` → **`#636875`** | il primo grigio che passa 4,5 su TUTTE le superfici chiare, rosa tenue compreso |
+| `MUTED_SOFT`, `MUTED_LIGHT` | invariati, **ma non sono colori di testo** | decorazione soltanto: 2,54:1 e 1,68:1 |
+
+Un terzo grigio conforme fra `MUTED` e il bianco **non esiste**: sotto `MUTED`
+la gerarchia la fa il **peso**, non il colore.
+
+Il testo bianco sul corallo pieno è conforme solo se GRANDE (≥ 18,66 px in
+bold): i CTA di marca portano quindi `fontSize: 19, fontWeight: 700`, e il
+colore non si tocca. È la decisione del 13/09, presa fra le due strade
+possibili.
+
+### Bersagli: cresce l'area, non il segno
+
+Una regola sola in `byup-a11y.jsx` porta ogni controllo ad almeno 24 × 24. Vince
+sullo stile inline che dichiara `width: 18px` senza `!important`, perché le
+proprietà `min-*` limitano la misura **usata**. Le azioni primarie e ripetute
+stanno a 44 × 44. L'icona dentro resta quella che era.
+
+### Focus
+
+Un anello solo per tutta l'app: 3 px a contrasto ≥ 3:1 con alone, su qualunque
+cosa prenda il fuoco. Vince sui 108 `outline: none` scritti inline. Le superfici
+scure dichiarano `data-byup-dark` e l'anello diventa chiaro.
+
+### Che cosa NON si fa
+
+Niente rem, niente seconda scala tipografica, niente componenti «large», niente
+`transform: scale()` (falsa hit-testing, focus e misure — si usa `zoom`, che è
+già l'architettura). Niente dipendenze, niente build step.
+
+> Dettaglio completo, misure e residui: **`gestionale/A11Y-AUDIT.md`**.
