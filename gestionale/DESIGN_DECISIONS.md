@@ -1116,3 +1116,12 @@ uno scroll.
 Il rapporto è `zoom: fattore / scalaCorrente`, mai `zoom: fattore`: la pagina è
 già scalata, e senza il rapporto la misura verrebbe moltiplicata due volte —
 a «Molto grande» il campione risultava sei volte il normale.
+
+**Un solo posto dove si cambia, più la tastiera.** Il controllo della scala sta
+in Profilo → Dati generali e sul Login — che è l'unica schermata da cui il
+Profilo non è raggiungibile. Nella barra laterale c'è stato e non c'è più: a
+menù largo erano tre «A» chiare, ma a barretta diventavano un bottone solo che
+girava fra i livelli, e un comando che gira non dice dove ti porta. In 68 px lo
+spazio per spiegarlo non c'è, e un controllo che si capisce solo dal tooltip non
+è un controllo accessibile. Da tastiera invece resta ovunque: `⌘/Ctrl + Alt + +`
+e `−`.

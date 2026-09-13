@@ -481,19 +481,13 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
           leggibile su chip coral, e il click riespande il menu */}
       {collapsed ? <PnSidebarPlanCardMini onExpand={toggle}/> : <PnSidebarPlanCard/>}
 
-      {/* La dimensione dell'interfaccia, raggiungibile da ogni schermata senza
-          passare dalle Impostazioni: chi ha bisogno di ingrandire ne ha bisogno
-          mentre lavora, non mentre configura. Da menù largo sono i tre livelli
-          per esteso; da barretta è un bottone solo che gira fra i tre, perché
-          in 68 px tre bersagli da 44 non ci stanno. */}
-      {window.ByupScalaControllo && (
-        <div style={{
-          paddingTop: 10,
-          display: 'flex', justifyContent: collapsed ? 'center' : 'stretch',
-        }}>
-          <window.ByupScalaControllo compatto={collapsed} breve/>
-        </div>
-      )}
+      {/* La dimensione dell'interfaccia NON sta qui. C'è stata, in due forme —
+          tre «A» a menù largo, un bottone che girava fra i livelli a barretta —
+          e la seconda era il problema: un comando che gira non dice dove ti
+          porta, e in 68 px non c'è spazio per spiegarlo. Si cambia in
+          Profilo → Dati generali, dove la scelta si vede tutta e ogni livello
+          è disegnato alla misura che propone. Da tastiera resta ovunque:
+          ⌘/Ctrl + Alt + «+» e «−». */}
 
       {/* System actions */}
       <div style={{
