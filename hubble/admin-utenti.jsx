@@ -171,7 +171,12 @@ function admConsensiDi(u) {
     { id: 'offers_on_preferences', label: 'Offerte su preferenze alimentari · A18',
       desc: 'Promozioni costruite sul dato alimentare — vale solo con un canale marketing acceso' },
     { id: 'marketing_email',        label: 'Marketing · Email · A6', desc: 'Novità e offerte via email' },
-    { id: 'marketing_sms',          label: 'Marketing · Messaggi · A6', desc: 'SMS e WhatsApp (marketing_whatsapp viaggia con lo stesso gesto)' },
+    // WhatsApp è fuori dal primo rilascio (D-164): l'interruttore «Messaggi»
+    // scrive un solo consenso, quello dei messaggi brevi. Il canale resta nel
+    // modello come predisposizione, e il consenso tornerà a essere doppio il
+    // giorno in cui si accende — scelto il fornitore, fatta la valutazione del
+    // trasferimento, firmato l'accordo, iscritto nei registri.
+    { id: 'marketing_sms',          label: 'Marketing · Messaggi · A6', desc: 'Gli SMS al numero dichiarato' },
     { id: 'marketing_push',         label: 'Marketing · Notifiche · A6', desc: 'Le notifiche promozionali sul telefono' },
     { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'La profilazione a fini promozionali: una finalità, non un canale' },
   ].map((c, i) => {

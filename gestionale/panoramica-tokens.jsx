@@ -2106,7 +2106,7 @@ window.byupCopertoEsposto = function (segna) {
   } catch (e) { return null; }
 };
 
-// ─── I buoni pasto (P-173 · D-124) ──────────────────────────────────────────
+// ─── I buoni pasto (P-195 · D-155) ──────────────────────────────────────────
 // Il buono non è denaro: è un credito verso l'emittente, e la cassa lo tiene
 // distinto dal contante. In cassa si registra QUELLO CHE SI È ACCETTATO —
 // emittente, numero dei titoli, valore facciale, formato, riferimento
@@ -2114,7 +2114,7 @@ window.byupCopertoEsposto = function (segna) {
 // impongono e si spiegano: al massimo OTTO titoli per transazione, sempre per
 // l'intero valore facciale, senza resto (Allegato II.17 al D.Lgs. 36/2023,
 // art. 4). Byup NON valida il buono: la verifica passa dallo strumento
-// dell'emittente, e la finestra lo dice. Le convenzioni si dichiarano in
+// dell'emittente, e la finestra lo dice.
 // REGISTRARE UN BUONO NON DIPENDE DA NULLA (P-195 · D-155). Non dalla
 // convenzione, che è un contratto fra l'esercente e l'emittente e vive sul
 // portale dell'emittente; non da una configurazione; non da un'attivazione. È

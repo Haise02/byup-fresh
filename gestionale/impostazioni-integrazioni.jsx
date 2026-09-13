@@ -1005,11 +1005,13 @@ function IntCollegaModal({ onClose, onGenera }) {
 
 window.ImpIntegrazioni = ImpIntegrazioni;
 
-// ─── Buoni pasto: le convenzioni (P-173 · D-124) — SOSPESA, NON MONTATA ────
-// Dall'11 settembre 2026 questa card non si monta: il perché sta al suo posto
-// nel corpo della pagina, dove c'era la riga che la montava. Non è codice
-// morto da ripulire — è il punto da cui i buoni pasto si riaccendono, e ci si
-// torna quando il buono sarà il nostro. Se un giorno lo si toglie davvero, va
+// ─── Buoni pasto: le convenzioni (P-195 · D-155) — NON MONTATA ────────────
+// Questa card non si monta: il perché sta al suo posto nel corpo della pagina,
+// dove c'era la riga che la montava. La convenzione è un rapporto commerciale
+// fra esercente ed emittente e NON è il presupposto per registrare un buono in
+// cassa — quello si registra sempre. Non è codice morto da ripulire: è il
+// punto da cui il riepilogo del rimborso si riaccende. Se un giorno lo si
+// toglie davvero, va
 // tolto insieme a tutto il resto della catena, non da solo.
 // venue_meal_voucher_agreements: la convenzione è della sede, la firma il
 // locale con l'emittente, e qui se ne conservano i termini che servono a
@@ -1045,7 +1047,7 @@ function ImpBuoniPastoCard() {
   const LAB = { fontSize: 12.5, fontWeight: 600, color: PN.MUTED, marginBottom: 4 };
   const nome = (id) => { const e = window.byupBuoniEmittente ? window.byupBuoniEmittente(id) : { brand: id, name: id }; return e.brand === e.name ? e.brand : `${e.brand} · ${e.name}`; };
   return (
-    <ImpCard title="Buoni pasto" sub="Con quali emittenti sei convenzionato: finché non c'è una convenzione, la tessera «Buoni pasto» in cassa non compare. Byup non valida i buoni: la verifica passa dallo strumento dell'emittente." style={{marginTop: 12}}>
+    <ImpCard title="Buoni pasto" sub="Con quali emittenti sei convenzionato, e a che condizioni: serve al riscontro della rendicontazione, non alla cassa — il buono si registra comunque. Byup non valida i buoni: la verifica passa dallo strumento dell'emittente." style={{marginTop: 12}}>
       {attive.length === 0 && !nuova && (
         <div style={{ fontSize: 14, color: PN.MUTED, marginBottom: 12 }}>Nessuna convenzione dichiarata.</div>
       )}

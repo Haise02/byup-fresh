@@ -1,4 +1,13 @@
 <!doctype html>
+<!--
+  ARTEFATTO GENERATO — non si modifica a mano.
+  Rigenerato il 13 settembre 2026 da `app/build-standalone.js` sui sorgenti .jsx di quel
+  giorno. È una fotografia: se i .jsx cambiano e nessuno lo rigenera, questo
+  file resta indietro e mostra regole che il prodotto non ha più (P-217).
+  Per rigenerarlo:
+    cd app && node build-standalone.js byup-app-kit.jsx app.jsx auth.jsx \
+      extras.jsx map.jsx menu.jsx venue-variants.jsx ios-frame.jsx dish-art.jsx
+-->
 <html lang="it">
 <head>
 <meta charset="utf-8"/>
@@ -836,6 +845,47 @@
       return {};
     }
   }
+
+  // ─── L'età, e il regime protettivo dei minori (P-187 · PRIV-09) ────────────
+  // La data di nascita è obbligatoria in registrazione: sotto i quattordici
+  // anni non si entra (art. 2-quinquies del Codice Privacy), e fra i quattordici
+  // e i diciotto vale un regime protettivo che governa tre cose — niente alcolici
+  // nel menù, niente marketing personalizzato, nessun profilo di
+  // raccomandazione.
+  // Il regime NON è una bandierina scritta il giorno dell'iscrizione: si calcola
+  // dalla data di nascita ogni volta che serve, e così al compimento dei
+  // diciotto anni cade da sé, senza che nessuno faccia niente.
+  const NASCITA_KEY = 'byup_nascita';
+  function scriviNascita(dob) {
+    try {
+      if (dob) localStorage.setItem(NASCITA_KEY, String(dob));
+    } catch (e) {}
+  }
+  function leggiNascita() {
+    try {
+      return localStorage.getItem(NASCITA_KEY) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function etaAnni(dob) {
+    const iso = dob || leggiNascita();
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d)) return null;
+    const oggi = new Date();
+    let a = oggi.getFullYear() - d.getFullYear();
+    const m = oggi.getMonth() - d.getMonth();
+    if (m < 0 || m === 0 && oggi.getDate() < d.getDate()) a--;
+    return a;
+  }
+  // Vero fra i quattordici e i diciotto. Senza data di nascita non si presume
+  // nulla: gli account nati prima di questa regola restano maggiorenni finché
+  // non dichiarano altro.
+  function regimeMinore() {
+    const a = etaAnni();
+    return a !== null && a < 18;
+  }
   window.ByupKit = {
     ASSETS,
     PALETTE,
@@ -862,14 +912,18 @@
     allergeniDichiarati,
     REGIMI,
     REGIMI_MAP,
-    richiedeConsensoEsplicito
+    richiedeConsensoEsplicito,
+    scriviNascita,
+    leggiNascita,
+    etaAnni,
+    regimeMinore
   };
   /* sync */
 })();
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing, dietary_suggestions esigenze alimentari nei
+// preferenze, i consensi di marketing per canale, dietary_suggestions nei
 // suggerimenti) e per le opposizioni del legittimo interesse. Suggerimenti e
 // analisi d'uso restano legittimo interesse, e dal 2026-09-03 (P-26 · D-28)
 // hanno il loro INTERRUTTORE in «I miei dati» — dal 2026-09-04 (P-122)
@@ -883,17 +937,21 @@
 //   analytics            analisi d'uso, legittimo interesse, attive per difetto
 //   dietary_suggestions  esigenze alimentari nei suggerimenti, consenso
 //                        esplicito distinto (art. 9.2.a), spento per difetto
-// Le altre voci tengono l'id del registro dei trattamenti (A3, A18, A6) e la
-// dichiarazione GEN. Hubble legge questo registro dallo stesso dominio, in
+// Le altre voci portano i nomi del modello (P-161 · D-115): dietary_preferences
+// (era A3), offers_on_preferences (era A18), la dichiarazione gender (era GEN),
+// i quattro del marketing (P-163); la sigla del registro dei trattamenti resta
+// nell'etichetta a schermo, non nella chiave. Hubble legge questo registro dallo stesso dominio, in
 // sola lettura: la scheda utente mostra i tre interruttori con lo stato e la
 // data dell'ultimo evento. Una voce SENZA stato vale «per difetto»: accesi
 // recommendations e analytics, spento dietary_suggestions.
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
-//   promo generiche E su misura sullo storico ordini → basta A6 (che le
-//     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
-//     non reintrodurlo; il consenso unico NON copre i dati alimentari)
-//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   promo generiche → il consenso del canale su cui si scrive
+//     (marketing_email, marketing_sms, marketing_push)
+//   promo su misura sullo storico ordini → il canale E
+//     profilazione_marketing, che è una finalità e non un canale
+//   promo su pref. alimentari → il canale E A18 (mai da solo: il dato è
+//     sensibile, e nessun consenso di canale lo copre)
 //   suggerimenti in-app    → attivi salvo opposizione dall'interruttore di
 //                            «I miei dati» (LI, niente consenso; la città
 //                            viene dal contesto d'uso corrente, MAI dai log
@@ -904,14 +962,31 @@
 // Due strutture: lo STATO corrente per voce e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
-//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, natura, valore? } }
-//   byup_consent_data   [ { id, consent_type, action: 'granted'|'revoked', ok,
-//                           natura: 'consenso'|'opposizione'|'dichiarazione',
-//                           quando (ISO), versione, valore?, revocato? }, … ]
+//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, valore? } }
+//   byup_consent_data   [ { id, consent_type, action, ok, quando (ISO), versione,
+//                           valore?, revocato? }, … ]
+// L'AZIONE dice che cosa è successo, coi nomi del modello (P-161 · D-115): per
+// i consensi 'granted' | 'revoked'; per le due voci del legittimo interesse
+// (recommendations, analytics) spegnere è 'opposed' e riaccendere è
+// 'opposition_withdrawn'; la dichiarazione di un dato facoltativo (gender) è
+// 'granted' con il valore. Il campo `natura` non esiste più: era un doppione
+// dell'azione con parole nostre.
 (function () {
   const K_STATO = 'byup_consent_state';
   const K_LOG = 'byup_consent_data';
-  const VERSIONE_INFORMATIVA = '1.0';
+  // La versione che finisce nel registro è quella del DOCUMENTO che il
+  // cliente aveva davanti quando ha deciso (P-193), letta da BYUP_LEGAL: una
+  // stringa unica scritta qui diceva «1.0» mentre l'informativa era alla 0.6,
+  // e in un registro che serve come prova quel numero è tutto.
+  // Ogni voce dice da quale documento discende: i consensi privacy
+  // dall'informativa, l'accettazione dei termini dai termini.
+  const DOC_DI = {
+    accept_terms: 'TOS01'
+  };
+  const versioneDi = id => {
+    const doc = (window.ByupLegal || {})[DOC_DI[id] || 'INF01'];
+    return doc && doc.versione || null;
+  };
   const leggi = (k, fb) => {
     try {
       const r = localStorage.getItem(k);
@@ -954,7 +1029,9 @@
     scrivi(K_LOG, log);
   };
   window.ByupConsensi = {
-    VERSIONE_INFORMATIVA,
+    // La versione non è più una costante: si chiede per voce, perché dipende
+    // dal documento che quella voce presenta (P-193).
+    versioneDi,
     TIPI,
     // {ok, action, quando, versione} oppure null se mai deciso
     stato(id) {
@@ -968,19 +1045,21 @@
       if (st) return !!st.ok;
       return !!(TIPI[id] && TIPI[id].difetto);
     },
-    // `extra` porta la natura della riga: 'consenso' (difetto), 'opposizione'
-    // per le due voci del legittimo interesse, o quel che serve.
+    // L'azione segue la voce: sulle due del legittimo interesse spegnere è
+    // un'opposizione (art. 21) e riaccendere la ritira; sulle altre è un
+    // consenso dato o revocato. `extra` porta quel che serve in più (il gesto
+    // unico dei messaggi, P-163), mai una «natura».
     set(id, ok, extra) {
       const quando = new Date().toISOString();
-      const action = ok ? 'granted' : 'revoked';
-      const natura = extra && extra.natura || 'consenso';
+      const legittimoInteresse = !!(TIPI[id] && TIPI[id].base === 'legittimo interesse');
+      const action = legittimoInteresse ? ok ? 'opposition_withdrawn' : 'opposed' : ok ? 'granted' : 'revoked';
       const stato = leggi(K_STATO, {});
+      const versione = versioneDi(id);
       stato[id] = {
         ok: !!ok,
         action,
         quando,
-        versione: VERSIONE_INFORMATIVA,
-        natura
+        versione
       };
       scrivi(K_STATO, stato);
       appendi(Object.assign({
@@ -988,9 +1067,8 @@
         consent_type: id,
         action,
         ok: !!ok,
-        natura,
         quando,
-        versione: VERSIONE_INFORMATIVA
+        versione
       }, extra || {}));
       avvisa();
       return stato[id];
@@ -1008,11 +1086,51 @@
         action: 'revoked',
         ok: false,
         revocato: true,
-        natura: 'consenso',
         quando,
-        versione: VERSIONE_INFORMATIVA
+        versione: versioneDi(id)
       });
       avvisa();
+    },
+    // La PRESA D'ATTO (P-202 · D-161): attesta che un'informazione è stata
+    // resa, e NON è un consenso. La posizione si legge per stretta necessità
+    // del servizio che la persona ha chiesto — trovare i locali vicini — e il
+    // permesso del sistema operativo è un cancello tecnico, non una base
+    // giuridica. Si registra una volta sola, e NON si revoca: una presa d'atto
+    // è un fatto avvenuto e non si disfa; il permesso resta revocabile dalle
+    // impostazioni del telefono senza che il prodotto debba accorgersene.
+    //
+    // L'AZIONE È `accepted`, E NON SI CAMBIA (P-209 · D-161). Il campo action
+    // del registro dei consensi ha un dominio CHIUSO di cinque valori —
+    // granted, revoked, opposed, opposition_withdrawn, accepted — e
+    // `acknowledged` non esiste: scriverlo qui passava nel mockup e il giorno
+    // in cui il registro diventa una tabella vera col suo controllo verrebbe
+    // rifiutato dal database, senza un messaggio comprensibile. `accepted` è
+    // la forma che D-161 ha prescritto ed è la stessa con cui si registra la
+    // presa d'atto dello staff sulle metriche di servizio. «Presa d'atto» in
+    // inglese suona `acknowledged`, ed è proprio questa somiglianza ad aver
+    // prodotto l'errore: non rimetterlo credendo di essere più precisi.
+    presaDAtto(id) {
+      const stato = leggi(K_STATO, {});
+      if (stato[id] && stato[id].action === 'accepted') return stato[id];
+      const quando = new Date().toISOString();
+      const versione = versioneDi(id);
+      stato[id] = {
+        ok: true,
+        action: 'accepted',
+        quando,
+        versione
+      };
+      scrivi(K_STATO, stato);
+      appendi({
+        id,
+        consent_type: id,
+        action: 'accepted',
+        ok: true,
+        quando,
+        versione
+      });
+      avvisa();
+      return stato[id];
     },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
     // consenso, è la traccia della scelta spontanea — con il valore, così si
@@ -1021,12 +1139,12 @@
     dichiara(id, valore) {
       const quando = new Date().toISOString();
       const stato = leggi(K_STATO, {});
+      const versione = versioneDi(id);
       stato[id] = {
         ok: true,
         action: 'granted',
         quando,
-        versione: VERSIONE_INFORMATIVA,
-        natura: 'dichiarazione',
+        versione,
         valore
       };
       scrivi(K_STATO, stato);
@@ -1036,9 +1154,8 @@
         action: 'granted',
         ok: true,
         valore,
-        natura: 'dichiarazione',
         quando,
-        versione: VERSIONE_INFORMATIVA
+        versione
       });
       avvisa();
       return stato[id];
@@ -1050,9 +1167,617 @@
     ultimo(id) {
       const l = leggi(K_LOG, []).filter(r => (r.consent_type || r.id) === id);
       return l.length ? l[l.length - 1] : null;
+    },
+    // ── Il marketing: un interruttore per canale, la profilazione a parte
+    // (P-163 · D-113), coi NOMI DEL MODELLO (P-161): «Email» → marketing_email;
+    // «Messaggi» → marketing_sms; «Notifiche» → marketing_push; «Promo su
+    // misura sui tuoi ordini» → profilazione_marketing. Nessuno dei quattro è
+    // mai preselezionato.
+    //
+    // NIENTE RIPIEGO SUL VECCHIO CONSENSO UNICO (P-201 · D-160). Qui la
+    // lettura, non trovando nessuno dei consensi granulari, ripiegava sul
+    // vecchio A6 e da un solo assenso ne ricavava tre. Non serve e fa una cosa
+    // sbagliata: nessuno ha mai prestato quel consenso — la piattaforma non ha
+    // mai avuto un utente — e al primo cliente vero i consensi nascono già
+    // granulari con l'informativa in vigore, quindi non esiste alcuno storico
+    // da migrare e non esisterà. Ed era più permissivo dei documenti che
+    // avrebbe dovuto attuare: l'informativa vuole una spunta per canale.
+    // Chi non ha nessun consenso registrato non riceve niente, su nessun
+    // canale: è la regola vera e non ha eccezioni. La struttura che servirà il
+    // giorno in cui i tipi di consenso cambieranno di nuovo vive nel modello,
+    // non qui.
+    //
+    // WHATSAPP FUORI DAL PRIMO RILASCIO (P-205 · D-164). «Messaggi» scriveva
+    // due consensi con un gesto, marketing_sms e marketing_whatsapp, perché
+    // l'informativa nominava entrambi i mezzi sotto una spunta. Il canale però
+    // non esiste: nel modello `whatsapp_senders.is_active` nasce falso e la
+    // sua attivazione è subordinata alla valutazione del trasferimento verso
+    // Paesi terzi, che non è stata fatta; nessun fornitore WhatsApp compare
+    // fra i destinatari nei documenti privacy, e il fornitore dei messaggi
+    // brevi non eroga quel canale. Raccogliere marketing_whatsapp vorrebbe
+    // dire conservare un consenso che nessun invio potrà usare, e
+    // l'informativa consumer con la v0.27 ha smesso di nominarlo.
+    // Un gesto, un consenso. L'accorpamento in sé non era sbagliato: il giorno
+    // in cui il canale si accende — scelto il fornitore, fatta la valutazione,
+    // firmato l'accordo sul trattamento e iscritto nei registri —
+    // l'interruttore torna a valere per due mezzi e a scrivere due eventi. I
+    // tipi restano cinque nel modello, perché è ciò che rende possibile
+    // opporsi a un canale solo.
+    MARKETING: {
+      email: 'marketing_email',
+      messaggi: 'marketing_sms',
+      notifiche: 'marketing_push',
+      profilazione: 'profilazione_marketing'
+    },
+    marketing() {
+      const st = id => window.ByupConsensi.stato(id);
+      const ok = id => !!(st(id) && st(id).ok);
+      const email = ok('marketing_email'),
+        messaggi = ok('marketing_sms'),
+        notifiche = ok('marketing_push');
+      const p = st('profilazione_marketing');
+      const nessuno = !st('marketing_email') && !st('marketing_sms') && !st('marketing_push');
+      return {
+        email,
+        messaggi,
+        notifiche,
+        profilazione: !!(p && p.ok),
+        qualsiasi: email || messaggi || notifiche,
+        maiChiesto: nessuno
+      };
+    },
+    setMarketing(canale, ok) {
+      const ids = window.ByupConsensi.MARKETING[canale];
+      if (!ids) return;
+      (Array.isArray(ids) ? ids : [ids]).forEach(id => window.ByupConsensi.set(id, ok, Array.isArray(ids) ? {
+        gesto: 'unico',
+        canale
+      } : undefined));
+    },
+    // «Marketing byup»: accendendolo si accendono tutti e tre; spento, li spegne.
+    setMarketingTutti(ok) {
+      ['email', 'messaggi', 'notifiche'].forEach(c => window.ByupConsensi.setMarketing(c, ok));
     }
   };
 })();
+
+// ─── La posizione, la città scelta a mano e il cancello di densità ─────────
+// (P-202/P-204 · D-161, D-163)
+// Il permesso è la prima scelta, e si chiede perché è ciò che rende veri i
+// numeri che il prodotto mostra: distanze e tempi per raggiungere un locale si
+// calcolano dalla posizione VERA della persona. Chi lo nega sceglie la città a
+// mano e continua a usare l'app, ma perde quei numeri — misurati dal centro
+// città sembrerebbero veri e non lo sarebbero, e allora non si mostrano
+// affatto.
+// IL CANCELLO NON LO APRE IL PERMESSO, LO APRE LA DENSITÀ. La scoperta compare
+// solo se entro il raggio urbano ci sono più di 125 locali paganti OPPURE più
+// di 150 entro il raggio esteso (discovery_areas). Con il permesso i locali si
+// contano da dove la persona si trova davvero, senza si contano dal centro
+// della città scelta: cambia il punto da cui parte il raggio, non la regola.
+// Sotto soglia la home resta senza la sezione di scoperta, mentre ricerca
+// diretta, link e QR continuano a funzionare.
+// Le soglie e i raggi sono parametri del team Byup in Hubble e non si toccano
+// da qui.
+(function () {
+  const POS_KEY = 'byup_posizione';
+  const SOGLIA_URBANO = 125,
+    SOGLIA_ESTESO = 150;
+  // Le città in cui Byup è presente, col loro centro e i locali paganti
+  // contati entro i due raggi. Venezia e Palermo stanno SOTTO soglia: senza
+  // almeno una città sotto, il cancello non si vedrebbe mai funzionare.
+  const CITTA = [{
+    id: 'roma',
+    nome: 'Roma',
+    centro: {
+      lat: 41.9028,
+      lng: 12.4964
+    },
+    urbano: 262,
+    esteso: 310
+  }, {
+    id: 'milano',
+    nome: 'Milano',
+    centro: {
+      lat: 45.4642,
+      lng: 9.1900
+    },
+    urbano: 188,
+    esteso: 233
+  }, {
+    id: 'firenze',
+    nome: 'Firenze',
+    centro: {
+      lat: 43.7696,
+      lng: 11.2558
+    },
+    urbano: 131,
+    esteso: 158
+  }, {
+    id: 'napoli',
+    nome: 'Napoli',
+    centro: {
+      lat: 40.8518,
+      lng: 14.2681
+    },
+    urbano: 118,
+    esteso: 164
+  }, {
+    id: 'venezia',
+    nome: 'Venezia',
+    centro: {
+      lat: 45.4408,
+      lng: 12.3155
+    },
+    urbano: 41,
+    esteso: 72
+  }, {
+    id: 'palermo',
+    nome: 'Palermo',
+    centro: {
+      lat: 38.1157,
+      lng: 13.3615
+    },
+    urbano: 63,
+    esteso: 96
+  }];
+  const leggi = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+      return v && typeof v === 'object' ? v : {};
+    } catch (e) {
+      return {};
+    }
+  };
+  const scrivi = v => {
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify(v));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event('byup-posizione-change'));
+    } catch (e) {}
+  };
+  window.ByupPosizione = {
+    CITTA,
+    SOGLIA_URBANO,
+    SOGLIA_ESTESO,
+    stato: leggi,
+    // 'concesso' | 'negato' | null (non ancora chiesto)
+    permesso() {
+      return leggi().permesso || null;
+    },
+    // Concedendo il permesso, la città in cui la persona SI TROVA è quella su
+    // cui è posata l'app in quel momento: nel mockup non esiste una posizione
+    // vera da cui dedurla, e questa è l'unica informazione disponibile.
+    concedi() {
+      const v = leggi();
+      v.permesso = 'concesso';
+      v.quando = new Date().toISOString();
+      v.sono = v.citta || CITTA[0].id;
+      scrivi(v);
+    },
+    // Negando si sceglie la città: finché non la sceglie vale la prima.
+    nega() {
+      const v = leggi();
+      v.permesso = 'negato';
+      v.quando = new Date().toISOString();
+      scrivi(v);
+    },
+    scegliCitta(id) {
+      const v = leggi();
+      v.citta = id;
+      scrivi(v);
+    },
+    citta() {
+      const id = leggi().citta;
+      return CITTA.find(c => c.id === id) || CITTA[0];
+    },
+    // Dove la persona si trova davvero, quando l'ha concesso: serve a
+    // distinguere «sono qui» da «sto guardando un'altra città».
+    cittaDiPosizione() {
+      const v = leggi();
+      return v.permesso === 'concesso' ? CITTA.find(c => c.id === (v.sono || v.citta)) || CITTA[0] : null;
+    },
+    // I NUMERI CHE DIPENDONO DALLA POSIZIONE VERA (P-210 · D-163). Non basta
+    // il permesso: serve anche che la città guardata sia quella in cui la
+    // persona si trova. Se sto a Roma e guardo Palermo le distanze non si
+    // mostrano — non perché manchi il permesso, ma perché sarebbero distanze
+    // da Roma a locali di Palermo. E non si stimano dal centro: si tolgono.
+    distanze() {
+      const v = leggi();
+      if (v.permesso !== 'concesso') return false;
+      const qui = window.ByupPosizione.cittaDiPosizione();
+      return !!qui && qui.id === window.ByupPosizione.citta().id;
+    },
+    // IL CANCELLO SI MISURA DALLA CITTÀ CHE SI STA GUARDANDO (P-210 · D-163),
+    // qualunque sia lo stato del permesso: la soglia e i raggi non cambiano,
+    // cambia il punto da cui il raggio parte — la posizione vera quando c'è,
+    // il centro della città scelta quando non c'è. Nel mockup la posizione
+    // vera non esiste e la città scelta è l'unica informazione disponibile,
+    // quindi vale anche a permesso concesso; così il cancello si vede
+    // funzionare in tutti e due i rami, che prima era impossibile perché si
+    // misurava sempre da Roma.
+    scopertaAperta() {
+      const c = window.ByupPosizione.citta();
+      return c.urbano > SOGLIA_URBANO || c.esteso > SOGLIA_ESTESO;
+    }
+  };
+})();
+
+// ─── Orari del locale e ultima comanda della cucina (P-167 · D-117) ─────────
+// Il locale ha gli orari di apertura (Vetrina → Orari di apertura, registro
+// byup_orari) e la cucina ha la sua ULTIMA COMANDA (Impostazioni → Menù e
+// cucina → Servizio, registro byup_ultima_comanda): un orario per giorno,
+// «uguale alla chiusura» come predefinito. La mezzanotte si gestisce come la
+// chiusura del locale: un orario prima dell'apertura appartiene al giorno
+// prima. L'orologio è quello italiano, o quello finto di `?ora=HH:MM`
+// (sessionStorage byup_ora_demo), che serve a provare la cucina chiusa senza
+// aspettare la notte. D-117: l'ultima comanda è una promessa ai clienti, non
+// un lucchetto per chi sta in sala — app e webapp fermano l'aggiunta dei piatti
+// non eccettuati, Sala e cameriere inviano con un avviso.
+if (!window.byupCucinaInfo) {
+  const ORARI_KEY = 'byup_orari',
+    UC_KEY = 'byup_ultima_comanda';
+  const GIORNI = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+  // Il seme è quello della Vetrina: aperto dal lunedì al sabato, 09:00–23:00.
+  const ORARI_SEME = {
+    openDays: {
+      Lun: true,
+      Mar: true,
+      Mer: true,
+      Gio: true,
+      Ven: true,
+      Sab: true
+    },
+    stdHours: ['09:00', '23:00'],
+    customHours: null
+  };
+  const leggi = (k, fb) => {
+    try {
+      const s = localStorage.getItem(k);
+      return s ? Object.assign({}, fb, JSON.parse(s)) : Object.assign({}, fb);
+    } catch (e) {
+      return Object.assign({}, fb);
+    }
+  };
+  window.byupReadOrari = () => leggi(ORARI_KEY, ORARI_SEME);
+  window.byupWriteOrari = v => {
+    try {
+      localStorage.setItem(ORARI_KEY, JSON.stringify(v));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event('byup-orari-change'));
+    } catch (e) {}
+  };
+  window.byupReadUltimaComanda = () => leggi(UC_KEY, {
+    modo: 'chiusura',
+    orari: {}
+  });
+  window.byupWriteUltimaComanda = v => {
+    try {
+      localStorage.setItem(UC_KEY, JSON.stringify(v));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event('byup-ultima-comanda-change'));
+    } catch (e) {}
+  };
+  const toMin = hhmm => {
+    const [h, m] = String(hhmm || '00:00').split(':').map(n => parseInt(n, 10) || 0);
+    return h * 60 + m;
+  };
+  const pad = n => String(n).padStart(2, '0');
+  // L'ora e il giorno italiani, o quelli finti.
+  window.byupOraDemo = () => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('ora');
+      if (q && /^\d{1,2}:\d{2}$/.test(q)) sessionStorage.setItem('byup_ora_demo', q);
+      const d = sessionStorage.getItem('byup_ora_demo');
+      if (d) return d;
+    } catch (e) {}
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', {
+        timeZone: 'Europe/Rome',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(new Date());
+      const g = t => (p.find(x => x.type === t) || {}).value || '00';
+      return `${pad(parseInt(g('hour'), 10) % 24)}:${g('minute')}`;
+    } catch (e) {
+      const d = new Date();
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+  };
+  // Gli orari di un giorno (0 = domenica): aperto?, apre, chiude — dal primo
+  // all'ultimo turno se il giorno è personalizzato.
+  window.byupOrariDelGiorno = idx => {
+    const o = window.byupReadOrari();
+    const g = GIORNI[(idx % 7 + 7) % 7];
+    if (!o.openDays || !o.openDays[g]) return {
+      giorno: g,
+      aperto: false
+    };
+    const turni = o.customHours && o.customHours[g] && o.customHours[g].length ? o.customHours[g] : [o.stdHours || ORARI_SEME.stdHours];
+    return {
+      giorno: g,
+      aperto: true,
+      apre: turni[0][0],
+      chiude: turni[turni.length - 1][1]
+    };
+  };
+  window.byupCucinaInfo = () => {
+    const ora = window.byupOraDemo();
+    const m = toMin(ora);
+    const oggiIdx = new Date().getDay();
+    // Minuti trascorsi dall'apertura, contando oltre la mezzanotte se serve.
+    const dopo = (apre, t) => (toMin(t) - toMin(apre) + 1440) % 1440;
+    const valuta = idx => {
+      const g = window.byupOrariDelGiorno(idx);
+      if (!g.aperto) return null;
+      const durata = g.chiude === g.apre ? 1440 : dopo(g.apre, g.chiude);
+      const uc = window.byupReadUltimaComanda();
+      const ultima = uc.modo === 'orario' && uc.orari && uc.orari[g.giorno] ? uc.orari[g.giorno] : g.chiude;
+      const trascorso = dopo(g.apre, ora);
+      return {
+        giorno: g.giorno,
+        apre: g.apre,
+        chiude: g.chiude,
+        ultimaComanda: ultima,
+        localeAperto: trascorso < durata,
+        cucinaAperta: trascorso < Math.min(durata, dopo(g.apre, ultima) || durata)
+      };
+    };
+    let v = valuta(oggiIdx);
+    // Prima dell'apertura di oggi può valere ancora la giornata di ieri, se
+    // chiudeva dopo mezzanotte.
+    if (!v || !v.localeAperto) {
+      const ieri = valuta(oggiIdx - 1);
+      if (ieri && toMin(ieri.chiude) <= toMin(ieri.apre) && ieri.localeAperto && m < toMin(ieri.chiude)) v = ieri;
+    }
+    if (!v) {
+      const g = window.byupOrariDelGiorno(oggiIdx);
+      return {
+        ora,
+        giorno: g.giorno,
+        localeAperto: false,
+        cucinaAperta: false,
+        apre: null,
+        chiude: null,
+        ultimaComanda: null,
+        chiusoOggi: true
+      };
+    }
+    return Object.assign({
+      ora,
+      chiusoOggi: false
+    }, v);
+  };
+  // Il locale della demo, quello del menù: per gli altri della scoperta non
+  // conosciamo la cucina e non si inventa.
+  window.byupAvvisoCucinaChiusa = () => {
+    const i = window.byupCucinaInfo();
+    return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null;
+  };
+  // A locale chiuso (P-169 · D-117 completata, SFA 3.3 e 11.6) il menù si
+  // consulta ma non si ordina, e il QR non apre alcuna sessione: la riga che
+  // lo spiega ad app e webapp nasce qui. null = locale aperto. Il personale
+  // non ha questo blocco: chi è dentro il locale invia.
+  window.byupLocaleChiusoMessaggio = () => {
+    const i = window.byupCucinaInfo();
+    if (i.localeAperto) return null;
+    return i.chiusoOggi ? 'Oggi il locale è chiuso: il menù si consulta, si ordina quando è aperto.' : `Il locale è chiuso, apre alle ${i.apre}: il menù si consulta, si ordina quando è aperto.`;
+  };
+  window.byupCucinaChiusaPer = nome => {
+    if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false;
+    const i = window.byupCucinaInfo();
+    return i.localeAperto && !i.cucinaAperta;
+  };
+}
+
+// ─── I canali del cliente: il segno «dal QR» e i limiti (P-168 · D-118) ─────
+// Quando la sessione del tavolo nasce da una scansione del QR — dall'app o
+// dalla webapp — e non dal personale, la sala lo sa da un segno discreto,
+// perché quasi tutti quei tavoli sono clienti veri. Il tavolo che ha superato
+// un limite, o la cui rete non è della città del locale, porta «da verificare».
+// I limiti fermano il volume, non il cliente onesto: un invio respinto dice
+// sempre l'attesa residua, mai un errore muto. Nessun cancello del pagamento
+// sulla sala, nessuna verifica d'identità, nessun ban sul dispositivo, nessun
+// blocco per indirizzo di rete. I nomi sono quelli del modello:
+// orders.source_surface vale staff_web | webapp_guest | byup_app.
+// Registri sullo stesso dominio: byup_limiti (i tre parametri, che Hubble
+// governa), byup_tavoli_qr (i tavoli aperti da un cliente), byup_invii (la
+// storia recente per tavolo e per dispositivo), byup_limiti_rifiuti (quante
+// volte al giorno, per limite: quante, non chi). Rete di prova: ?rete=fuori.
+if (!window.byupInvioConsentito) {
+  const LIM_KEY = 'byup_limiti',
+    TQR_KEY = 'byup_tavoli_qr',
+    INV_KEY = 'byup_invii',
+    RIF_KEY = 'byup_limiti_rifiuti',
+    DISP_KEY = 'byup_dispositivo';
+  const LIMITI_SEME = {
+    invii: {
+      n: 3,
+      minuti: 2
+    },
+    righe: 30,
+    tavoli: {
+      n: 5,
+      minuti: 60
+    }
+  };
+  const SESSIONE_MS = 6 * 60 * 60 * 1000; // un tavolo aperto da un cliente si dimentica dopo sei ore
+  const leggi = (k, seme) => {
+    try {
+      const v = JSON.parse(localStorage.getItem(k));
+      return v && typeof v === 'object' ? v : seme;
+    } catch (e) {
+      return seme;
+    }
+  };
+  const scrivi = (k, v, evento) => {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event(evento));
+    } catch (e) {}
+  };
+  const oggi = () => new Date().toISOString().slice(0, 10);
+  const num = t => String(t == null ? '' : t).replace(/\D+/g, '') || String(t);
+  window.byupReadLimiti = () => {
+    const v = leggi(LIM_KEY, {});
+    return {
+      invii: {
+        n: Math.max(1, parseInt(v.invii && v.invii.n, 10) || LIMITI_SEME.invii.n),
+        minuti: Math.max(1, parseInt(v.invii && v.invii.minuti, 10) || LIMITI_SEME.invii.minuti)
+      },
+      righe: Math.max(1, parseInt(v.righe, 10) || LIMITI_SEME.righe),
+      tavoli: {
+        n: Math.max(1, parseInt(v.tavoli && v.tavoli.n, 10) || LIMITI_SEME.tavoli.n),
+        minuti: Math.max(1, parseInt(v.tavoli && v.tavoli.minuti, 10) || LIMITI_SEME.tavoli.minuti)
+      }
+    };
+  };
+  window.byupWriteLimiti = l => scrivi(LIM_KEY, Object.assign({}, window.byupReadLimiti(), l || {}), 'byup-limiti-change');
+  window.byupDispositivoId = () => {
+    let id = null;
+    try {
+      id = localStorage.getItem(DISP_KEY);
+    } catch (e) {}
+    if (!id) {
+      id = 'd_' + Math.random().toString(36).slice(2, 10);
+      try {
+        localStorage.setItem(DISP_KEY, id);
+      } catch (e) {}
+    }
+    return id;
+  };
+  window.byupReteFuoriCitta = () => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('rete');
+      if (q) sessionStorage.setItem('byup_rete_demo', q);
+      return sessionStorage.getItem('byup_rete_demo') === 'fuori';
+    } catch (e) {
+      return false;
+    }
+  };
+  // I tavoli aperti da un cliente: { [numero]: { source_surface, opened_at, verifica } }
+  window.byupReadTavoliQr = () => {
+    const t = leggi(TQR_KEY, {}),
+      ora = Date.now(),
+      out = {};
+    Object.keys(t).forEach(k => {
+      const e = t[k];
+      if (e && e.opened_at && ora - Date.parse(e.opened_at) < SESSIONE_MS) out[k] = e;
+    });
+    return out;
+  };
+  window.byupSegnaTavoloQr = (tavolo, source_surface) => {
+    const t = window.byupReadTavoliQr(),
+      k = num(tavolo);
+    if (!t[k]) t[k] = {
+      source_surface: source_surface || 'webapp_guest',
+      opened_at: new Date().toISOString(),
+      verifica: null
+    };
+    if (!t[k].verifica && window.byupReteFuoriCitta()) t[k].verifica = 'rete';
+    scrivi(TQR_KEY, t, 'byup-tavoli-qr-change');
+    return t[k];
+  };
+  window.byupSegnaDaVerificare = (tavolo, motivo) => {
+    const t = window.byupReadTavoliQr(),
+      k = num(tavolo);
+    if (!t[k]) t[k] = {
+      source_surface: 'webapp_guest',
+      opened_at: new Date().toISOString(),
+      verifica: null
+    };
+    t[k].verifica = motivo || 'limite';
+    scrivi(TQR_KEY, t, 'byup-tavoli-qr-change');
+  };
+  window.byupChiudiTavoloQr = tavolo => {
+    const t = window.byupReadTavoliQr();
+    delete t[num(tavolo)];
+    scrivi(TQR_KEY, t, 'byup-tavoli-qr-change');
+  };
+  window.byupTavoloQr = tavolo => window.byupReadTavoliQr()[num(tavolo)] || null;
+  // Il segno che la sala disegna: il registro vince, il seme del mockup
+  // (source_surface e verifica sul tavolo o sulla sorgente) vale quando il
+  // registro tace. null = tavolo aperto dal personale, niente da disegnare.
+  window.byupSegnoCanale = (tavolo, seme) => {
+    const e = window.byupTavoloQr(tavolo) || (seme && seme.source_surface && seme.source_surface !== 'staff_web' ? seme : null);
+    if (!e) return null;
+    if (e.verifica) return {
+      livello: 'verifica',
+      testo: 'da verificare',
+      motivo: e.verifica,
+      source_surface: e.source_surface
+    };
+    return {
+      livello: 'qr',
+      testo: 'dal QR',
+      source_surface: e.source_surface
+    };
+  };
+  // I rifiuti del giorno, per limite: { invii, righe, tavoli }
+  window.byupReadRifiuti = giorno => {
+    const r = leggi(RIF_KEY, {});
+    return Object.assign({
+      invii: 0,
+      righe: 0,
+      tavoli: 0
+    }, r[giorno || oggi()] || {});
+  };
+  const contaRifiuto = limite => {
+    const r = leggi(RIF_KEY, {}),
+      g = oggi();
+    r[g] = r[g] || {};
+    r[g][limite] = (r[g][limite] || 0) + 1;
+    scrivi(RIF_KEY, r, 'byup-limiti-rifiuti-change');
+  };
+  // L'invio di una comanda da un canale del cliente: passa, oppure dice quanto
+  // aspettare. Tre limiti: invii per tavolo nella finestra, righe per invio,
+  // tavoli diversi per dispositivo nell'ora. Il rifiuto segna il tavolo.
+  window.byupInvioConsentito = (tavolo, righe) => {
+    const L = window.byupReadLimiti(),
+      ora = Date.now(),
+      k = num(tavolo),
+      disp = window.byupDispositivoId();
+    const inv = leggi(INV_KEY, {});
+    inv.tavoli = inv.tavoli || {};
+    inv.dispositivi = inv.dispositivi || {};
+    const rifiuta = (limite, messaggio) => {
+      contaRifiuto(limite);
+      window.byupSegnaDaVerificare(k, 'limite');
+      return {
+        ok: false,
+        limite,
+        messaggio
+      };
+    };
+    if ((righe || 0) > L.righe) return rifiuta('righe', `Sono troppe righe per un invio solo: al massimo ${L.righe}. Manda quello che c'è, il resto in un invio dopo.`);
+    const finestra = L.invii.minuti * 60000;
+    const recenti = (inv.tavoli[k] || []).filter(ts => ora - ts < finestra).sort((a, b) => a - b);
+    if (recenti.length >= L.invii.n) {
+      const attesa = Math.max(1, Math.ceil((recenti[0] + finestra - ora) / 1000));
+      return rifiuta('invii', attesa >= 90 ? `Aspetta ${Math.ceil(attesa / 60)} minuti prima di inviare ancora.` : `Aspetta ${attesa} secondi prima di inviare ancora.`);
+    }
+    const finestra2 = L.tavoli.minuti * 60000,
+      miei = inv.dispositivi[disp] || {};
+    const altri = Object.keys(miei).filter(t2 => t2 !== k && ora - miei[t2] < finestra2);
+    if (!miei[k] && altri.length >= L.tavoli.n) {
+      const attesa = Math.max(1, Math.ceil(Math.min.apply(null, altri.map(t2 => miei[t2] + finestra2 - ora)) / 60000));
+      return rifiuta('tavoli', `Da questo telefono hai già ordinato a ${L.tavoli.n} tavoli nell'ultima ora: aspetta ${attesa} minuti prima di un tavolo nuovo.`);
+    }
+    recenti.push(ora);
+    inv.tavoli[k] = recenti;
+    miei[k] = ora;
+    inv.dispositivi[disp] = miei;
+    scrivi(INV_KEY, inv, 'byup-invii-change');
+    return {
+      ok: true
+    };
+  };
+}
 
 // ─── Registro delle attività (P-122 · D-104, D-107) ────────────────────────
 // La modifica dei dati anagrafici non chiede password né assistenza: il dato
@@ -1112,9 +1837,12 @@
 //     profilo — i termini del piano delle conservazioni, senza «10 anni per
 //     obblighi fiscali», che è l'obbligo dell'esercente sui suoi documenti,
 //     né «13 mesi» sulla navigazione (P-81);
-//   · prenotazioni: annullamento libero finché confermata, nessuna
-//     conseguenza per la mancata presentazione — nessuna penale che il
-//     prodotto non ha (P-82).
+//   · prenotazioni: annullamento libero finché confermata; sulla mancata
+//     presentazione il testo dice quello che dicono le condizioni d'uso
+//     depositate (TOS-01 §4), non di più (P-160): il locale può liberare il
+//     tavolo trascorso il suo tempo di tolleranza, Byup non addebita nulla e
+//     non applica penali — non «nessuna conseguenza», che prometteva al
+//     consumatore più del contratto.
 // La sezione sui suggerimenti dice l'interruttore di «I miei dati» (P-26),
 // che ora esiste: «scrivendo all'assistenza» non era più vero.
 //
@@ -1192,7 +1920,7 @@ const BYUP_LEGAL = {
       p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.'
     }, {
       h: 'Prenotazioni e annullamenti',
-      p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, non ti addebitiamo nulla. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.'
+      p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, il locale può liberare il tavolo trascorso il tempo di tolleranza che ha impostato; Byup non ti addebita nulla e non applica penali. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.'
     }, {
       h: 'Responsabilità',
       p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.'
@@ -1502,7 +2230,7 @@ const GUSTI = [{
 // va chiamato così — è la misura di bilanciamento su cui la LIA fonda
 // l'opposizione facile. Spegnerlo scrive nel log consent_data DUE righe coi
 // nomi del modello (P-122 · P-123), recommendations e analytics, action
-// 'revoked' e natura 'opposizione'; riaccenderlo ne scrive due 'granted'.
+// 'opposed'; riaccenderlo ne scrive due 'opposition_withdrawn' (P-161 · D-115).
 // (Fino al 2026-09-04 era una riga sola, LI-SUGG: le righe vecchie restano
 // nel log come storia.) Gli eventi d'uso (app_usage_events) sono tre e basta —
 // app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
@@ -1538,25 +2266,23 @@ const GUSTI = [{
     },
     imposta(on) {
       scrivi(K_SUGG, on ? 'on' : 'off');
-      // La traccia dell'opposizione (o della riattivazione) nel log dei
-      // consensi: stesso registro, due voci coi nomi del modello, natura
-      // 'opposizione' — NON è un consenso. Hubble le legge da lì.
+      // La traccia dell'opposizione (o del suo ritiro) nel log dei consensi:
+      // stesso registro, due voci coi nomi del modello, azione 'opposed' o
+      // 'opposition_withdrawn' — NON è un consenso. Hubble le legge da lì.
       if (window.ByupConsensi) {
-        window.ByupConsensi.set('recommendations', !!on, {
-          natura: 'opposizione'
-        });
-        window.ByupConsensi.set('analytics', !!on, {
-          natura: 'opposizione'
-        });
+        window.ByupConsensi.set('recommendations', !!on);
+        window.ByupConsensi.set('analytics', !!on);
       }
       try {
         window.dispatchEvent(new Event('byup-suggerimenti-change'));
       } catch (e) {}
       return !!on;
     },
-    // L'emissione: tre tipi, la città, il momento. Con l'interruttore spento
+    // L'emissione: tre tipi, la città, il momento e la SEDE a cui l'evento si
+    // riferisce (app_usage_events.venue_id, P-161 · D-115): il menù sfogliato
+    // o il codice scansionato; app_open resta senza. Con l'interruttore spento
     // non scrive, e non scrive nient'altro in nessun caso.
-    emetti(tipo, venue) {
+    emetti(tipo, venueId) {
       if (!TIPI.includes(tipo)) return null;
       if (!window.ByupUso.suggerimenti()) return null;
       const log = leggi(K_USO, []);
@@ -1564,7 +2290,7 @@ const GUSTI = [{
         tipo,
         quando: new Date().toISOString(),
         citta: window.ByupUso.citta(),
-        venue: venue || null
+        venue_id: venueId || null
       };
       log.push(riga);
       if (log.length > 500) log.splice(0, log.length - 500);
@@ -1666,9 +2392,41 @@ const GUSTI = [{
   };
   window.ByupCoperto = {
     leggi,
+    // La formula del menù (P-193 · D-141): con il prezzo per persona la quota
+    // comprende tutto e la voce non si applica (D-143). Copia guardata.
+    formula() {
+      try {
+        return localStorage.getItem('byup_menu_formula') === 'per_persona' ? 'per_persona' : 'carte';
+      } catch {
+        return 'carte';
+      }
+    },
     riga(subtotale, coperti, cfg) {
       const c = cfg || leggi();
       const nome = NOMI[c.qualificazione] || 'Coperto';
+      if (window.ByupCoperto.formula() === 'per_persona') return {
+        nome,
+        attiva: false,
+        perPersona: true,
+        forma: c.forma,
+        importo: Number(c.importo) || 0,
+        aliquota: Number(c.aliquota) || 0,
+        etichetta: '',
+        dettaglio: '',
+        valore: 0
+      };
+      // Sospesa (P-171): la sede è in una regione che vieta la qualificazione in uso, e la voce tace.
+      if (c.sospesa) return {
+        nome,
+        attiva: false,
+        sospesa: true,
+        forma: c.forma,
+        importo: Number(c.importo) || 0,
+        aliquota: Number(c.aliquota) || 0,
+        etichetta: '',
+        dettaglio: '',
+        valore: 0
+      };
       if (c.forma === 'percentuale') {
         const aliquota = Number(c.aliquota) || 0;
         return {
@@ -1692,6 +2450,22 @@ const GUSTI = [{
         dettaglio: `${nome} × ${n}`,
         valore: Math.round(importo * n * 100) / 100
       };
+    },
+    // Il momento in cui la riga è COMPARSA al cliente (P-192), non quello
+    // della conferma: è quello che finisce in orders.cover_disclosed_at.
+    // Copia guardata di window.byupCopertoEsposto.
+    esposto(segna) {
+      try {
+        const k = 'byup_coperto_esposto';
+        const gia = sessionStorage.getItem(k);
+        if (gia) return gia;
+        if (!segna) return null;
+        const ora = new Date().toISOString();
+        sessionStorage.setItem(k, ora);
+        return ora;
+      } catch (e) {
+        return null;
+      }
     }
   };
 })();
@@ -1701,7 +2475,7 @@ const GUSTI = [{
 (function(){
 // iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
 // Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
-// Exports: IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSKeyboard
+// Exports: IOSDevice, IOSStatusBar
 
 // ─────────────────────────────────────────────────────────────
 // Status bar
@@ -1826,148 +2600,13 @@ function IOSStatusBar({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Liquid glass pill — blur + tint + shine
-// ─────────────────────────────────────────────────────────────
-function IOSGlassPill({
-  children,
-  dark = false,
-  style = {}
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 44,
-      minWidth: 44,
-      borderRadius: 9999,
-      position: 'relative',
-      overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: dark ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
-      ...style
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 9999,
-      backdropFilter: 'blur(12px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-      background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 9999,
-      boxShadow: dark ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)' : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
-      border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      zIndex: 1,
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 4px'
-    }
-  }, children));
-}
-
-// ─────────────────────────────────────────────────────────────
-// Navigation bar — glass pills + large title
-// ─────────────────────────────────────────────────────────────
-function IOSNavBar({
-  title = 'Title',
-  dark = false,
-  trailingIcon = true
-}) {
-  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
-  const text = dark ? '#fff' : '#000';
-  const pillIcon = content => /*#__PURE__*/React.createElement(IOSGlassPill, {
-    dark: dark
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, content));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      paddingTop: 62,
-      paddingBottom: 10,
-      position: 'relative',
-      zIndex: 5
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 16px'
-    }
-  }, pillIcon(/*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "20",
-    viewBox: "0 0 12 20",
-    fill: "none",
-    style: {
-      marginLeft: -1
-    }
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M10 2L2 10l8 8",
-    stroke: muted,
-    strokeWidth: "2.5",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }))), trailingIcon && pillIcon(/*#__PURE__*/React.createElement("svg", {
-    width: "22",
-    height: "6",
-    viewBox: "0 0 22 6"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "3",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "11",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "19",
-    cy: "3",
-    r: "2.5",
-    fill: muted
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 16px',
-      fontFamily: '-apple-system, system-ui',
-      fontSize: 34,
-      fontWeight: 700,
-      lineHeight: '41px',
-      color: text,
-      letterSpacing: 0.4
-    }
-  }, title));
-}
-
-// ─────────────────────────────────────────────────────────────
 // Device frame
 // ─────────────────────────────────────────────────────────────
 function IOSDevice({
   children,
   width = 402,
   height = 874,
-  dark = false,
-  title,
-  keyboard = false
+  dark = false
 }) {
   // Su mobile: niente mockup — l'app occupa tutto lo schermo, come un'app vera.
   const [isMobile, setIsMobile] = React.useState(() => {
@@ -1992,6 +2631,7 @@ function IOSDevice({
   }, []);
   if (isMobile) {
     return /*#__PURE__*/React.createElement("div", {
+      "data-byup-screen": true,
       style: {
         position: 'fixed',
         inset: 0,
@@ -2007,18 +2647,13 @@ function IOSDevice({
         display: 'flex',
         flexDirection: 'column'
       }
-    }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
-      title: title,
-      dark: dark
-    }), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         overflow: 'auto',
         position: 'relative'
       }
-    }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
-      dark: dark
-    })), /*#__PURE__*/React.createElement("div", {
+    }, children)), /*#__PURE__*/React.createElement("div", {
       "aria-hidden": true,
       style: {
         position: 'absolute',
@@ -2035,6 +2670,7 @@ function IOSDevice({
     }));
   }
   return /*#__PURE__*/React.createElement("div", {
+    "data-byup-screen": true,
     style: {
       width,
       height,
@@ -2075,17 +2711,12 @@ function IOSDevice({
       display: 'flex',
       flexDirection: 'column'
     }
-  }, title !== undefined && /*#__PURE__*/React.createElement(IOSNavBar, {
-    title: title,
-    dark: dark
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       overflow: 'auto'
     }
-  }, children), keyboard && /*#__PURE__*/React.createElement(IOSKeyboard, {
-    dark: dark
-  })), /*#__PURE__*/React.createElement("div", {
+  }, children)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       bottom: 0,
@@ -2108,213 +2739,9 @@ function IOSDevice({
     }
   })));
 }
-
-// ─────────────────────────────────────────────────────────────
-// Keyboard — iOS 26 liquid glass
-// ─────────────────────────────────────────────────────────────
-function IOSKeyboard({
-  dark = false
-}) {
-  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
-  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
-  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
-
-  // special-key icons
-  const icons = {
-    shift: /*#__PURE__*/React.createElement("svg", {
-      width: "19",
-      height: "17",
-      viewBox: "0 0 19 17"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z",
-      fill: glyph
-    })),
-    del: /*#__PURE__*/React.createElement("svg", {
-      width: "23",
-      height: "17",
-      viewBox: "0 0 23 17"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z",
-      fill: "none",
-      stroke: glyph,
-      strokeWidth: "1.6",
-      strokeLinejoin: "round"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M10 5l7 7M17 5l-7 7",
-      stroke: glyph,
-      strokeWidth: "1.6",
-      strokeLinecap: "round"
-    })),
-    ret: /*#__PURE__*/React.createElement("svg", {
-      width: "20",
-      height: "14",
-      viewBox: "0 0 20 14"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M18 1v6H4m0 0l4-4M4 7l4 4",
-      fill: "none",
-      stroke: "#fff",
-      strokeWidth: "1.8",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }))
-  };
-  const key = (content, {
-    w,
-    flex,
-    ret,
-    fs = 25,
-    k
-  } = {}) => /*#__PURE__*/React.createElement("div", {
-    key: k,
-    style: {
-      height: 42,
-      borderRadius: 8.5,
-      flex: flex ? 1 : undefined,
-      width: w,
-      minWidth: 0,
-      background: ret ? '#08f' : keyBg,
-      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: '-apple-system, "SF Compact", system-ui',
-      fontSize: fs,
-      fontWeight: 458,
-      color: ret ? '#fff' : glyph
-    }
-  }, content);
-  const row = (keys, pad = 0) => /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6.5,
-      justifyContent: 'center',
-      padding: `0 ${pad}px`
-    }
-  }, keys.map(l => key(l, {
-    flex: true,
-    k: l
-  })));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      zIndex: 15,
-      borderRadius: 27,
-      overflow: 'hidden',
-      padding: '11px 0 2px',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      boxShadow: dark ? '0 -2px 20px rgba(0,0,0,0.09)' : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 27,
-      backdropFilter: 'blur(12px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-      background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 27,
-      boxShadow: dark ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)' : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
-      border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
-      pointerEvents: 'none'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 20,
-      alignItems: 'center',
-      padding: '8px 22px 13px',
-      width: '100%',
-      boxSizing: 'border-box',
-      position: 'relative'
-    }
-  }, ['"The"', 'the', 'to'].map((w, i) => /*#__PURE__*/React.createElement(React.Fragment, {
-    key: i
-  }, i > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 1,
-      height: 25,
-      background: '#ccc',
-      opacity: 0.3
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      textAlign: 'center',
-      fontFamily: '-apple-system, system-ui',
-      fontSize: 17,
-      color: sugg,
-      letterSpacing: -0.43,
-      lineHeight: '22px'
-    }
-  }, w)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 13,
-      padding: '0 6.5px',
-      width: '100%',
-      boxSizing: 'border-box',
-      position: 'relative'
-    }
-  }, row(['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']), row(['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], 20), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 14.25,
-      alignItems: 'center'
-    }
-  }, key(icons.shift, {
-    w: 45,
-    k: 'shift'
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6.5,
-      flex: 1
-    }
-  }, ['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(l => key(l, {
-    flex: true,
-    k: l
-  }))), key(icons.del, {
-    w: 45,
-    k: 'del'
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6,
-      alignItems: 'center'
-    }
-  }, key('ABC', {
-    w: 92.25,
-    fs: 18,
-    k: 'abc'
-  }), key('', {
-    flex: true,
-    k: 'space'
-  }), key(icons.ret, {
-    w: 92.25,
-    ret: true,
-    k: 'ret'
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 56,
-      width: '100%',
-      position: 'relative'
-    }
-  }));
-}
 Object.assign(window, {
   IOSDevice,
-  IOSStatusBar,
-  IOSNavBar,
-  IOSGlassPill,
-  IOSKeyboard
+  IOSStatusBar
 });
 })();
 </script>
@@ -2614,7 +3041,7 @@ function AllergensView({
   // ripristinato il 2026-08-17 — i toggle scrivevano un dato art. 9 senza
   // chiedere niente.)
   const [consensoOk, setConsensoOk] = useState(() => {
-    const st = ByupConsensi.stato('A3');
+    const st = ByupConsensi.stato('dietary_preferences');
     return !!(st && st.ok);
   });
   const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
@@ -2649,8 +3076,8 @@ function AllergensView({
   const count = group => Object.values(prefs[group] || {}).filter(Boolean).length;
   const confermaConsensi = () => {
     if (!chkA3) return;
-    ByupConsensi.set('A3', true);
-    if (chkA18) ByupConsensi.set('A18', true);
+    ByupConsensi.set('dietary_preferences', true);
+    if (chkA18) ByupConsensi.set('offers_on_preferences', true);
     setConsensoOk(true);
     if (pending) applica(pending.group, pending.id);
     setPending(null);
@@ -3910,11 +4337,44 @@ const PROFILE_PREFERITI = [{
 // preferiti, modificabili in ogni momento. I gusti stanno qui e non accanto
 // a «Dieta & allergeni», che contiene dati dell'articolo 9: accostarli li
 // farebbe sembrare la stessa cosa.
+// La lista viva dei locali la tiene il Profilo (P-143), così i due conteggi
+// che la riassumono — la riga di numeri in alto e la tessera — scendono con
+// lei quando si toglie un preferito. Senza il genitore, la vista se la tiene.
+// ─── La valutazione del locale (P-157) ──────────────────────────────
+// Copia guardata di byupReadValutazione / byupStelle (gestionale/panoramica-
+// tokens.jsx): stesso registro byup_valutazione sullo stesso dominio, stesso
+// seme (312 recensioni Byup, media 4,6), stesse stelle.
+function byupValutazioneLeggi() {
+  const SEME = {
+    media: 4.6,
+    n: 312
+  };
+  try {
+    const s = localStorage.getItem('byup_valutazione');
+    if (s) {
+      const v = JSON.parse(s);
+      if (v && isFinite(v.media)) return Object.assign({}, SEME, v);
+    }
+  } catch {}
+  return {
+    ...SEME
+  };
+}
+function byupStelle(media) {
+  const m = Number(media) || 0,
+    intera = Math.floor(m),
+    resto = m - intera;
+  return [1, 2, 3, 4, 5].map(n => n <= intera ? 'piena' : n === intera + 1 && resto >= 0.25 ? 'mezza' : 'vuota');
+}
 function PreferitivView({
   onBack,
-  onOpenVenue
+  onOpenVenue,
+  items: itemsProp,
+  onItems
 }) {
-  const [items, setItems] = useState(PROFILE_PREFERITI);
+  const [itemsSelf, setItemsSelf] = useState(PROFILE_PREFERITI);
+  const items = itemsProp || itemsSelf;
+  const setItems = onItems || setItemsSelf;
   const [gusti, setGusti] = useState(() => window.ByupGusti ? window.ByupGusti.leggi() : []);
   const commuta = id => setGusti(window.ByupGusti.commuta(id));
   function remove(id) {
@@ -4483,7 +4943,7 @@ function MieiDatiView({
 
   // La conferma scrive: il profilo, una riga per campo nel registro delle
   // attività col valore precedente (ByupAttivita, D-104), e per il genere la
-  // dichiarazione nel registro dei consensi (riga GEN col valore, natura
+  // dichiarazione nel registro dei consensi (riga gender col valore, azione granted
   // «dichiarazione», non un consenso; «Preferisco non specificare» la
   // azzera — P-84).
   const confermaModifiche = () => {
@@ -4501,7 +4961,7 @@ function MieiDatiView({
         new_value: m.field === 'birth_date' ? m.dopoIso : m.field === 'gender' ? genere : m.dopo
       });
       if (m.field === 'gender') {
-        if (genere) ByupConsensi.dichiara('GEN', genere);else ByupConsensi.azzera('GEN');
+        if (genere) ByupConsensi.dichiara('gender', genere);else ByupConsensi.azzera('gender');
       }
     });
     setConferma(false);
@@ -4791,14 +5251,17 @@ function MieiDatiView({
 // A3 cancella anche le preferenze salvate (senza consenso, niente dato).
 // (Rimosso per errore dal rewrite «Beta v2» del 2026-08-12, ripristinato
 // il 2026-08-17.)
-const CONSENSI_DEF = [{
-  id: 'A3',
-  label: 'Preferenze alimentari e allergeni',
+const CONSENSI_DEF = [
+// I nomi sono quelli del modello (P-161 · D-115): la sigla del registro dei
+// trattamenti (A3, A18) resta nell'etichetta, non nella chiave.
+{
+  id: 'dietary_preferences',
+  label: 'Preferenze alimentari e allergeni · A3',
   desc: 'Filtrare i menù in base a diete e allergie',
   dove: 'impostando le preferenze alimentari'
 }, {
-  id: 'A18',
-  label: 'Offerte sulle preferenze',
+  id: 'offers_on_preferences',
+  label: 'Offerte sulle preferenze · A18',
   desc: 'Promozioni costruite su diete e allergeni',
   dove: 'impostando le preferenze alimentari'
 },
@@ -4811,13 +5274,26 @@ const CONSENSI_DEF = [{
   desc: 'I piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti',
   dove: 'in Dieta & allergeni'
 },
-// A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
-// il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
-// registrazione. Le offerte su dati alimentari restano A18 (art. 9).
+// Il marketing (P-163 · D-113): UN interruttore che ne apre tre — Email,
+// Messaggi, Notifiche — e la profilazione a parte, perché è una finalità e
+// non un canale. Il gruppo si rende con le sue righe figlie (vedi
+// ConsensiPanel); le offerte su dati alimentari restano A18 (art. 9). I nomi
+// sono quelli del modello (P-161).
+// «Messaggi» vale per i soli SMS (P-205 · D-164): WhatsApp è predisposto nel
+// modello e fuori dal primo rilascio finché non saranno compiuti la scelta
+// del fornitore, la valutazione del trasferimento verso Paesi terzi,
+// l'accordo sul trattamento e l'iscrizione nei registri — e l'informativa
+// consumer, dalla v0.27, ha smesso di nominarlo.
 {
-  id: 'A6',
+  id: 'marketing',
+  gruppo: true,
   label: 'Marketing byup',
-  desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
+  desc: 'Novità e offerte da Byup, via email, messaggi e notifiche. Le trovi anche nella Posta dell\'app',
+  dove: 'alla registrazione'
+}, {
+  id: 'profilazione_marketing',
+  label: 'Promo su misura sui tuoi ordini',
+  desc: 'Le offerte costruite su quello che ordini. Senza, ricevi le stesse di tutti',
   dove: 'alla registrazione'
 }
 // Suggerimenti e analisi d'uso NON stanno in questa lista: sono legittimo
@@ -5016,7 +5492,7 @@ function ConsensiPanel({
   };
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
-    if (id === 'A3' && !v) {
+    if (id === 'dietary_preferences' && !v) {
       // niente base giuridica, niente dato — e senza dato cadono anche i
       // due consensi che lo usano (offerte, suggerimenti)
       try {
@@ -5025,7 +5501,7 @@ function ConsensiPanel({
           diets: {}
         }));
       } catch (e) {}
-      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+      if (ByupConsensi.stato('offers_on_preferences') && ByupConsensi.stato('offers_on_preferences').ok) ByupConsensi.set('offers_on_preferences', false);
       if (ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok) ByupConsensi.set('dietary_suggestions', false);
     }
     forza(x => x + 1);
@@ -5035,10 +5511,34 @@ function ConsensiPanel({
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
-  const attivi = CONSENSI_DEF.filter(c => {
+  const mk = ByupConsensi.marketing ? ByupConsensi.marketing() : {
+    qualsiasi: false
+  };
+  // Sotto i diciotto anni la profilazione non si propone: non gliel'abbiamo
+  // chiesta alla registrazione (P-187 · PRIV-09) e non si può accendere da
+  // qui. La riga torna da sé il giorno dei diciotto anni, spenta.
+  const minorenne = !!(window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore());
+  const CONSENSI_VISTI = minorenne ? CONSENSI_DEF.filter(c => c.id !== 'profilazione_marketing') : CONSENSI_DEF;
+  const attivi = CONSENSI_VISTI.filter(c => {
+    if (c.gruppo) return mk.qualsiasi;
     const st = ByupConsensi.stato(c.id);
     return st && st.ok;
   }).length;
+  // I tre canali del marketing: ognuno si spegne da solo; spenti tutti e tre
+  // si spegne anche il padre; il padre acceso li accende tutti.
+  const CANALI = [{
+    k: 'email',
+    label: 'Email',
+    desc: 'Le novità e le offerte nella tua casella di posta'
+  }, {
+    k: 'messaggi',
+    label: 'Messaggi',
+    desc: 'Gli SMS che arrivano al tuo numero'
+  }, {
+    k: 'notifiche',
+    label: 'Notifiche',
+    desc: 'Quelle che compaiono sul telefono. Senza, le promo restano nella Posta e non suonano'
+  }];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 22
@@ -5098,7 +5598,82 @@ function ConsensiPanel({
     }
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "6 9 12 15 18 9"
-  }))), aperto && CONSENSI_DEF.map((c, i) => {
+  }))), aperto && CONSENSI_VISTI.map((c, i) => {
+    if (c.gruppo) return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      style: {
+        ...sep
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        color: TEXT_X
+      }
+    }, c.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: MUTED_X,
+        marginTop: 2,
+        lineHeight: 1.4
+      }
+    }, c.desc), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: MUTED_X,
+        marginTop: 2,
+        opacity: .8
+      }
+    }, mk.maiChiesto ? 'Mai chiesto' : mk.qualsiasi ? `Acceso su ${[mk.email && 'email', mk.messaggi && 'messaggi', mk.notifiche && 'notifiche'].filter(Boolean).join(', ')}` : 'Spento')), /*#__PURE__*/React.createElement(ProfileToggle, {
+      value: mk.qualsiasi,
+      onChange: v => {
+        ByupConsensi.setMarketingTutti(v);
+        forza(x => x + 1);
+      }
+    })), CANALI.map(ch => /*#__PURE__*/React.createElement("div", {
+      key: ch.k,
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '9px 14px 9px 28px',
+        background: __BYUP_DK_X ? 'rgba(255,255,255,0.02)' : '#FCFAFB'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13.5,
+        color: TEXT_X
+      }
+    }, ch.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: MUTED_X,
+        marginTop: 1,
+        lineHeight: 1.4
+      }
+    }, ch.desc)), /*#__PURE__*/React.createElement(ProfileToggle, {
+      value: !!mk[ch.k],
+      onChange: v => {
+        ByupConsensi.setMarketing(ch.k, v);
+        forza(x => x + 1);
+      }
+    }))));
     const st = ByupConsensi.stato(c.id);
     // TUTTE le righe, sempre (scelta di Fabio, 2026-08-17): un consenso
     // mai incontrato compare con «Mai chiesto» — prima non compariva
@@ -5453,6 +6028,9 @@ function ProfileScreen({
   // ?add=1 (con view=pagamenti) apre direttamente "Aggiungi metodo di pagamento"
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
+  // I locali preferiti, vivi (P-143): il conteggio in alto e quello sulla
+  // tessera leggono da qui, non dalla costante di partenza.
+  const [preferiti, setPreferiti] = useState(PROFILE_PREFERITI);
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
   const [avatarSheet, setAvatarSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
@@ -5533,7 +6111,7 @@ function ProfileScreen({
     // salvate si azzerano al caricamento — comprese quelle nate nel periodo
     // in cui la Beta v2 aveva perso il flusso consensi e i toggle scrivevano
     // senza chiedere.
-    const st = typeof ByupConsensi !== 'undefined' ? ByupConsensi.stato('A3') : null;
+    const st = typeof ByupConsensi !== 'undefined' ? ByupConsensi.stato('dietary_preferences') : null;
     if (!(st && st.ok)) {
       try {
         localStorage.setItem('byup_allergens', JSON.stringify({
@@ -6030,7 +6608,7 @@ function ProfileScreen({
       boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
       animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards'
     }
-  }, [['24', 'Ordini', () => setView('orders')], [String(PROFILE_PREFERITI.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, [['24', 'Ordini', () => setView('orders')], [String(preferiti.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: l
   }, i > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6104,7 +6682,7 @@ function ProfileScreen({
     onClick: () => setView('allergens')
   }), /*#__PURE__*/React.createElement(QuickCard, {
     label: "Preferiti",
-    sub: `${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`,
+    sub: `${preferiti.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`,
     tint: "#F9E3EE",
     iconColor: "#E32459",
     delay: 120,
@@ -6536,7 +7114,9 @@ function ProfileScreen({
     startAdd: initialAddCard
   }), view === 'preferiti' && /*#__PURE__*/React.createElement(PreferitivView, {
     onBack: () => setView('main'),
-    onOpenVenue: onOpenVenue
+    onOpenVenue: onOpenVenue,
+    items: preferiti,
+    onItems: setPreferiti
   }), view === 'segnala' && /*#__PURE__*/React.createElement(SegnalaView, {
     onBack: () => setView('account')
   }), view === 'miei-dati' && /*#__PURE__*/React.createElement(MieiDatiView, {
@@ -6818,7 +7398,7 @@ function ProfileScreen({
       lineHeight: 1.5,
       marginBottom: 22
     }
-  }, "Tutti i tuoi dati, preferenze e storico ordini verranno eliminati definitivamente. Questa operazione non \xE8 reversibile."), /*#__PURE__*/React.createElement("button", {
+  }, "Il profilo e le preferenze si cancellano e non potrai pi\xF9 accedere. Lo storico degli ordini resta, ma senza il tuo nome: i documenti fiscali si conservano per legge. L'operazione non \xE8 reversibile."), /*#__PURE__*/React.createElement("button", {
     style: {
       width: '100%',
       padding: '14px',
@@ -6869,8 +7449,36 @@ function BookingSheet({
   const [name, setName] = useState('Mario Rossi');
   const [phone, setPhone] = useState('+39 333 1234567');
   const [note, setNote] = useState('');
+  // Gli allergeni del tavolo sono un DATO, non una frase in fondo a una nota
+  // (P-188 · reservation_allergens): quattordici chip, gli stessi del
+  // gestionale, e chi ha già dichiarato le sue allergie nel profilo se li
+  // trova scelti — con la libertà di toglierli, perché stasera si prenota
+  // magari per qualcun altro. Viaggiano coi CODICI del modello, non con le
+  // etichette che si leggono a schermo.
+  const [allergeni, setAllergeni] = useState([]);
+  const [occasioni, setOccasioni] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const ALLERG_APP = window.ByupKit && window.ByupKit.ALLERGENI || [];
+  // Le occasioni sono quelle che il gestionale già conosce: se ne aggiungo
+  // una qui, la sala non saprebbe che cosa farsene.
+  const OCCASIONI = [{
+    id: 'compleanno',
+    label: 'Compleanno'
+  }, {
+    id: 'anniversario',
+    label: 'Anniversario'
+  }, {
+    id: 'aziendale',
+    label: 'Cena di lavoro'
+  }, {
+    id: 'laurea',
+    label: 'Laurea'
+  }, {
+    id: 'altro',
+    label: 'Altro'
+  }];
+  const togglaIn = (set, id) => set(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
   useEffect(() => {
     if (open) {
       setStep(0);
@@ -6882,11 +7490,21 @@ function BookingSheet({
         setName(editBooking.name || 'Mario Rossi');
         setPhone(editBooking.phone || '+39 333 1234567');
         setNote(editBooking.note || '');
+        setAllergeni(editBooking.allergeni || []);
+        setOccasioni(editBooking.occasioni || []);
         setPrefilled(false);
-      } else if (defaultTime) {
-        setTime(defaultTime);
-        setPrefilled(true);
-      } else setPrefilled(false);
+      } else {
+        // Nuova prenotazione: gli allergeni dichiarati nel profilo arrivano
+        // già scelti, coi codici del modello.
+        const dichiarati = window.ByupKit && window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati() || {};
+        const mappa = window.ByupKit && window.ByupKit.ALLERGENI_MAP || {};
+        setAllergeni(Object.keys(dichiarati).filter(id => dichiarati[id] && mappa[id]).map(id => mappa[id].code));
+        setOccasioni([]);
+        if (defaultTime) {
+          setTime(defaultTime);
+          setPrefilled(true);
+        } else setPrefilled(false);
+      }
     }
   }, [open, defaultTime, editBooking]);
   // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
@@ -7088,7 +7706,50 @@ function BookingSheet({
       fontFamily: 'inherit',
       padding: 4
     }
-  }, people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'), /*#__PURE__*/React.createElement("div", {
+  }, people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'), label('Allergie a tavola'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 7
+    }
+  }, ALLERG_APP.map(a => {
+    const on = allergeni.includes(a.code);
+    return /*#__PURE__*/React.createElement("button", {
+      key: a.code,
+      onClick: () => togglaIn(setAllergeni, a.code),
+      style: {
+        ...chip(on),
+        padding: '9px 12px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12
+      }
+    }, a.icon), a.label);
+  })), allergeni.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      marginTop: 7,
+      lineHeight: 1.45
+    }
+  }, "Il locale le vede sulla prenotazione. Restano tue: puoi toglierle qui senza toccare il tuo profilo."), label('Occasione'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 7
+    }
+  }, OCCASIONI.map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.id,
+    onClick: () => togglaIn(setOccasioni, o.id),
+    style: {
+      ...chip(occasioni.includes(o.id)),
+      padding: '9px 12px'
+    }
+  }, o.label))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       background: TINT_X,
@@ -7164,7 +7825,7 @@ function BookingSheet({
   }), /*#__PURE__*/React.createElement(Input, {
     value: note,
     onChange: setNote,
-    placeholder: "Note: allergie, occasioni, preferenze...",
+    placeholder: "Una nota per il locale (facoltativa)",
     multi: true
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7208,6 +7869,10 @@ function BookingSheet({
           name,
           phone,
           note,
+          // Strutturati, coi codici del modello: la sala li legge,
+          // non li deve capire da una frase (P-188).
+          allergeni,
+          occasioni,
           createdAt: Date.now()
         }));
       } catch {}
@@ -7323,7 +7988,9 @@ function BookingSheet({
         people,
         name,
         phone,
-        note
+        note,
+        allergeni,
+        occasioni
       });
     },
     style: {
@@ -7938,7 +8605,18 @@ function VenueOriginal({
       lineHeight: 1.1,
       textShadow: '0 2px 12px rgba(0,0,0,0.45)'
     }
-  }, v.name || 'Ristorante Cacio e Pepe')), !heroExpanded && /*#__PURE__*/React.createElement("div", {
+  }, v.name || 'Ristorante Cacio e Pepe'), (() => {
+    const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    if (!i || !i.apre) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      "data-stato-cucina": true,
+      style: {
+        fontSize: 12.5,
+        color: MUTED_X,
+        marginTop: 4
+      }
+    }, i.chiusoOggi ? 'Oggi chiuso' : !i.localeAperto ? `Chiuso · apre alle ${i.apre}` : i.cucinaAperta ? `Aperto · cucina fino alle ${i.ultimaComanda}` : `Aperto · cucina chiusa dalle ${i.ultimaComanda}`);
+  })()), !heroExpanded && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       bottom: 28,
@@ -8143,57 +8821,61 @@ function VenueOriginal({
       color: TEXT_X,
       marginBottom: 10
     }
-  }, "Recensione media"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8
-    }
-  }, [1, 2, 3, 4, 5].map(n => {
-    const filled = n <= Math.round(4.8);
+  }, "Recensione media"), (() => {
+    const val = byupValutazioneLeggi();
+    const stelle = byupStelle(val.media);
     return /*#__PURE__*/React.createElement("div", {
-      key: n,
       style: {
-        width: 30,
-        height: 30,
-        borderRadius: 7,
-        background: filled ? PINK_X : TINT_X,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        gap: 8
       }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "18",
-      height: "18",
-      viewBox: "0 0 24 24",
-      fill: "#fff",
-      stroke: "#fff",
-      strokeWidth: "1",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("polygon", {
-      points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-    })));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginLeft: 8,
-      display: 'flex',
-      alignItems: 'baseline',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 28,
-      fontWeight: 800,
-      color: TEXT_X,
-      letterSpacing: -0.5
-    }
-  }, "4.8"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: MUTED_X,
-      fontWeight: 500
-    }
-  }, "\xB7 320 recensioni")))), /*#__PURE__*/React.createElement(Section, {
+    }, stelle.map((st, i) => {
+      const n = i + 1;
+      return /*#__PURE__*/React.createElement("div", {
+        key: n,
+        style: {
+          width: 30,
+          height: 30,
+          borderRadius: 7,
+          background: st === 'piena' ? PINK_X : st === 'mezza' ? `linear-gradient(90deg, ${PINK_X} 50%, ${TINT_X} 50%)` : TINT_X,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }
+      }, /*#__PURE__*/React.createElement("svg", {
+        width: "18",
+        height: "18",
+        viewBox: "0 0 24 24",
+        fill: "#fff",
+        stroke: "#fff",
+        strokeWidth: "1",
+        strokeLinejoin: "round"
+      }, /*#__PURE__*/React.createElement("polygon", {
+        points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+      })));
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginLeft: 8,
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 28,
+        fontWeight: 800,
+        color: TEXT_X,
+        letterSpacing: -0.5
+      }
+    }, val.media.toFixed(1).replace('.', ',')), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14,
+        color: MUTED_X,
+        fontWeight: 500
+      }
+    }, "\xB7 ", val.n, " recensioni")));
+  })()), /*#__PURE__*/React.createElement(Section, {
     title: "Promo / Eventi"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -9361,7 +10043,11 @@ function VenuePremium({
 }) {
   const v = venue || {};
   const name = v.name || 'Al Settembrini';
-  const isOpen = true; // demo: aperto ora
+  // Chiusura straordinaria (P-46): oggi coperto → Chiuso; la prossima si
+  // legge accanto allo stato. Seme e formule in extras.jsx.
+  const chiusuraOggi = window.appChiusuraDelGiorno ? appChiusuraDelGiorno(appOggiISO()) : null;
+  const prossimaChiusura = window.appProssimaChiusura ? appProssimaChiusura() : null;
+  const isOpen = !chiusuraOggi;
   const [cat, setCat] = useStateV('Antipasti');
   const [saved, setSaved] = useStateV(false);
   const [slide, setSlide] = useStateV(0);
@@ -9673,10 +10359,10 @@ function VenuePremium({
   }, isOpen ? 'Aperto ora' : 'Chiuso'), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
-      color: '#8d7c83',
+      color: chiusuraOggi ? '#d21e50' : prossimaChiusura ? '#B45309' : '#8d7c83',
       fontWeight: 600
     }
-  }, "\xB7 chiude alle 23:00"), /*#__PURE__*/React.createElement("svg", {
+  }, "\xB7 ", chiusuraOggi ? appChiusuraTesto(chiusuraOggi).replace(/^Chiuso /, '') : prossimaChiusura ? appChiusuraTesto(prossimaChiusura).toLowerCase() : 'chiude alle 23:00'), /*#__PURE__*/React.createElement("svg", {
     width: "14",
     height: "14",
     viewBox: "0 0 24 24",
@@ -9718,7 +10404,7 @@ function VenuePremium({
       justifyContent: 'center',
       padding: '14px 22px 0'
     }
-  }, [['⚡', 'Prenotazione prioritaria'], ['🪙', 'Byuppini ×2 qui'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => /*#__PURE__*/React.createElement("span", {
+  }, [['⚡', 'Prenotazione prioritaria'], ['🥂', 'Benvenuto dello chef']].map(([e, t]) => /*#__PURE__*/React.createElement("span", {
     key: t,
     style: {
       display: 'inline-flex',
@@ -10690,6 +11376,12 @@ const CUISINE_EMOJI = {
   Pub: '🍺',
   Gelato: '🍦'
 };
+
+// Le distanze si mostrano solo se la posizione è vera E la città guardata è
+// quella in cui la persona si trova (P-210 · D-163): dal centro città
+// sarebbero numeri inventati, e non si stimano — si tolgono.
+const mapDistanze = () => !window.ByupPosizione || window.ByupPosizione.distanze();
+const mapCitta = () => window.ByupPosizione ? window.ByupPosizione.citta().nome : '';
 const VENUES_BY_CITY = {
   roma: [
   // ── Prati / Vaticano ─────────────────────────────────────────────
@@ -12049,7 +12741,7 @@ function VenueCardsTray({
       color: TEXT,
       fontWeight: 600
     }
-  }, v.distance)))))));
+  }, mapDistanze() ? v.distance : mapCitta())))))));
 }
 
 // ─── Main MapScreen ────────────────────────────────────────────────
@@ -12487,7 +13179,7 @@ function VenueSheet({
       color: 'rgba(255,255,255,0.82)',
       marginTop: 2
     }
-  }, venue.cat, " \xB7 ", venue.distance)), /*#__PURE__*/React.createElement("div", {
+  }, venue.cat, " \xB7 ", mapDistanze() ? venue.distance : mapCitta())), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'rgba(255,255,255,0.22)',
       backdropFilter: 'blur(6px)',
@@ -12594,6 +13286,18 @@ function PostaScreen({
   onRecover
 }) {
   const [tab, setTab] = React.useState('news');
+  // «Promo per te» rispetta la scelta (P-163 · D-113): la linguetta si vede
+  // solo se almeno uno dei tre canali marketing è acceso; le promo «su misura»
+  // compaiono solo con la profilazione accesa, senza si vedono quelle uguali
+  // per tutti. Le comunicazioni di servizio in «Novità» arrivano sempre.
+  const mk = typeof ByupConsensi !== 'undefined' && ByupConsensi.marketing ? ByupConsensi.marketing() : {
+    qualsiasi: true,
+    profilazione: true
+  };
+  const promoVisibile = !onlyNews && mk.qualsiasi;
+  React.useEffect(() => {
+    if (tab === 'promo' && !promoVisibile) setTab('news');
+  }, [promoVisibile]);
   const news = [{
     id: 1,
     title: 'Benvenuto in byup',
@@ -12619,7 +13323,10 @@ function PostaScreen({
     ago: '2 giorni fa',
     kind: 'review'
   }];
-  const promo = [{
+
+  // `suMisura`: costruita sugli ordini della persona — compare solo con la
+  // profilazione accesa. Le altre sono uguali per tutti.
+  const promoTutte = [{
     id: 1,
     venue: 'Ristorante YX',
     preview: 'Hai un nuovo ristorante vicino a te. Provalo con il 20% di sconto entro venerdì.',
@@ -12632,7 +13339,8 @@ function PostaScreen({
   }, {
     id: 3,
     venue: 'Sforno Pizzeria',
-    preview: 'Con qualsiasi pizza prenotata sabato sera ricevi una margherita in omaggio.',
+    suMisura: true,
+    preview: 'Ordini spesso la pizza: con qualsiasi pizza prenotata sabato sera ricevi una margherita in omaggio.',
     ago: 'Ieri'
   }, {
     id: 4,
@@ -12640,6 +13348,7 @@ function PostaScreen({
     preview: 'Da lunedì colazione a 3,50€ con cornetto e cappuccino. Solo per gli iscritti byup.',
     ago: '2 giorni fa'
   }];
+  const promo = promoTutte.filter(p => !p.suMisura || mk.profilazione);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -12693,7 +13402,7 @@ function PostaScreen({
       color: MUTED,
       marginTop: 2
     }
-  }, onlyNews ? 'Aggiornamenti dal team byup' : tab === 'news' ? 'Aggiornamenti dal team byup' : 'Offerte dai tuoi locali preferiti')), !onlyNews && /*#__PURE__*/React.createElement("div", {
+  }, onlyNews ? 'Aggiornamenti dal team byup' : tab === 'news' ? 'Aggiornamenti dal team byup' : 'Offerte dai tuoi locali preferiti')), promoVisibile && /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '14px 20px 4px',
       flexShrink: 0,
@@ -12753,7 +13462,7 @@ function PostaScreen({
     key: n.id,
     item: n,
     onClick: n.action === 'recover' ? onRecover : undefined
-  })), !onlyNews && tab === 'promo' && promo.map(p => /*#__PURE__*/React.createElement(PromoMessageCard, {
+  })), promoVisibile && tab === 'promo' && promo.map(p => /*#__PURE__*/React.createElement(PromoMessageCard, {
     key: p.id,
     item: p
   }))), (() => {
@@ -13700,6 +14409,12 @@ function Category({
 }
 
 // ─── Favorite card (compact, horizontal) ────────────────────
+// ── DISTANZE E TEMPI SOLO CON LA POSIZIONE VERA (P-204 · D-163) ───────────
+// Senza permesso non si sostituiscono con un numero preso dal centro della
+// città: sembrerebbe vero e non lo sarebbe. Dove c'era la distanza compare la
+// città, che dice dov'è il locale senza dire quanto dista.
+const byupDistanze = () => !window.ByupPosizione || window.ByupPosizione.distanze();
+const byupCittaNome = () => window.ByupPosizione ? window.ByupPosizione.citta().nome : null;
 function FavoriteCard({
   name,
   type,
@@ -13825,7 +14540,7 @@ function FavoriteCard({
     }
   }, /*#__PURE__*/React.createElement("span", null, type), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement(Icon.Pin, {
     size: 10
-  }), /*#__PURE__*/React.createElement("span", null, distance)), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, byupDistanze() ? distance : byupCittaNome())), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       marginTop: 8,
@@ -13846,7 +14561,7 @@ function FavoriteCard({
       color: open ? '#0a8a3a' : T.primary,
       fontWeight: 700
     }
-  }, open ? 'Aperto' : 'Chiuso')), /*#__PURE__*/React.createElement("div", {
+  }, open ? window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(name) ? 'Aperto · cucina chiusa' : 'Aperto' : 'Chiuso')), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: T.textDim,
@@ -13869,7 +14584,8 @@ function DetailSheet({
   if (!item) return null;
   const photo = item.photo;
   const tone = item.tone;
-  const place = item.place || [item.cat, item.distance].filter(Boolean).join(' · ');
+  const distanzeOn = byupDistanze();
+  const place = item.place || [item.cat, distanzeOn ? item.distance : byupCittaNome()].filter(Boolean).join(' · ');
   const rating = item.rating || 4.7;
   const price = item.price || '€€';
   const distance = item.distance || '1.2 km';
@@ -14001,11 +14717,11 @@ function DetailSheet({
     size: 12
   }), " ", rating), /*#__PURE__*/React.createElement(Tag, null, price), /*#__PURE__*/React.createElement(Tag, null, /*#__PURE__*/React.createElement(Icon.Pin, {
     size: 12
-  }), " ", distance), open ? /*#__PURE__*/React.createElement(Tag, {
+  }), " ", distanzeOn ? distance : byupCittaNome()), open ? /*#__PURE__*/React.createElement(Tag, {
     style: {
       color: '#0a8a3a'
     }
-  }, "Aperto \xB7 chiude alle ", closeAt) : /*#__PURE__*/React.createElement(Tag, {
+  }, "Aperto \xB7 chiude alle ", closeAt, window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(item.title || item.name) ? ' · cucina chiusa' : '') : /*#__PURE__*/React.createElement(Tag, {
     style: {
       color: '#aa2222'
     }
@@ -14171,7 +14887,7 @@ function FilterSheet({
         diets: cur.includes(d) ? cur.filter(x => x !== d) : [...cur, d]
       };
     })
-  }))), /*#__PURE__*/React.createElement(FilterGroup, {
+  }))), byupDistanze() && /*#__PURE__*/React.createElement(FilterGroup, {
     title: "Distanza da te"
   }, dists.map(d => /*#__PURE__*/React.createElement(SelectChip, {
     key: d,
@@ -14295,129 +15011,10 @@ function SelectChip({
   }), label);
 }
 
-// ─── Notifications panel ────────────────────────────────────
-function NotifSheet({
-  open,
-  onClose
-}) {
-  if (!open) return null;
-  const items = [{
-    icon: BK.ASSETS.cat.pizza,
-    title: 'Al Settembrini',
-    text: 'Ha pubblicato un nuovo menu di stagione',
-    time: '2h'
-  }, {
-    icon: BK.ASSETS.hero.spritz,
-    title: 'Promo lampo',
-    text: '-30% da Mario fino alle 22',
-    time: '5h'
-  }, {
-    icon: BK.ASSETS.hero.froyo,
-    title: 'Nuova recensione',
-    text: 'Hai ricevuto una risposta',
-    time: '1g'
-  }, {
-    icon: BK.ASSETS.cat.brunch,
-    title: 'Promemoria',
-    text: 'Cena prenotata domani alle 20:30',
-    time: '1g'
-  }];
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    onClick: onClose,
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: 'rgba(0,0,0,0.45)',
-      zIndex: 70,
-      animation: 'fade 0.2s ease'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 71,
-      background: SURF,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: '12px 0 20px',
-      animation: 'slideUp 0.3s cubic-bezier(.2,.8,.2,1)',
-      maxHeight: '70%',
-      overflowY: 'auto'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 40,
-      height: 4,
-      background: '#d0d0d0',
-      borderRadius: 2,
-      margin: '4px auto 14px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 20px 12px',
-      fontFamily: BK.TYPE.display,
-      fontSize: 20,
-      fontWeight: 600,
-      color: TEXT
-    }
-  }, "Notifiche"), items.map((n, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: 'flex',
-      gap: 12,
-      alignItems: 'flex-start',
-      padding: '12px 20px',
-      borderTop: `1px solid ${BORDER}`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      background: BG_GRAY,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: n.icon,
-    width: "26",
-    height: "26",
-    alt: ""
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14.5,
-      fontWeight: 600,
-      color: TEXT
-    }
-  }, n.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      flexShrink: 0
-    }
-  }, n.time)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: MUTED,
-      marginTop: 2
-    }
-  }, n.text))))));
-}
+// Il pannello delle notifiche non c'è più (P-194): nessun pulsante lo apriva,
+// e le sue quattro righe finte erano l'unica cosa che lo teneva in vita. Il
+// campanello porta alla POSTA, che è dove le notifiche vivono davvero — con
+// le loro sezioni e la loro storia, non in un foglio che si chiude.
 
 // ─── Schermata categoria: tutti i locali della categoria, 2 per riga ───
 const CAT_SCREEN_PHOTOS = {
@@ -14470,7 +15067,9 @@ function CategoryScreen({
   let list = venues;
   if (chip === 'open') list = venues.filter(v => v.open);
   if (chip === 'top') list = [...venues].sort((a, b) => b.rating - a.rating);
-  if (chip === 'near') list = [...venues].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+  // L'ordinamento per vicinanza lascia il posto agli altri criteri quando non
+  // c'è una posizione da cui misurare (P-210 · D-163): qui la valutazione.
+  if (chip === 'near') list = byupDistanze() ? [...venues].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance)) : [...venues].sort((a, b) => b.rating - a.rating);
   const Card = ({
     v,
     i,
@@ -14568,7 +15167,7 @@ function CategoryScreen({
     style: {
       flexShrink: 0
     }
-  }, v.open ? 'Aperto' : 'Chiuso'), /*#__PURE__*/React.createElement("span", {
+  }, v.open ? window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(v.name) ? 'Aperto · cucina chiusa' : 'Aperto' : 'Chiuso'), /*#__PURE__*/React.createElement("span", {
     style: {
       width: 3,
       height: 3,
@@ -14582,7 +15181,7 @@ function CategoryScreen({
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
     }
-  }, v.distance, " \xB7 ", v.price))));
+  }, byupDistanze() ? v.distance : byupCittaNome(), " \xB7 ", v.price))));
   const colA = list.filter((_, i) => i % 2 === 0);
   const colB = list.filter((_, i) => i % 2 === 1);
   return /*#__PURE__*/React.createElement("div", {
@@ -15717,7 +16316,7 @@ function RestaurantBigCard({
   }, /*#__PURE__*/React.createElement(Icon.Pin, {
     size: 11,
     color: "#ffd3de"
-  }), /*#__PURE__*/React.createElement("span", null, distance), /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("span", null, byupDistanze() ? distance : byupCittaNome()), /*#__PURE__*/React.createElement("span", {
     style: {
       width: 3,
       height: 3,
@@ -15968,7 +16567,7 @@ function PremiumBigCard({
       borderRadius: 999,
       background: 'rgba(255,255,255,.35)'
     }
-  }), /*#__PURE__*/React.createElement("span", null, distance)), slots && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, byupDistanze() ? distance : byupCittaNome())), slots && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -17136,7 +17735,7 @@ function PaymentCard({
       opacity: .85,
       marginTop: 3
     }
-  }, "Apple Pay \xB7 Google Pay \xB7 Carte \u2014 30 secondi e paghi in un tap.")), /*#__PURE__*/React.createElement("div", {
+  }, "Apple Pay \xB7 Carte \u2014 30 secondi e paghi in un tap.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: '#ceff00',
       color: '#141414',
@@ -17417,8 +18016,42 @@ function HomeSections({
   onCardClick,
   onSlotClick,
   onDisponibili,
-  noVenues = false
+  noVenues = false,
+  onCitta
 }) {
+  // ── IL CANCELLO DI DENSITÀ (P-204 · D-163) ──────────────────────────────
+  // La scoperta non la apre il permesso di posizione: la apre la DENSITÀ. Se
+  // entro il raggio urbano i locali paganti non superano 125, né 150 entro
+  // quello esteso, la sezione di scoperta non compare — misurati dalla
+  // posizione vera quando c'è, dal centro della città scelta quando non c'è.
+  // Sotto soglia la home resta com'è già quando i locali non ci sono, e
+  // ricerca diretta, link e QR continuano a funzionare.
+  const [posizione, setPosizione] = useState(() => window.ByupPosizione ? {
+    citta: window.ByupPosizione.citta(),
+    distanze: window.ByupPosizione.distanze(),
+    scoperta: window.ByupPosizione.scopertaAperta()
+  } : {
+    citta: null,
+    distanze: true,
+    scoperta: true
+  });
+  useEffect(() => {
+    const ri = () => {
+      if (window.ByupPosizione) setPosizione({
+        citta: window.ByupPosizione.citta(),
+        distanze: window.ByupPosizione.distanze(),
+        scoperta: window.ByupPosizione.scopertaAperta()
+      });
+    };
+    window.addEventListener('byup-posizione-change', ri);
+    window.addEventListener('storage', ri);
+    return () => {
+      window.removeEventListener('byup-posizione-change', ri);
+      window.removeEventListener('storage', ri);
+    };
+  }, []);
+  const senzaScoperta = noVenues || !posizione.scoperta;
+  const [cittaOpen, setCittaOpen] = useState(false);
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -17577,8 +18210,8 @@ function HomeSections({
       WebkitBackdropFilter: 'blur(22px) saturate(160%)',
       paddingTop: topBar ? 12 : 24,
       marginTop: topBar ? 0 : -24,
-      paddingBottom: noVenues ? 18 : 0,
-      boxShadow: noVenues ? 'none' : `0 1px 0 ${T.line}`
+      paddingBottom: senzaScoperta ? 18 : 0,
+      boxShadow: senzaScoperta ? 'none' : `0 1px 0 ${T.line}`
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -17588,8 +18221,9 @@ function HomeSections({
       alignItems: 'flex-start',
       animation: `bkFadeUp 420ms ${BK.EASE_OUT} backwards`
     }
-  }, /*#__PURE__*/React.createElement("div", null, !noVenues && /*#__PURE__*/React.createElement("button", {
-    onClick: onMap,
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("button", {
+    "data-citta-corrente": true,
+    onClick: () => setCittaOpen(true),
     style: {
       background: 'none',
       border: 'none',
@@ -17606,7 +18240,7 @@ function HomeSections({
     }
   }, /*#__PURE__*/React.createElement(Icon.Pin, {
     size: 12
-  }), "Roma centro", /*#__PURE__*/React.createElement("svg", {
+  }), posizione.citta ? posizione.citta.nome : 'Roma', /*#__PURE__*/React.createElement("svg", {
     width: "12",
     height: "12",
     viewBox: "0 0 24 24",
@@ -17625,7 +18259,7 @@ function HomeSections({
       color: T.text,
       letterSpacing: '-0.02em',
       lineHeight: 1.1,
-      marginTop: noVenues ? 0 : 5
+      marginTop: senzaScoperta ? 0 : 5
     }
   }, (() => {
     const h = new Date().getHours();
@@ -17677,7 +18311,7 @@ function HomeSections({
       background: T.primary,
       border: `2px solid ${T.surface}`
     }
-  })))), !noVenues && /*#__PURE__*/React.createElement("div", {
+  })))), !senzaScoperta && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 22px 14px'
     }
@@ -17737,12 +18371,12 @@ function HomeSections({
       alignItems: 'center',
       justifyContent: 'center'
     }
-  }, activeFilterCount)))), !noVenues && /*#__PURE__*/React.createElement(MomentBar, {
+  }, activeFilterCount)))), !senzaScoperta && /*#__PURE__*/React.createElement(MomentBar, {
     moment: moment,
     setMoment: setMoment
-  })), !noVenues && /*#__PURE__*/React.createElement(OfferCarousel, {
+  })), !senzaScoperta && /*#__PURE__*/React.createElement(OfferCarousel, {
     onTap: () => (onDisponibili || onSearch)?.()
-  }), !noVenues && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), !senzaScoperta && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     key: moment,
     style: {
       paddingTop: 18
@@ -17757,9 +18391,9 @@ function HomeSections({
       display: 'flex',
       flexDirection: 'column',
       gap: 14,
-      padding: noVenues ? '64px 18px 0' : '0 18px'
+      padding: senzaScoperta ? '64px 18px 0' : '0 18px'
     }
-  }, noVenues ? /*#__PURE__*/React.createElement("div", {
+  }, senzaScoperta ? /*#__PURE__*/React.createElement("div", {
     style: {
       background: T.surface,
       border: `1px dashed ${T.accentBorder}`,
@@ -17792,7 +18426,7 @@ function HomeSections({
       lineHeight: 1.45,
       maxWidth: 280
     }
-  }, "Stiamo aggiungendo i primi locali nella tua zona \u2014 ci sto lavorando \uD83D\uDC40 Ti avvisiamo appena potrai cercare e prenotare."), /*#__PURE__*/React.createElement("button", {
+  }, "Stiamo aggiungendo i primi locali ", posizione.citta ? `a ${posizione.citta.nome}` : 'nella tua zona', " \u2014 ci sto lavorando \uD83D\uDC40 Ti avvisiamo appena potrai cercare e prenotare. Intanto puoi cambiare citt\xE0 qui sopra, cercare un locale per nome o inquadrare il QR sul tavolo."), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (notifyState === 'confirmed') return;
       setNotifyState('confirmed');
@@ -17839,7 +18473,7 @@ function HomeSections({
     d: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
   }), /*#__PURE__*/React.createElement("path", {
     d: "M13.73 21a2 2 0 0 1-3.46 0"
-  })), "Avvisami quando disponibili"))) : null), before, !noVenues && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+  })), "Avvisami quando disponibili"))) : null), before, !senzaScoperta && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Esplora per categoria"
   }), /*#__PURE__*/React.createElement(AutoLoopScroll, {
     speed: 24
@@ -17876,7 +18510,9 @@ function HomeSections({
     onClick: () => click({
       ...f,
       title: f.name,
-      place: [f.type, f.distance].filter(Boolean).join(' · ')
+      // La card nasconde «0,4 km» senza posizione: il foglio che
+      // apre non deve rimostrarla (P-210 · D-163).
+      place: [f.type, byupDistanze() ? f.distance : byupCittaNome()].filter(Boolean).join(' · ')
     })
   })))), /*#__PURE__*/React.createElement(SectionHeader, {
     title: "Paga in un tap"
@@ -17892,7 +18528,92 @@ function HomeSections({
     title: "Qui intorno"
   }), /*#__PURE__*/React.createElement(MapPreviewCard, {
     onOpen: () => onMap?.()
-  })), notifyDialogOpen && /*#__PURE__*/React.createElement("div", {
+  })), cittaOpen && /*#__PURE__*/React.createElement("div", {
+    "data-foglio-citta": true,
+    onClick: () => setCittaOpen(false),
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(0,0,0,0.45)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      zIndex: 95,
+      animation: 'fade 0.18s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: '100%',
+      maxHeight: '76%',
+      background: SURF,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: '18px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+      display: 'flex',
+      flexDirection: 'column',
+      animation: 'slideUp 0.22s cubic-bezier(.2,.9,.3,1.05)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 44,
+      height: 4,
+      borderRadius: 2,
+      background: TINT,
+      margin: '0 auto 14px',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 800,
+      color: TEXT,
+      letterSpacing: -0.3
+    }
+  }, "Cambia citt\xE0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: MUTED,
+      marginTop: 4,
+      marginBottom: 14,
+      lineHeight: 1.45
+    }
+  }, posizione.distanze ? 'Guardando un\'altra città non mostriamo distanze e tempi: da lontano sarebbero numeri finti.' : 'Senza posizione non mostriamo distanze e tempi. Puoi concederla quando vuoi, dalle impostazioni del telefono.'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowY: 'auto'
+    }
+  }, (window.ByupPosizione ? window.ByupPosizione.CITTA : []).map(c => {
+    const on = posizione.citta && posizione.citta.id === c.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: c.id,
+      "data-citta-scelta": c.id,
+      onClick: () => {
+        window.ByupPosizione.scegliCitta(c.id);
+        setCittaOpen(false);
+      },
+      style: {
+        width: '100%',
+        textAlign: 'left',
+        padding: '14px 15px',
+        marginBottom: 8,
+        borderRadius: 14,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        border: `1.5px solid ${on ? PINK : TINT}`,
+        background: SURF,
+        fontSize: 16,
+        fontWeight: on ? 800 : 600,
+        color: on ? PINK : TEXT,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, c.nome, on && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, "\xB7 sei qui"));
+  })))), notifyDialogOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setNotifyDialogOpen(false),
     style: {
       position: 'absolute',
@@ -18014,11 +18735,13 @@ const RECOVERY_NEWS = {
 // secondi dopo ogni fallimento e blocco che decadeva da solo — senza
 // decisione: quella non si tiene. Il contatore rispecchia
 // order_claim_attempts e order_claim_lockouts, qui in localStorage. Nel
-// prototipo l'unico codice che trova l'ordine è quello del placeholder,
-// 483912: la webapp genera il suo a sei cifre casuali e i due bundle non si
-// parlano. Niente identificativi del dispositivo a schermo. Demo:
-// ?recupero=0 azzera il contatore — è il gesto dell'assistenza che toglie
-// il blocco, non un decadimento.
+// prototipo trovano l'ordine due codici: quello del placeholder, 483912, e
+// il codice di ritiro dell'ordine composto dalla webapp sullo stesso dominio
+// (byup_asporto_webapp, P-154), che è UN codice solo — lo stesso che il
+// cliente detta al banco — finché la proposta non è scaduta. Niente
+// identificativi del dispositivo a schermo. Demo: ?recupero=0 azzera il
+// contatore — è il gesto dell'assistenza che toglie il blocco, non un
+// decadimento.
 const RECUPERO = {
   CODICE_DEMO: '483912',
   CIFRE: 6,
@@ -18026,6 +18749,13 @@ const RECUPERO = {
   BLOCCHI_S: [60, 300],
   MAX_TENTATIVI: 9
 };
+function byupAsportoWebapp() {
+  try {
+    const o = JSON.parse(localStorage.getItem('byup_asporto_webapp') || 'null');
+    if (o && o.codiceRitiro && (!o.scade || Date.now() <= new Date(o.scade).getTime())) return o;
+  } catch {}
+  return null;
+}
 const byupClaim = (() => {
   const K = 'byup_claim_attempts';
   const VUOTO = {
@@ -18121,7 +18851,8 @@ function RecoveryOrderModal({
   // nono la chiusura (D-102).
   const tenta = c => {
     if (bloccato || byupClaim.attesa() > 0) return;
-    if (c === RECUPERO.CODICE_DEMO) {
+    const web = byupAsportoWebapp();
+    if (c === RECUPERO.CODICE_DEMO || web && c === web.codiceRitiro) {
       byupClaim.azzera();
       onSubmit(c);
       return;
@@ -18240,7 +18971,6 @@ function RecoveryOrderModal({
     onChange: e => handleChange(e.target.value),
     onPaste: handlePaste,
     inputMode: "numeric",
-    autoComplete: "one-time-code",
     disabled: attesa > 0,
     autoFocus: true,
     placeholder: "es. 48 39 12",
@@ -18472,6 +19202,7 @@ function App({
       home: resetToHome,
       venue: () => {
         setActiveVenue(v => v || {
+          id: 'v_settembrini',
           premium: true,
           name: 'Al Settembrini',
           gusti: ['pasta', 'carne'],
@@ -18523,7 +19254,6 @@ function App({
     setSavedBooking(null);
   };
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   // Recupero ordine: armato da Root al primo accesso post-registrazione (dopo i
   // popup permessi). `recoveryBannerOpen` = banner in alto (auto-rimosso a 5s);
   // `recoveryActive` = la notifica resta in Posta → Novità.
@@ -18961,9 +19691,6 @@ function App({
     onClose: () => setFiltersOpen(false),
     filters: filters,
     setFilters: setFilters
-  }), /*#__PURE__*/React.createElement(NotifSheet, {
-    open: notifOpen,
-    onClose: () => setNotifOpen(false)
   }), recoveryOverlays, qrOpen && /*#__PURE__*/React.createElement(QRScanOverlay, {
     onClose: () => setQrOpen(false),
     onDone: () => {
@@ -19034,15 +19761,20 @@ function QRScanOverlay({
   onClose
 }) {
   const [phase, setPhase] = useState('scan');
+  // A locale chiuso (P-169) la scansione è inerte: la sessione del tavolo si
+  // apre soltanto negli orari di apertura della sede. Il QR viene letto, ma
+  // il tavolo non si apre e non si entra al menù dal tavolo.
+  const chiuso = window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
   useEffect(() => {
     const t1 = setTimeout(() => {
-      setPhase('found');
-      BK.haptic.success();
+      setPhase(chiuso ? 'chiuso' : 'found');
+      chiuso ? BK.haptic.tap && BK.haptic.tap() : BK.haptic.success();
     }, 1350);
     // qr_scan (P-38): solo con l'interruttore acceso, con la città.
+    // La sede scansionata viaggia con l'evento (P-161 · D-115): nel mock è il locale del menù demo.
     const t2 = setTimeout(() => {
-      if (window.ByupUso) window.ByupUso.emetti('qr_scan');
-      onDone && onDone();
+      if (window.ByupUso) window.ByupUso.emetti('qr_scan', 'v_settembrini');
+      if (!chiuso) onDone && onDone();
     }, 3100);
     return () => {
       clearTimeout(t1);
@@ -19103,7 +19835,7 @@ function QRScanOverlay({
       marginBottom: 26,
       transition: 'opacity .3s'
     }
-  }, phase === 'scan' ? 'Inquadra il QR del tavolo' : 'Tavolo trovato!'), /*#__PURE__*/React.createElement("div", {
+  }, phase === 'scan' ? 'Inquadra il QR del tavolo' : phase === 'chiuso' ? 'Il locale è chiuso' : 'Tavolo trovato!'), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 250,
       borderRadius: 28,
@@ -19145,7 +19877,47 @@ function QRScanOverlay({
       boxShadow: `0 0 16px ${PINK}, 0 0 40px rgba(227,36,89,.5)`,
       animation: 'qrScan 2s cubic-bezier(.45,0,.55,1) infinite'
     }
-  })) : /*#__PURE__*/React.createElement("div", {
+  })) : phase === 'chiuso' ? /*#__PURE__*/React.createElement("div", {
+    "data-qr-chiuso": true,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#fff',
+      textAlign: 'center',
+      padding: '0 18px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: BK.TYPE.display,
+      fontSize: 18,
+      fontWeight: 600,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .15s both'
+    }
+  }, "Tavolo 23"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: 'rgba(255,255,255,.75)',
+      marginTop: 2,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .22s both'
+    }
+  }, "Ristorante Maria Grazia"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: 'rgba(255,255,255,.85)',
+      marginTop: 12,
+      lineHeight: 1.4,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .3s both'
+    }
+  }, (() => {
+    const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    return !i || i.chiusoOggi ? 'Oggi chiuso' : `Apre alle ${i.apre}`;
+  })(), " \xB7 il tavolo non si apre")) : /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '18px 18px 16px',
       textAlign: 'center',
@@ -19248,7 +20020,44 @@ function QRScanOverlay({
       fontWeight: 600,
       marginTop: 22
     }
-  }, "Lettura del QR del tavolo\u2026") : /*#__PURE__*/React.createElement("div", {
+  }, "Lettura del QR del tavolo\u2026") : phase === 'chiuso' ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 20,
+      animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .45s both'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'rgba(255,255,255,.95)',
+      color: '#1c0f15',
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: '9px 14px',
+      borderRadius: 16,
+      textAlign: 'center',
+      maxWidth: 260,
+      lineHeight: 1.4
+    }
+  }, chiuso), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      onDone && onDone();
+    },
+    style: {
+      background: 'transparent',
+      border: '1px solid rgba(255,255,255,.4)',
+      color: '#fff',
+      borderRadius: 999,
+      padding: '8px 16px',
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, "Sfoglia il men\xF9")) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -20840,14 +21649,30 @@ const ALLERGENS = (window.ByupKit.ALLERGENI || []).reduce(function (m, a) {
   };
   return m;
 }, {});
+
+// `decongelato` (P-193 · D-152) viaggia con gli allergeni perché si comporta
+// come loro: un bollino accanto al nome che, toccato, dice cos'è. Non È un
+// allergene — sta fuori dal dizionario e ha il suo segno.
+const DECONGELATO_DOT = {
+  label: 'Decongelato',
+  icon: '❄️'
+};
 function AllergenDots({
   ids,
   onTap,
-  max
+  max,
+  decongelato
 }) {
   const [openId, setOpenId] = useState(null);
-  const shown = max ? ids.slice(0, max) : ids;
-  const extra = max ? Math.max(0, ids.length - max) : 0;
+  const voci = (ids || []).map(id => ({
+    key: id,
+    ...ALLERGENS[id]
+  })).filter(v => v.label).concat(decongelato ? [{
+    key: '__decongelato',
+    ...DECONGELATO_DOT
+  }] : []);
+  const shown = max ? voci.slice(0, max) : voci;
+  const extra = max ? Math.max(0, voci.length - max) : 0;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -20857,9 +21682,10 @@ function AllergenDots({
       position: 'relative',
       minWidth: 0
     }
-  }, shown.map(id => {
-    const a = ALLERGENS[id];
-    if (!a) return null;
+  }, shown.map(({
+    key: id,
+    ...a
+  }) => {
     const isOpen = openId === id;
     return /*#__PURE__*/React.createElement("span", {
       key: id,
@@ -20970,7 +21796,7 @@ function DishPhoto({
 }
 
 // ─── Dish data (module-level so DishDetail can read it too) ────────
-const DISHES_BY_CAT = {
+const DISHES_SEME = {
   'Antipasti': [{
     id: 'a1',
     name: "Fritto all'Italiana",
@@ -21011,6 +21837,7 @@ const DISHES_BY_CAT = {
     longDesc: 'Cozze nostrane fresche di giornata cotte con aglio, olio extravergine, prezzemolo e pepe nero macinato. Servite con crostini di pane casereccio tostato.',
     prep: 18,
     allergens: ['pesce', 'crostacei', 'glutine', 'lattosio'],
+    decongelato: true,
     bestSeller: true,
     tone: 'b',
     ingredients: ['Aglio', 'Prezzemolo', 'Pepe nero', 'Crostini'],
@@ -21131,6 +21958,13 @@ const DISHES_BY_CAT = {
     bestSeller: true,
     tone: 'c',
     ingredients: ['Pane casereccio', 'Pomodoro', 'Aglio', 'Basilico', 'Olio EVO'],
+    // Le VERSIONI del piatto (P-183 · D-136): l'etichetta col sovrapprezzo
+    // è una versione vera, col suo prezzo e i suoi allergeni.
+    versioni: [{
+      etichetta: 'Senza glutine',
+      sovrapprezzo: 1.5,
+      senza: ['glutine']
+    }],
     extras: [],
     variants: [],
     cal: 220,
@@ -21156,6 +21990,11 @@ const DISHES_BY_CAT = {
     bestSeller: true,
     tone: 'a',
     ingredients: ['Pecorino romano', 'Pepe nero', 'Tonnarelli'],
+    versioni: [{
+      etichetta: 'Senza glutine',
+      sovrapprezzo: 2,
+      senza: ['glutine']
+    }],
     extras: [{
       id: 'e1',
       name: 'Pepe extra',
@@ -21192,6 +22031,11 @@ const DISHES_BY_CAT = {
     prep: 15,
     allergens: ['glutine', 'uova', 'lattosio'],
     tone: 'b',
+    versioni: [{
+      etichetta: 'Senza glutine',
+      sovrapprezzo: 2,
+      senza: ['glutine']
+    }],
     ingredients: ['Guanciale', 'Pecorino', 'Uovo', 'Pepe', 'Spaghettoni'],
     extras: [{
       id: 'e1',
@@ -21260,10 +22104,22 @@ const DISHES_BY_CAT = {
     bestSeller: true,
     tone: 'b',
     ingredients: ['Riso Carnaroli', 'Tartufo nero', 'Parmigiano', 'Burro di malga'],
+    versioni: [{
+      etichetta: 'Senza lattosio',
+      sovrapprezzo: 0,
+      senza: ['lattosio']
+    }],
+    // L'aggiunta dichiara che cosa introduce (P-183 · D-136): la crema di
+    // nocciole porta la frutta a guscio, che il risotto non ha.
     extras: [{
       id: 'e1',
       name: 'Tartufo extra',
       price: 6
+    }, {
+      id: 'e2',
+      name: 'Granella di nocciole',
+      price: 2,
+      addsAllergens: ['fruttaguscio']
     }],
     variants: [],
     cal: 580,
@@ -21632,6 +22488,7 @@ const DISHES_BY_CAT = {
     id: 'b1',
     name: 'Acqua naturale 75cl',
     price: 3,
+    cucinaChiusaOk: true,
     kind: 'acqua',
     photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
     desc: 'Acqua minerale naturale, bottiglia di vetro.',
@@ -21649,10 +22506,14 @@ const DISHES_BY_CAT = {
       prot: 0,
       fibre: 0
     }
-  }, {
+  },
+  // alcol: il segno che governa il divieto ai minori (P-187 · PRIV-09).
+  {
     id: 'b2',
     name: 'Vino della casa 0.5L',
     price: 12,
+    alcol: true,
+    cucinaChiusaOk: true,
     kind: 'vino',
     photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
     desc: 'Rosso o bianco. Selezione del sommelier.',
@@ -21678,6 +22539,8 @@ const DISHES_BY_CAT = {
     id: 'b3',
     name: 'Birra artigianale 33cl',
     price: 6,
+    alcol: true,
+    cucinaChiusaOk: true,
     kind: 'default',
     photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
     desc: 'Selezione di birre artigianali laziali. Chiedi al cameriere.',
@@ -21703,6 +22566,7 @@ const DISHES_BY_CAT = {
     id: 'b4',
     name: 'Succo di frutta 20cl',
     price: 4,
+    cucinaChiusaOk: true,
     kind: 'default',
     photo: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=70&auto=format&fit=crop',
     desc: 'Succo di frutta fresco, senza zuccheri aggiunti.',
@@ -21728,6 +22592,7 @@ const DISHES_BY_CAT = {
     id: 'b5',
     name: 'Caffè espresso',
     price: 2,
+    cucinaChiusaOk: true,
     kind: 'default',
     photo: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=70&auto=format&fit=crop',
     desc: 'Miscela arabica 100%, tostatura artigianale.',
@@ -21753,6 +22618,7 @@ const DISHES_BY_CAT = {
     id: 'b6',
     name: 'Acqua frizzante 75cl',
     price: 3,
+    cucinaChiusaOk: true,
     kind: 'acqua',
     photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
     desc: 'Acqua minerale frizzante, bottiglia di vetro.',
@@ -21772,7 +22638,73 @@ const DISHES_BY_CAT = {
     }
   }]
 };
+// Il listino del locale è questo, per intero: una riga d'ordine di ieri deve
+// ritrovare il suo piatto anche se oggi chi guarda non può vederlo.
+const DISHES_BY_CAT = DISHES_SEME;
 const ALL_DISHES = Object.values(DISHES_BY_CAT).flat();
+
+// Il regime protettivo dei minori (P-187 · PRIV-09) agisce QUI, dove il
+// catalogo che la persona sfoglia si COSTRUISCE: i piatti con alcol non
+// entrano nell'elenco, non vengono nascosti dopo — non compaiono nelle
+// categorie, nella ricerca, nei «più ordinati» né fra i suggerimenti, e la
+// categoria che resta vuota sparisce con loro. Il segno `alcol` sta sul
+// piatto, come `hasAlcohol` nel gestionale.
+// Nessuna etichetta addosso alla persona: il regime si ricalcola dalla data
+// di nascita a ogni apertura, e il giorno dei diciotto anni il catalogo torna
+// intero da sé, senza che nessuno faccia niente.
+function catalogoVisibile() {
+  const minore = !!(window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore());
+  if (!minore) return DISHES_BY_CAT;
+  const out = {};
+  Object.keys(DISHES_BY_CAT).forEach(cat => {
+    const senzaAlcol = DISHES_BY_CAT[cat].filter(d => !d.alcol);
+    if (senzaAlcol.length) out[cat] = senzaAlcol;
+  });
+  return out;
+}
+
+// ─── Le versioni del piatto e il filtro degli allergeni (P-183 · D-136) ────
+// Gli allergeni non hanno un terzo stato: il piatto porta quelli che il
+// ristoratore ha indicato, e chi filtra un allergene non vede i piatti che lo
+// portano. Se il ristoratore non ha indicato nulla il piatto compare lo
+// stesso, anche a chi filtra: è un errore suo, e le condizioni d'uso dicono
+// che le informazioni sugli alimenti — allergeni compresi — sono del locale.
+// Il prototipo non inventa un «non dichiarato» che il menù non ha.
+//
+// Quello che invece esiste è la VERSIONE: un'etichetta col sovrapprezzo è una
+// versione del piatto, col suo prezzo e i suoi allergeni. Chi filtra il
+// glutine vede la carbonara nella versione senza glutine, al prezzo di quella
+// versione e con l'etichetta che lo dice; se quella versione non c'è, il
+// piatto non compare. E la versione scelta viaggia sulla riga d'ordine fino
+// alla cucina: senza, si mostrerebbe al celiaco un piatto che poi arriva
+// normale.
+function versionePerFiltri(d, filtri) {
+  const attivi = Object.keys(filtri || {}).filter(k => filtri[k]);
+  const dentro = attivi.filter(a => (d.allergens || []).includes(a));
+  if (!dentro.length) return d;
+  const v = (d.versioni || []).find(x => dentro.every(a => (x.senza || []).includes(a)));
+  if (!v) return null;
+  return {
+    ...d,
+    price: Math.round((d.price + (v.sovrapprezzo || 0)) * 100) / 100,
+    allergens: (d.allergens || []).filter(a => !(v.senza || []).includes(a)),
+    versione: v.etichetta
+  };
+}
+// Il piatto come lo si è scelto: se la riga porta una versione, il prezzo e
+// gli allergeni sono quelli della versione.
+function dishConVersione(d, etichetta) {
+  if (!d || !etichetta) return d;
+  const v = (d.versioni || []).find(x => x.etichetta === etichetta);
+  if (!v) return d;
+  return {
+    ...d,
+    price: Math.round((d.price + (v.sovrapprezzo || 0)) * 100) / 100,
+    allergens: (d.allergens || []).filter(a => !(v.senza || []).includes(a)),
+    versione: v.etichetta
+  };
+}
+window.byupDishConVersione = dishConVersione;
 
 // ─── Il motore di «In base ai tuoi gusti» (P-123 · D-03, D-28, LIA §4) ─────
 // Legge SOLO i gusti dichiarati (ByupGusti, P-27) e la storia degli ordini —
@@ -21854,7 +22786,12 @@ function compatibileConRegimi(d, regimi) {
   });
 }
 function byupSuggerimentiPerTe() {
-  const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
+  // Al minorenne non si costruisce alcun profilo di raccomandazione
+  // (P-187 · PRIV-09): le proposte non si fanno sulla sua storia, e la
+  // sezione «In base ai tuoi gusti» non compare affatto.
+  if (window.ByupKit && window.ByupKit.regimeMinore && window.ByupKit.regimeMinore()) return [];
+  const visibili = Object.values(catalogoVisibile()).flat();
+  const top4 = new Set(visibili.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
   const gusti = window.ByupGusti && window.ByupGusti.leggi() || [];
   const storico = (window.ByupStoricoOrdini && window.ByupStoricoOrdini() || []).map(n => n.toLowerCase());
   const ordinato = d => {
@@ -21866,7 +22803,7 @@ function byupSuggerimentiPerTe() {
     allergeni: {},
     regimi: []
   };
-  const candidati = ALL_DISHES.filter(d => {
+  const candidati = visibili.filter(d => {
     if (top4.has(d.id)) return false;
     // Solo a consenso acceso: fuori i piatti con un allergene dichiarato.
     if (dietaOk && d.allergens.some(a => esigenze.allergeni[a])) return false;
@@ -22252,10 +23189,17 @@ function MenuScreen({
   setState,
   goTo
 }) {
+  // Il coperto è esposto qui, dove la riga compare (P-192): il momento si
+  // registra alla prima comparsa e viaggia con l'ordine, che nascerà dopo.
+  React.useEffect(() => {
+    const r = window.ByupCoperto ? window.ByupCoperto.riga(0, 1) : null;
+    if (r && r.attiva && window.ByupCoperto.esposto) window.ByupCoperto.esposto(true);
+  }, []);
   // menu_view (P-38): il menù visto, una volta per apertura, solo con
   // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
+  // menu_view porta l'identificativo della sede, non il nome (P-161 · D-115).
   useEffect(() => {
-    if (window.ByupUso) window.ByupUso.emetti('menu_view', state && state.venue && state.venue.name || null);
+    if (window.ByupUso) window.ByupUso.emetti('menu_view', state && state.venue && (state.venue.id || null) || 'v_settembrini');
   }, []);
   const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
@@ -22419,7 +23363,9 @@ function MenuScreen({
   const [modeSheetOpen, setModeSheetOpen] = useState(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
-  const dishes = DISHES_BY_CAT;
+
+  // Quello che si sfoglia: senza alcolici sotto i diciotto anni (P-187).
+  const dishes = catalogoVisibile();
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
   const allDishesFlat = Object.values(dishes).flat();
 
@@ -22432,7 +23378,7 @@ function MenuScreen({
   const perTeIds = new Set(perTePicks.map(d => d.id));
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => {
-    const d = allDishesFlat.find(x => x.id === i.dishId);
+    const d = dishConVersione(allDishesFlat.find(x => x.id === i.dishId), i.versione);
     if (!d) return s;
     const extTotal = Object.entries(i.extras || {}).reduce((es, [eid, eq]) => {
       const ex = d.extras?.find(e => e.id === eid);
@@ -22442,9 +23388,10 @@ function MenuScreen({
   }, 0);
 
   // Remove one unit from card: prefer plain line, fallback to last line
-  const removeDishFromCard = dishId => setState(s => {
-    const plainLine = s.cart.find(i => i.dishId === dishId && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
-    const target = plainLine || [...s.cart].reverse().find(i => i.dishId === dishId);
+  const removeDishFromCard = (dishId, versione) => setState(s => {
+    const stessa = i => (i.versione || null) === (versione || null);
+    const plainLine = s.cart.find(i => i.dishId === dishId && stessa(i) && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
+    const target = plainLine || [...s.cart].reverse().find(i => i.dishId === dishId && stessa(i));
     if (!target) return s;
     if (target.qty <= 1) return {
       ...s,
@@ -22460,9 +23407,12 @@ function MenuScreen({
   });
 
   // Quick add (no customization): merge with existing plain line, or create new
-  const addDish = id => {
+  // La VERSIONE viaggia sulla riga (P-183 · D-136) e fa riga a sé: la
+  // carbonara senza glutine non si somma alla carbonara normale, o la cucina
+  // ne farebbe due uguali.
+  const addDish = (id, versione) => {
     setState(s => {
-      const existing = s.cart.find(i => i.dishId === id && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
+      const existing = s.cart.find(i => i.dishId === id && (i.versione || null) === (versione || null) && !Object.keys(i.variants || {}).length && !Object.keys(i.extras || {}).length && !Object.keys(i.removed || {}).length);
       if (existing) return {
         ...s,
         cart: s.cart.map(i => i.lineId === existing.lineId ? {
@@ -22476,6 +23426,7 @@ function MenuScreen({
           lineId: id + '-' + Date.now(),
           dishId: id,
           qty: 1,
+          versione: versione || null,
           variants: {},
           extras: {},
           removed: {}
@@ -22521,23 +23472,57 @@ function MenuScreen({
     submitTableOrder();
   };
   const submitTableOrder = () => {
+    // I limiti dei canali cliente (P-168 · D-118): tre invii in due minuti per
+    // tavolo, trenta righe per invio, cinque tavoli diversi in un'ora per
+    // dispositivo — i valori li governa Hubble. Oltre il limite l'invio è
+    // respinto con l'attesa scritta, mai un errore muto. Nessun cancello del
+    // pagamento: chi è al tavolo invia in cucina come gli altri. Se passa, il
+    // tavolo risulta aperto da un cliente col QR (orders.source_surface).
+    // A locale chiuso (P-169) non si apre alcuna sessione: l'invio non parte
+    // e il foglio dice perché. Il personale in sala non ha questo blocco.
+    const localeChiuso = window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
+    if (localeChiuso) {
+      setState(s => ({
+        ...s,
+        rifiuto: localeChiuso
+      }));
+      return;
+    }
+    const tavoloN = state.tableNumber || state.activeOrder?.table?.match(/\d+/)?.[0] || '23';
+    const righe = state.cart.reduce((n, li) => n + (li.qty || 1), 0);
+    const esito = window.byupInvioConsentito ? window.byupInvioConsentito(tavoloN, righe) : {
+      ok: true
+    };
+    if (!esito.ok) {
+      setState(s => ({
+        ...s,
+        rifiuto: esito.messaggio
+      }));
+      return;
+    }
+    if (window.byupSegnaTavoloQr) window.byupSegnaTavoloQr(tavoloN, 'byup_app');
     setConfirm(true);
     // P-103: il momento in cui la voce di coperto o servizio è stata esposta
-    // e confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
-    // di carta la prova che il cliente poteva conoscerla non esiste; qui
-    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
-    const coverDisclosedAt = new Date().toISOString();
+    // finisce sull'ordine (orders.cover_disclosed_at). Su un menù di carta la
+    // prova che il cliente poteva conoscerla non esiste; qui esiste, ed è un
+    // vantaggio che il prodotto offre all'esercente. È il momento in cui la
+    // riga è COMPARSA (P-192), non quello della conferma.
+    const coverDisclosedAt = window.ByupCoperto && window.ByupCoperto.esposto() || new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
-          const d = Object.values(dishes).flat().find(x => x.id === li.dishId);
+          // La versione arriva in cucina e sullo scontrino: nel nome, perché
+          // si legga, e in un campo suo, perché il sistema la sappia
+          // (order_items.item_variant_id — P-183 · D-136).
+          const d = dishConVersione(Object.values(dishes).flat().find(x => x.id === li.dishId), li.versione);
           return {
             lineId: 'me-' + li.lineId,
             id: li.dishId,
-            name: d?.name,
+            name: d ? d.name + (li.versione ? ` · ${li.versione.toLowerCase()}` : '') : undefined,
             price: d?.price,
             qty: li.qty,
             ownerId: 'me',
+            versione: li.versione || null,
             variants: li.variants,
             extras: li.extras,
             removed: li.removed
@@ -22554,7 +23539,8 @@ function MenuScreen({
               total: newTotal,
               cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt
             },
-            cart: []
+            cart: [],
+            rifiuto: null
           };
         }
         return {
@@ -22592,7 +23578,8 @@ function MenuScreen({
             // table-wide items added by waiter or other guests
             tableItems: []
           },
-          cart: []
+          cart: [],
+          rifiuto: null
         };
       });
       setConfirm(false);
@@ -23001,7 +23988,31 @@ function MenuScreen({
       fontSize: 12,
       color: 'rgba(255,255,255,0.9)'
     }
-  }, "Aperto \xB7 12:00 \u2013 23:30"))), !fromVenue && (() => {
+  }, (() => {
+    const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    return !i ? 'Aperto · 12:00 – 23:30' : i.chiusoOggi ? 'Oggi chiuso' : !i.localeAperto ? `Chiuso · apre alle ${i.apre}` : `Aperto · ${i.apre} – ${i.chiude}`;
+  })())), (() => {
+    const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    if (!i || !i.localeAperto) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      "data-cucina": true,
+      style: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.85)',
+        marginTop: 3
+      }
+    }, i.cucinaAperta ? `Cucina fino alle ${i.ultimaComanda}` : `Cucina chiusa dalle ${i.ultimaComanda}`);
+  })(), (() => {
+    const r = window.ByupCoperto ? window.ByupCoperto.riga(0, 1) : null;
+    return r && r.attiva ? /*#__PURE__*/React.createElement("div", {
+      "data-coperto-testa": true,
+      style: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.85)',
+        marginTop: 4
+      }
+    }, r.nome, " ", r.forma === 'fissa' ? `${r.importo.toFixed(2).replace('.', ',')} € a persona` : `${r.aliquota}% sul totale`) : null;
+  })()), !fromVenue && (() => {
     const guests = state.activeOrder?.guests || [];
     const tableN = state.tableNumber || state.activeOrder?.table?.match(/\d+/)?.[0] || '23';
     return /*#__PURE__*/React.createElement("button", {
@@ -23087,7 +24098,7 @@ function MenuScreen({
       padding: '0 18px'
     }
   }, !searchQ && (() => {
-    const tops = ALL_DISHES.filter(d => d.bestSeller).slice(0, 4);
+    const tops = allDishesFlat.filter(d => d.bestSeller).slice(0, 4);
     if (!tops.length) return null;
     return /*#__PURE__*/React.createElement("div", {
       ref: el => sectionRefs.current['Byup'] = el,
@@ -23216,7 +24227,7 @@ function MenuScreen({
       }, qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi')));
     })));
   })(), !searchQ && !suggerimentiAttivi && (() => {
-    const picks = ALL_DISHES.filter(d => d.bestSeller).slice(0, 6);
+    const picks = allDishesFlat.filter(d => d.bestSeller).slice(0, 6);
     if (picks.length < 2) return null;
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -23436,13 +24447,13 @@ function MenuScreen({
       }, qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi')));
     })));
   })()), tabs.map((catName, catIdx) => {
-    const catDishes = (DISHES_BY_CAT[catName] || []).filter(d => {
+    const catDishes = (dishes[catName] || []).filter(d => {
       if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase()) && !d.desc.toLowerCase().includes(searchQ.toLowerCase())) return false;
-      for (const id of Object.keys(allergenFilters)) {
-        if (allergenFilters[id] && d.allergens.includes(id)) return false;
-      }
       return true;
-    });
+      // Il piatto che porta un allergene filtrato esce dall'elenco, a meno
+      // che non ne esista una versione senza: allora entra QUELLA, col suo
+      // prezzo e la sua etichetta (P-183 · D-136).
+    }).map(d => versionePerFiltri(d, allergenFilters)).filter(Boolean);
     const dietMatch = d => {
       if (!dietFilter) return false;
       if (dietFilter === 'veg') return !d.allergens.includes('pesce');
@@ -23476,7 +24487,9 @@ function MenuScreen({
       const isFirst = idx === 0;
       const prevMatch = idx > 0 && dietMatch(sorted[idx - 1]);
       const showDivider = dietFilter && !dietMatch(d) && prevMatch;
-      const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
+      // La riga con un'altra versione è un'altra riga: il conto
+      // sulla card è di questa (P-183 · D-136).
+      const qty = cart.filter(i => i.dishId === d.id && (i.versione || null) === (d.versione || null)).reduce((s, i) => s + i.qty, 0);
       return /*#__PURE__*/React.createElement(React.Fragment, {
         key: d.id
       }, showDivider && /*#__PURE__*/React.createElement("div", {
@@ -23506,7 +24519,8 @@ function MenuScreen({
         }
       })), /*#__PURE__*/React.createElement("div", {
         onClick: () => goTo('dish', {
-          dishId: d.id
+          dishId: d.id,
+          versione: d.versione
         }),
         "data-dish": d.name,
         style: {
@@ -23613,7 +24627,20 @@ function MenuScreen({
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }
-      }, d.name), /*#__PURE__*/React.createElement("div", {
+      }, d.name), d.versione && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: 'inline-flex',
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          marginBottom: 6,
+          background: '#e8f5ec',
+          color: '#1a7a3c',
+          borderRadius: 999,
+          padding: '2px 8px',
+          fontSize: 11,
+          fontWeight: 700
+        }
+      }, "versione ", d.versione.toLowerCase()), /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 13,
           color: MUTED,
@@ -23630,7 +24657,8 @@ function MenuScreen({
           marginBottom: 10
         }
       }, /*#__PURE__*/React.createElement(AllergenDots, {
-        ids: d.allergens
+        ids: d.allergens,
+        decongelato: d.decongelato
       })), /*#__PURE__*/React.createElement("div", {
         style: {
           display: 'flex',
@@ -23653,7 +24681,7 @@ function MenuScreen({
       }, qty === 0 ? /*#__PURE__*/React.createElement("button", {
         onClick: e => {
           e.stopPropagation();
-          addDish(d.id);
+          addDish(d.id, d.versione);
         },
         style: {
           width: 32,
@@ -23683,7 +24711,7 @@ function MenuScreen({
       }, /*#__PURE__*/React.createElement("button", {
         onClick: e => {
           e.stopPropagation();
-          removeDishFromCard(d.id);
+          removeDishFromCard(d.id, d.versione);
         },
         style: {
           width: 24,
@@ -23710,7 +24738,7 @@ function MenuScreen({
       }, qty), /*#__PURE__*/React.createElement("button", {
         onClick: e => {
           e.stopPropagation();
-          addDish(d.id);
+          addDish(d.id, d.versione);
         },
         style: {
           width: 24,
@@ -24701,13 +25729,15 @@ function OrderSheet({
     }));
   });
   const cartItems = state.cart.map(li => {
-    const d = allDishes.find(x => x.id === li.dishId);
+    // La versione della riga cambia prezzo e allergeni del piatto che si
+    // mostra qui (P-183 · D-136).
+    const d = dishConVersione(allDishes.find(x => x.id === li.dishId), li.versione);
     if (!d) return null;
     const extTotal = Object.entries(li.extras || {}).reduce((s, [eid, eq]) => {
       const ex = d.extras?.find(e => e.id === eid);
       return s + (ex ? ex.price * eq : 0);
     }, 0);
-    const summary = [...Object.entries(li.variants || {}).map(([, v]) => v), ...Object.entries(li.extras || {}).filter(([, q]) => q > 0).map(([eid, q]) => {
+    const summary = [...(li.versione ? [li.versione.toLowerCase()] : []), ...Object.entries(li.variants || {}).map(([, v]) => v), ...Object.entries(li.extras || {}).filter(([, q]) => q > 0).map(([eid, q]) => {
       const ex = d.extras?.find(e => e.id === eid);
       return ex ? `+${ex.name}${q > 1 ? ' x' + q : ''}` : null;
     }).filter(Boolean), ...Object.keys(li.removed || {}).map(ing => `-${ing}`)].join(', ');
@@ -24793,7 +25823,20 @@ function OrderSheet({
   }, /*#__PURE__*/React.createElement(I.Trash, {
     size: 18,
     color: TEXT
-  }))), /*#__PURE__*/React.createElement("button", {
+  }))), state.rifiuto && /*#__PURE__*/React.createElement("div", {
+    "data-rifiuto-invio": true,
+    role: "alert",
+    style: {
+      marginBottom: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: '#FEF3C7',
+      color: '#92400E',
+      fontSize: 13,
+      lineHeight: 1.4,
+      fontWeight: 600
+    }
+  }, state.rifiuto), /*#__PURE__*/React.createElement("button", {
     onClick: onSubmit,
     disabled: cartCount === 0,
     style: {
@@ -24922,7 +25965,20 @@ function OrderSheet({
         fontVariantNumeric: 'tabular-nums'
       }
     }, r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`)) : null;
-  })(), /*#__PURE__*/React.createElement("button", {
+  })(), state.rifiuto && /*#__PURE__*/React.createElement("div", {
+    "data-rifiuto-invio": true,
+    role: "alert",
+    style: {
+      marginBottom: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: '#FEF3C7',
+      color: '#92400E',
+      fontSize: 13,
+      lineHeight: 1.4,
+      fontWeight: 600
+    }
+  }, state.rifiuto), /*#__PURE__*/React.createElement("button", {
     onClick: onSubmit,
     disabled: cartCount === 0,
     style: {
@@ -26027,10 +27083,14 @@ function DishDetailScreen({
   ctx,
   goBack
 }) {
-  const dish = findDish(ctx?.dishId);
   // Se arrivo dal carrello con un lineId, sto MODIFICANDO quella riga
   // (precompilo e aggiorno in place), non aggiungendone una nuova.
   const editLine = ctx?.lineId ? (state.cart || []).find(i => i.lineId === ctx.lineId) : null;
+  // La VERSIONE con cui il piatto è stato aperto — dal menù filtrato o dalla
+  // riga che sto modificando: prezzo e allergeni sono quelli della versione,
+  // e la riga se la porta dietro fino alla cucina (P-183 · D-136).
+  const versione = editLine && editLine.versione || ctx?.versione || null;
+  const dish = dishConVersione(findDish(ctx?.dishId), versione);
   const isEdit = !!editLine;
   const [expanded, setExpanded] = useState(false);
   const [extras, setExtras] = useState(editLine?.extras || {});
@@ -26071,7 +27131,17 @@ function DishDetailScreen({
   }, 0);
   const unitTotal = dish.price + extrasTotal;
   const total = unitTotal * qty;
+  // Cucina chiusa (P-167 · D-117): passata l'ultima comanda, i piatti non
+  // eccettuati non si aggiungono e il foglio dice da quando; quelli con
+  // «Ordinabile anche a cucina chiusa» restano ordinabili.
+  const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+  const cucinaBloccato = !!(cucina && cucina.localeAperto && !cucina.cucinaAperta && !dish.cucinaChiusaOk);
+  // A locale chiuso (P-169) nessun piatto si aggiunge, eccezioni comprese:
+  // il menù si consulta, si ordina quando il locale è aperto.
+  const localeChiuso = !!(cucina && !cucina.localeAperto);
+  const localeChiusoMessaggio = localeChiuso && window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
   const addToCart = () => {
+    if (cucinaBloccato || localeChiuso) return;
     if (isEdit) {
       const n = editLine.qty;
       const m = qty; // porzioni a cui applico questa personalizzazione (1..n)
@@ -26094,7 +27164,7 @@ function DishDetailScreen({
             ...i,
             qty: n - m
           } : i);
-          const same = i => i.dishId === dish.id && JSON.stringify(i.variants || {}) === JSON.stringify(variants) && JSON.stringify(i.extras || {}) === JSON.stringify(extras) && JSON.stringify(i.removed || {}) === JSON.stringify(removed);
+          const same = i => i.dishId === dish.id && (i.versione || null) === versione && JSON.stringify(i.variants || {}) === JSON.stringify(variants) && JSON.stringify(i.extras || {}) === JSON.stringify(extras) && JSON.stringify(i.removed || {}) === JSON.stringify(removed);
           const idx = cart.findIndex(same); // include la riga ridotta → "nessun cambio" si rifonde (no-op)
           if (idx >= 0) cart = cart.map((i, k) => k === idx ? {
             ...i,
@@ -26103,6 +27173,7 @@ function DishDetailScreen({
             lineId: dish.id + '-' + Date.now(),
             dishId: dish.id,
             qty: m,
+            versione,
             variants,
             extras,
             removed
@@ -26121,6 +27192,7 @@ function DishDetailScreen({
           lineId,
           dishId: dish.id,
           qty,
+          versione,
           variants,
           extras,
           removed
@@ -26320,7 +27392,19 @@ function DishDetailScreen({
       borderRadius: 999,
       flexShrink: 0
     }
-  }, dish.price, "\u20AC")), dish.descAi && /*#__PURE__*/React.createElement("div", {
+  }, dish.price, "\u20AC")), versione && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      marginTop: 8,
+      background: '#e8f5ec',
+      color: '#1a7a3c',
+      borderRadius: 999,
+      padding: '4px 11px',
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, "versione ", versione.toLowerCase()), dish.descAi && !expanded && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -26408,7 +27492,7 @@ function DishDetailScreen({
       fontSize: 13.5,
       color: MUTED,
       lineHeight: 1.55,
-      marginTop: dish.descAi ? 6 : 10
+      marginTop: dish.descAi && !expanded ? 6 : 10
     }
   }, expanded ? dish.longDesc : /*#__PURE__*/React.createElement(React.Fragment, null, dish.desc.slice(0, 75), dish.desc.length > 75 ? '...' : '', ' ', /*#__PURE__*/React.createElement("span", {
     onClick: () => setExpanded(true),
@@ -26441,7 +27525,8 @@ function DishDetailScreen({
       letterSpacing: 0.6
     }
   }, "Allergeni"), /*#__PURE__*/React.createElement(AllergenDots, {
-    ids: dish.allergens
+    ids: dish.allergens,
+    decongelato: dish.decongelato
   }))), dish.ingredients.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '24px 22px 0'
@@ -26546,7 +27631,21 @@ function DishDetailScreen({
         color: MUTED,
         marginTop: 2
       }
-    }, ex.price === 0 ? 'gratis' : `+${ex.price}€`)), q === 0 ? /*#__PURE__*/React.createElement("button", {
+    }, ex.price === 0 ? 'gratis' : `+${ex.price}€`), (ex.addsAllergens || []).length > 0 && (() => {
+      const evitati = window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati() || {};
+      const nuovi = ex.addsAllergens.filter(a => !(dish.allergens || []).includes(a));
+      if (!nuovi.length) return null;
+      const scontro = nuovi.some(a => evitati[a]);
+      const nomi = nuovi.map(a => (ALLERGENS[a] ? ALLERGENS[a].label : a).toLowerCase()).join(', ');
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12,
+          marginTop: 3,
+          fontWeight: scontro ? 700 : 500,
+          color: scontro ? '#b3261e' : MUTED
+        }
+      }, scontro ? `⚠ aggiunge ${nomi}` : `aggiunge ${nomi}`);
+    })()), q === 0 ? /*#__PURE__*/React.createElement("button", {
       onClick: () => setExtra(ex.id, 1),
       style: {
         width: 32,
@@ -26845,7 +27944,9 @@ function DishDetailScreen({
       transition: 'width 0.4s'
     }
   }))))))), (() => {
-    const others = ALL_DISHES.filter(d => d.id !== dish.id).slice(0, 4);
+    // Dal catalogo VISIBILE, non dal listino intero (P-191): a un
+    // minorenne «spesso ordinato con» non propone un alcolico.
+    const others = Object.values(catalogoVisibile()).flat().filter(d => d.id !== dish.id).slice(0, 4);
     if (!others.length) return null;
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -27151,9 +28252,34 @@ function DishDetailScreen({
       alignItems: 'center',
       justifyContent: 'center'
     }
-  }, "+")), /*#__PURE__*/React.createElement("button", {
-    onClick: addToCart,
+  }, "+")), localeChiuso && /*#__PURE__*/React.createElement("div", {
+    "data-locale-chiuso": true,
     style: {
+      marginBottom: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: '#FEF3C7',
+      color: '#92400E',
+      fontSize: 13,
+      lineHeight: 1.4
+    }
+  }, localeChiusoMessaggio), cucinaBloccato && !localeChiuso && /*#__PURE__*/React.createElement("div", {
+    "data-cucina-chiusa": true,
+    style: {
+      marginBottom: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: '#FEF3C7',
+      color: '#92400E',
+      fontSize: 13,
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "Cucina chiusa dalle ", cucina.ultimaComanda, "."), " Questo piatto non si pu\xF2 pi\xF9 ordinare; le bevande e i piatti freddi restano disponibili."), /*#__PURE__*/React.createElement("button", {
+    onClick: addToCart,
+    disabled: cucinaBloccato || localeChiuso,
+    style: {
+      opacity: cucinaBloccato || localeChiuso ? 0.5 : 1,
+      cursor: cucinaBloccato || localeChiuso ? 'not-allowed' : 'pointer',
       flex: 1,
       height: 56,
       borderRadius: 999,
@@ -27177,6 +28303,8 @@ function DishDetailScreen({
 // Metodo di pagamento selezionato (id → etichetta mostrata nel riepilogo)
 function payMethodName(id) {
   switch (id) {
+    // PayPal e Klarna non si scelgono più (P-193), ma un ordine vecchio può
+    // ancora portarli: si leggono, non si offrono.
     case 'paypal':
       return 'PayPal';
     case 'klarna':
@@ -27577,6 +28705,113 @@ function SlideToPay({
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "20 6 9 17 4 12"
   })) : icons[mode] || icons.mine)));
+}
+
+// ─── La finestra notturna della giornata fiscale (P-148) ────────────────────
+// Stessa regola di Cassa, Sala e Byup Staff, detta alla stessa persona: fra le
+// 23:55 e le 00:00 ITALIANE il documento nascerebbe con la giornata fiscale
+// del giorno dopo, e il canale dell'Agenzia non trasmette. Il canale fiscale è
+// uno solo per tutte le superfici, quindi vale anche qui: un cliente che paga
+// alle 23:57 dal telefono produrrebbe esattamente il documento che la regola
+// vuole evitare. L'ora è quella italiana (timeZone 'Europe/Rome'), non quella
+// del dispositivo. Copia guardata: se si tocca una, si toccano tutte.
+if (!window.byupNotteInfo) {
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteRoma = d => {
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', {
+        timeZone: 'Europe/Rome',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(d);
+      const g = t => parseInt((p.find(x => x.type === t) || {}).value, 10) || 0;
+      return {
+        h: g('hour') % 24,
+        m: g('minute'),
+        s: g('second')
+      };
+    } catch (e) {
+      return {
+        h: d.getHours(),
+        m: d.getMinutes(),
+        s: d.getSeconds()
+      };
+    }
+  };
+  const notteBase = (() => {
+    const r = notteRoma(new Date());
+    return Date.now() - (r.h * 3600 + r.m * 60 + r.s) * 1000 + (23 * 3600 + 58 * 60 + 30) * 1000;
+  })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const {
+      h,
+      m,
+      s
+    } = notteRoma(notteOra());
+    const dentro = h === 23 && m >= 55;
+    const mancano = dentro ? 86400 - (h * 3600 + m * 60 + s) : 0;
+    return {
+      dentro,
+      mancano
+    };
+  };
+  window.byupNotteConta = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+// L'avviso, identico a quello della Sala: che cosa succederebbe e quando riparte.
+function NotteAvviso({
+  mancano
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    "data-notte-avviso": true,
+    style: {
+      display: 'flex',
+      gap: 10,
+      alignItems: 'flex-start',
+      padding: '12px 14px',
+      borderRadius: 14,
+      background: '#FEF3C7',
+      color: '#92400E',
+      fontSize: 13.5,
+      lineHeight: 1.45,
+      marginBottom: 10,
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "16",
+    height: "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 7v5l3 2"
+  })), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", null, "Lo scontrino partirebbe con la data di domani: attendi mezzanotte."), ' ', "Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette. Il pagamento riprende da solo tra", ' ', /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontVariantNumeric: 'tabular-nums'
+    }
+  }, window.byupNotteConta(mancano)), "."));
 }
 function PaymentScreen({
   state,
@@ -28033,8 +29268,19 @@ function PaymentScreen({
   // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
   // quota: la slide da sola non basta come conferma.
   const [confirmAll, setConfirmAll] = useState(false);
+  // La finestra notturna (P-148): dentro, il pagamento aspetta mezzanotte
+  // italiana come in cassa; il conto alla rovescia si aggiorna ogni secondo.
+  const notte = window.byupNotteInfo ? window.byupNotteInfo() : {
+    dentro: false,
+    mancano: 0
+  };
+  const [, setNotteTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNotteTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
   const payNow = () => {
-    if (paying || ctaTotal <= 0) return;
+    if (paying || ctaTotal <= 0 || notte.dentro) return;
     // La modalita' della CTA e' ctaMode ('mine' | 'all'), non `mode`:
     // e' quella che decide cosa si paga davvero.
     if (ctaMode === 'all') {
@@ -28444,11 +29690,13 @@ function PaymentScreen({
       boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       padding: '12px 16px calc(26px + env(safe-area-inset-bottom, 0px))'
     }
-  }, /*#__PURE__*/React.createElement(SlideToPay, {
+  }, notte.dentro && /*#__PURE__*/React.createElement(NotteAvviso, {
+    mancano: notte.mancano
+  }), /*#__PURE__*/React.createElement(SlideToPay, {
     mode: ctaMode,
-    label: ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo',
+    label: notte.dentro ? 'In attesa di mezzanotte' : ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo',
     amount: ctaTotal,
-    disabled: paying || ctaTotal <= 0,
+    disabled: paying || ctaTotal <= 0 || notte.dentro,
     onCycle: cycleCtaMode,
     onPay: payNow
   }), /*#__PURE__*/React.createElement("button", {
@@ -29096,20 +30344,17 @@ function PayMethodScreen({
     }));
     goBack();
   };
+
+  // DUE metodi, non quattro (P-193): carta e Apple Pay sono quelli che il
+  // prestatore dei pagamenti ci dà oggi. PayPal e Klarna erano promesse che
+  // nessuno poteva mantenere — e una promessa di pagamento non mantenuta la
+  // scopre il cliente con il conto in mano.
+  // QUANDO CI SARANNO vanno rimessi qui, insieme a Google Pay: le icone
+  // (PaypalIcon, KlarnaIcon) restano nel file, pronte.
   const methods = [{
     id: 'apple',
     name: 'Apple Pay',
     icon: /*#__PURE__*/React.createElement(ApplePayIcon, null),
-    sub: ''
-  }, {
-    id: 'paypal',
-    name: 'PayPal',
-    icon: /*#__PURE__*/React.createElement(PaypalIcon, null),
-    sub: ''
-  }, {
-    id: 'klarna',
-    name: 'Paga con Klarna',
-    icon: /*#__PURE__*/React.createElement(KlarnaIcon, null),
     sub: ''
   }, {
     id: 'card',

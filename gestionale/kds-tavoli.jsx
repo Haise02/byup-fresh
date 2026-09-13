@@ -1585,7 +1585,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           bisogno. */}
       {barra ? barra({ ora, canale, onCanale: setCanale, canali,
                        categoria, onCategoria: setCategoria, categorie,
-                       mandati: inLista.length, onMandati: () => setProntiAperti(true) }) : (
+                       mandati: inLista.length, onMandati: () => setProntiAperti(true), inRitardo }) : (
         <div style={{ height:72, flexShrink:0, display:'flex', alignItems:'center', gap:18,
                       padding:'0 14px 0 22px', background: PN.WHITE, borderBottom:'1px solid ' + UI.bordo }}>
           <span style={{ fontSize:30, fontWeight:800, letterSpacing:'-0.02em', color: UI.testo,

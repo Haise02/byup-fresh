@@ -1376,7 +1376,7 @@ function ContBuoniPasto() {
         </div>
         {righe.length === 0 && (
           <div style={{ padding: '30px 20px', textAlign: 'center', color: PN.MUTED, fontSize: 14 }}>
-            {convenzioni.length ? `Nessun buono accettato a ${nomeMese(mese)}.` : 'Finché non c\'è una convenzione la tessera «Buoni pasto» in cassa non compare, e qui non c\'è nulla da riscontrare.'}
+            {`Nessun buono accettato a ${nomeMese(mese)}.`}
           </div>
         )}
         {righe.map((r, i) => {

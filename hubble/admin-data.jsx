@@ -1546,18 +1546,17 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
       nome: p.nome, ruolo: p.ruolo, email: l.email, ip: ip(s), superficie,
     });
 
-    // All'attivazione si firma il pacchetto intero: Piano, TC e DPA nella
-    // versione allora corrente, informativa in presa visione. Per gli iscritti
-    // PRIMA del catalogo, la prima firma a registro è la versione più vecchia
-    // ricostruita, alla sua efficacia.
+    // All'attivazione si firma il pacchetto: TC e DPA nella versione allora
+    // corrente, informativa in presa visione. Il Piano non c'è, e non è una
+    // dimenticanza: non è un documento versionato (P-200 · D-159), e le
+    // condizioni economiche accettate stanno nell'abbonamento del locale con
+    // la loro data. Per gli iscritti PRIMA del catalogo, la prima firma a
+    // registro è la versione più vecchia ricostruita, alla sua efficacia.
     const dopo = (vv) => l.dataIscrizione.getTime() >= vv.pubblicata.getTime();
     const tcFirma  = [...tc].reverse().find(dopo)  || null;
     const dpaFirma = [...dpa].reverse().find(dopo) || null;
     const infFirma = [...inf].reverse().find(dopo) || null;
     const tIscr = ORA(l.dataIscrizione, s);
-    // Nessuna firma del Piano (P-200 · D-159): il piano scelto e i suoi
-    // termini economici vivono nell'abbonamento del locale, con la loro data.
-
     firma('TC-01',  (tcFirma  || tc[0]).v,  tcFirma  ? tIscr : ORA(tc[0].efficace, s),  tcFirma  ? 'onboarding' : 'gestionale');
     firma('DPA-01', (dpaFirma || dpa[0]).v, dpaFirma ? tIscr : ORA(dpa[0].efficace, s), dpaFirma ? 'onboarding' : 'gestionale');
     firma('INF-02', (infFirma || inf[0]).v, infFirma ? tIscr : ORA(inf[0].efficace, s), infFirma ? 'onboarding' : 'gestionale', 'presa-visione');

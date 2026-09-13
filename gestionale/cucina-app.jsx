@@ -151,7 +151,7 @@ function CucinaApp() {
   // selezione multipla: si tiene l'ultima scelta, così il chip resta quello e
   // il comportamento resta quello che la board sa gestire.
   const barraCucina = ({ canale, onCanale, canali, categoria, onCategoria, categorie,
-                         mandati, onMandati }) => {
+                         mandati, onMandati, inRitardo }) => {
     const tuttiC = canali[0], tutteCat = categorie[0];
     const Chip = window.KdsFilterChip;
     return (
@@ -178,25 +178,37 @@ function CucinaApp() {
               cambia quello che si sta guardando. Non dice «consegnati», perché
               il monitor non sa se il piatto ha raggiunto il tavolo (P-196 ·
               D-156). */}
+          {/* L'INTESTAZIONE SI ACCENDE QUI (P-214 · D-156). Il ritardo si
+              calcolava già, ma arrivava solo alla testata della route
+              d'anteprima: sulla superficie che il cuoco guarda davvero —
+              questa — non arrivava, quindi in esercizio non si accendeva mai e
+              chi provava la funzione dall'anteprima credeva che funzionasse.
+              È la metà che restituisce al cuoco il controllo che il movimento
+              gli toglie: portato il tavolo in una lista, il piatto si fredda
+              sotto la lampada senza che nessuno lo veda.
+              Si accende solo dove c'è qualcosa da aspettare: se la sede deduce
+              la consegna dal pronto, la voce entra in lista già consegnata,
+              nessun tempo scorre e l'intestazione resta spenta. */}
           {onMandati && (
-            <button onClick={onMandati} title="Ordini pronti" data-ordini-pronti=""
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+            <button onClick={onMandati} title={inRitardo ? 'Ordini pronti · qualcosa aspetta da troppo' : 'Ordini pronti'} data-ordini-pronti=""
+              data-in-ritardo={inRitardo ? 'sì' : 'no'}
+              onMouseEnter={e => { e.currentTarget.style.background = inRitardo ? '#FFE0C7' : 'rgba(15,17,21,0.06)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = inRitardo ? '#FFF3E9' : '#fff'; }}
               style={{
                 display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
                 height: 36, padding:'0 14px', borderRadius: 10,
-                background:'#fff', border:'none',
-                boxShadow:'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
-                color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                background: inRitardo ? '#FFF3E9' : '#fff', border:'none',
+                boxShadow: inRitardo ? 'inset 0 0 0 1.5px #F97316' : 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+                color: inRitardo ? '#C2410C' : PN.TEXT, fontSize: 14.5, fontWeight: inRitardo ? 700 : 600,
                 cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-                transition:'background 150ms ease-out',
+                transition:'background 150ms ease-out, box-shadow 150ms ease-out, color 150ms ease-out',
               }}>
               Ordini pronti
               {mandati > 0 && (
                 <span style={{
                   minWidth: 22, height: 22, padding:'0 6px', borderRadius: 999,
                   display:'grid', placeItems:'center',
-                  background: PN.BG, color: PN.MUTED,
+                  background: inRitardo ? '#FFE9D5' : PN.BG, color: inRitardo ? '#C2410C' : PN.MUTED,
                   fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
                 }}>{mandati}</span>
               )}
