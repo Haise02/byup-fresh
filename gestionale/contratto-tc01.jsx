@@ -65,9 +65,22 @@ const TC01 = {
   // Impronta dichiarata dalla generazione: si confronta con quella calcolata
   // sulle clausole qui sotto (tc01Verifica).
   impronta: '9bf2c708',
-  // L'ordine di prevalenza dell'art. 1: Piano, TC, DPA; le informative si
-  // ricevono e non si accettano.
-  pacchetto: ['PIANO', 'TC-01', 'DPA-01', 'INF-02'],
+  // I DOCUMENTI VERSIONATI del contratto. Il Piano non c'è (P-200 · D-159):
+  // il dominio dei documenti versionati serve a ciò che è uguale per tutti —
+  // una versione, un'impronta, una data di efficacia valide per l'intera
+  // piattaforma — mentre il Piano è diverso per ogni esercente e «la versione
+  // 0.32 del Piano» non esiste. La prova di quello che l'esercente ha
+  // accettato sta nell'abbonamento, che conserva la fotografia dei termini
+  // economici scattata all'attivazione e a ogni variazione, col momento e col
+  // riferimento alla versione dei Termini allora in vigore.
+  // L'ORDINE DI PREVALENZA dell'art. 1 non cambia e resta scritto nel testo
+  // dell'articolo: il Piano viene primo, e se dice una cifra diversa dai
+  // Termini generali vince il Piano. Prevalere non vuol dire essere un
+  // documento versionato.
+  pacchetto: ['TC-01', 'DPA-01', 'INF-02'],
+  // La prima voce dell'ordine di prevalenza, che si mostra come riga di testo
+  // e non come documento apribile.
+  prevalenzaPrima: { nome: 'Condizioni particolari di attivazione (Piano)', dove: 'nel tuo abbonamento' },
   clausole: [
     { n: 1, h: 'Oggetto e documenti del contratto', vessatoria: false,
       p: 'Byup S.r.l. concede in licenza d\'uso, in modalità cloud (SaaS), il gestionale Byup Fresh: cassa, ordinazione al tavolo, menù digitali, vetrina nella Byup App, statistiche e strumenti per gli adempimenti fiscali. Il servizio è riservato a operatori professionali del settore Food & Beverage. Il contratto è formato, in ordine di prevalenza, dalle Condizioni particolari di attivazione (Piano), dai presenti Termini e dall\'Accordo sul trattamento dei dati (DPA-01); l\'informativa privacy business (INF-02) si riceve e non si accetta.' },

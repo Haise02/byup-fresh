@@ -1391,7 +1391,20 @@ const DOCUMENTI = [
   // contrattuale, non una coincidenza di scrittura. Le informative non sono
   // nell'elenco dell'art. 1: si RICEVONO, non si accettano (flag
   // `informativa`), e vanno rese in una sezione a parte, senza finestre.
-  { codice:'PIANO',  nome:'Condizioni particolari di attivazione', destinatario:'locale', prevalenza:1, particolare:true },
+  // IL PIANO NON È UN DOCUMENTO (P-200 · D-159). Stava qui con prevalenza 1,
+  // accanto ai Termini e alle informative. Ma questo dominio serve a ciò che è
+  // uguale per tutti — una versione, un'impronta, una data di efficacia valide
+  // per l'intera piattaforma — e il Piano è diverso per ogni esercente: «la
+  // versione 0.32 del Piano» non esiste, e il modello quel codice non lo
+  // prevede. La prova di ciò che l'esercente ha accettato sta
+  // nell'abbonamento, che conserva la fotografia dei termini economici scattata
+  // all'attivazione e a ogni variazione, col momento e con la versione dei
+  // Termini allora in vigore: togliendolo da qui non si perde nulla.
+  // L'ordine di prevalenza dell'art. 1 resta quello che è — il Piano viene
+  // primo — e opera allo stesso modo mentre il Piano vive nell'abbonamento.
+  // Se un giorno si tratteranno condizioni particolari con una catena, quello
+  // sarà un documento per quel solo esercente, con una firma propria: è
+  // un'altra cosa, e avrà bisogno di una decisione sua.
   { codice:'TC-01',  nome:'Termini e Condizioni di servizio',      destinatario:'locale', prevalenza:2, versioni:[
     { v:'0.20', pubblicata:ctrData(6,10,2025),  efficace:ctrData(5,11,2025), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
@@ -1463,7 +1476,7 @@ const DOCUMENTI = [
 // con Byup, indipendente dal locale che lo associa; l'utente app aggiunge i
 // consensi facoltativi, che però vivono già nelle proprietà del CRM.
 const CONTRATTI_PER_TIPO = {
-  locale: ['PIANO', 'TC-01', 'DPA-01', 'INF-02', 'INF-06', 'MOD-02'],
+  locale: ['TC-01', 'DPA-01', 'INF-02', 'INF-06', 'MOD-02'],
   staff:  ['TOS-02', 'INF-04'],
   utente: ['TOS-01', 'INF-01', 'INF-05'],
 };
@@ -1524,7 +1537,9 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
     const dpaFirma = [...dpa].reverse().find(dopo) || null;
     const infFirma = [...inf].reverse().find(dopo) || null;
     const tIscr = ORA(l.dataIscrizione, s);
-    firma('PIANO', l.piano, tIscr, 'onboarding');
+    // Nessuna firma del Piano (P-200 · D-159): il piano scelto e i suoi
+    // termini economici vivono nell'abbonamento del locale, con la loro data.
+
     firma('TC-01',  (tcFirma  || tc[0]).v,  tcFirma  ? tIscr : ORA(tc[0].efficace, s),  tcFirma  ? 'onboarding' : 'gestionale');
     firma('DPA-01', (dpaFirma || dpa[0]).v, dpaFirma ? tIscr : ORA(dpa[0].efficace, s), dpaFirma ? 'onboarding' : 'gestionale');
     firma('INF-02', (infFirma || inf[0]).v, infFirma ? tIscr : ORA(inf[0].efficace, s), infFirma ? 'onboarding' : 'gestionale', 'presa-visione');
@@ -1584,7 +1599,10 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
     { soggettoId: CTR_CASI.subRecesso, tipo: 'sub-responsabile', codice: 'DPA-01', v: null,
       sub: 'CDN media assets — nuovo sub-responsabile hosting', inviato: ctrData(15, 6, 2026), efficace: ctrData(15, 7, 2026),
       esito: 'recesso', nota: 'Nessuna alternativa disponibile: recesso limitato al modulo media (art. 5 DPA), il resto del servizio prosegue.' },
-    { soggettoId: CTR_CASI.listinoOltreFoi, tipo: 'listino', codice: 'PIANO', v: null, sub: null,
+    // Il preavviso del listino non ha un documento a cui agganciarsi: il
+    // listino sta nell'abbonamento e il Piano non è un documento versionato
+    // (P-200 · D-159). La regola che lo governa è l'art. 5 dei Termini.
+    { soggettoId: CTR_CASI.listinoOltreFoi, tipo: 'listino', codice: null, v: null, sub: null,
       inviato: ctrData(10, 6, 2026), efficace: ctrData(10, 7, 2026), oltreFoi: true,
       esito: 'accettato', nota: null },
   );

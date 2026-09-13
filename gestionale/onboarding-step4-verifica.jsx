@@ -1244,6 +1244,18 @@ function ContrattoModal({ onClose, onAccept }) {
               Scarica copia
             </button>
           </div>
+          {/* L'ordine di prevalenza dell'art. 1 comincia dal Piano, e il Piano
+              non è un documento versionato (P-200 · D-159): è una riga che
+              rimanda all'abbonamento, non una voce che si apre. */}
+          {TC01.prevalenzaPrima && (
+            <div data-prevalenza style={{
+              display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8,
+              fontSize: 13.5, lineHeight: 1.5, color: ONB.MUTED,
+            }}>
+              <span style={{fontWeight: 700, color: ONB.TEXT}}>1.</span>
+              <span>{TC01.prevalenzaPrima.nome} — le condizioni economiche accettate all'attivazione, che trovi {TC01.prevalenzaPrima.dove}. Prevalgono su questi Termini.</span>
+            </div>
+          )}
           <div className="pn-scroll" style={{
             flex: 1, minHeight: 120, maxHeight: 300, overflowY: 'auto',
             padding: '14px 16px', borderRadius: 12,

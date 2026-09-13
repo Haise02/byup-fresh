@@ -2478,16 +2478,18 @@ function CtrRigaDoc({ sog, codice }) {
   const doc = ctrDoc(codice);
   if (!doc) return null;
   const a = ctrAccettazione(sog.id, codice);
-  const fotoPiano = doc.particolare;
+  // Qui viveva il caso del Piano, che era un documento senza versioni e si
+  // rendeva a parte. Non c'è più (P-200 · D-159): il Piano non è un documento
+  // versionato, e le condizioni economiche accettate stanno nell'abbonamento.
   // L'allineamento si misura sulla versione che VINCOLA; il testo che si legge
   // è l'ultima pubblicata, editoriali comprese.
-  const corrente = fotoPiano ? null : ctrVincolante(doc);
-  const ultimaLetta = fotoPiano ? null : ctrCorrente(doc);
-  const allineato = fotoPiano || (a && corrente && a.v === corrente.v);
+  const corrente = ctrVincolante(doc);
+  const ultimaLetta = ctrCorrente(doc);
+  const allineato = a && corrente && a.v === corrente.v;
   const vAcc = a && doc.versioni ? doc.versioni.find(x => x.v === a.v) : null;
   const tacita = a && a.tipo === 'tacita';
   const visione = a && a.tipo === 'presa-visione';
-  const pRel = !fotoPiano && a && corrente && a.v !== corrente.v
+  const pRel = a && corrente && a.v !== corrente.v
     ? PREAVVISI.find(p => p.soggettoId === sog.id && p.codice === codice && p.v === corrente.v) : null;
 
   return (
@@ -2505,12 +2507,10 @@ function CtrRigaDoc({ sog, codice }) {
           <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>
             {/* «esempio» (P-113 · P-114): il catalogo mostra il meccanismo,
                 non i documenti depositati — e lo dice. */}
-            {fotoPiano
-              ? 'Condizioni del piano attivo'
-              : <>Versione corrente v{corrente.v} · efficace {fmtDate(corrente.efficace)}{corrente.esempio ? ' · versione d\'esempio, non il testo depositato' : ''}
-                  {ultimaLetta && ultimaLetta !== corrente && (
-                    <span style={{color: ADM.MUTED_SOFT}}> · con la correzione editoriale v{ultimaLetta.v}, che non fa ripartire l'orologio</span>
-                  )}</>}
+            <>Versione corrente v{corrente.v} · efficace {fmtDate(corrente.efficace)}{corrente.esempio ? ' · versione d\'esempio, non il testo depositato' : ''}
+              {ultimaLetta && ultimaLetta !== corrente && (
+                <span style={{color: ADM.MUTED_SOFT}}> · con la correzione editoriale v{ultimaLetta.v}, che non fa ripartire l'orologio</span>
+              )}</>
           </div>
         </div>
         {a
@@ -2568,9 +2568,7 @@ function CtrRigaDoc({ sog, codice }) {
           <BuIcons.filePdf size={18} color={ADM.PINK}/>
           <span style={{flex:1, minWidth:120, fontSize:13, color:ADM.TEXT, fontWeight:600}}>
             {doc.nome}{' '}
-            {fotoPiano
-              ? <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>{(PIANI.find(x => x.id === a.v) || {label:a.v}).label}</span>
-              : <CtrLinkVersione codice={doc.codice} v={a.v}  testo={`v${a.v} · apri la copia archiviata`}/>}
+            <CtrLinkVersione codice={doc.codice} v={a.v} testo={`v${a.v} · apri la copia archiviata`}/>
           </span>
           <span style={{fontSize:12.4, color:ADM.MUTED, flexShrink:0}}>
             {a.tipo === 'presa-visione' ? 'presa visione' : 'accettata'} {fmtDate(a.quando)}
@@ -2591,7 +2589,7 @@ function DrwContratti({ locale: l }) {
     <div style={{padding:20}}>
       <AdmCard padding={0}>
         <AdmEmpty icon="filePdf" title="Nessun contratto"
-          desc="Il locale non ha completato l'attivazione: la firma del pacchetto contrattuale (Piano, TC-01, DPA-01) avviene in onboarding."/>
+          desc="Il locale non ha completato l'attivazione: la firma del pacchetto contrattuale (TC-01, DPA-01) avviene in onboarding."/>
       </AdmCard>
     </div>
   );
@@ -2627,7 +2625,18 @@ function DrwContratti({ locale: l }) {
         </div>
       )}
 
-      {/* I documenti nell'ordine di PREVALENZA dell'art. 1 — Piano, TC, DPA —
+      {/* L'ordine di prevalenza dell'art. 1 comincia dal PIANO, che però non è
+          un documento versionato (P-200 · D-159): è una riga che rimanda
+          all'abbonamento, dove il piano scelto e i suoi termini economici
+          vivono già con la loro data. */}
+      <div data-piano-prevalenza style={{padding:'11px 14px', borderRadius:10, background:ADM.PANEL_SOFT,
+        border:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.2, color:ADM.MUTED, lineHeight:1.5}}>
+        <b style={{color:ADM.TEXT}}>Condizioni particolari di attivazione (Piano)</b> — prima per prevalenza,
+        e non è un documento a catalogo: sono le condizioni economiche accettate all'attivazione
+        {l.dataIscrizione ? ` il ${fmtDate(l.dataIscrizione)}` : ''}, che stanno nell'abbonamento del locale.
+      </div>
+
+      {/* Gli altri documenti nell'ordine di PREVALENZA dell'art. 1 — TC, DPA —
           non in quello alfabetico: in un conflitto fra clausole vince chi
           sta più in alto in questa lista. */}
       {contrattuali
