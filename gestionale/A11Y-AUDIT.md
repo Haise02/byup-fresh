@@ -525,7 +525,7 @@ DUE dimensioni, non quello verticale.
 | **2.4.11** Focus non oscurato | AA | ✅ | 35 `Tab` per combinazione: l'elemento a fuoco è sempre almeno parzialmente in vista, e un ascoltatore di `focusin` lo porta in vista quando un contenitore che scorre lo lascerebbe fuori |
 | **2.5.8** Target size (minimum) | AA | ✅ | **506 bersagli visibili, 2 sotto i 24 px**, ed entrambi sono link di testo in linea, che il criterio esclude |
 | **2.5.5** Target size (enhanced) | AAA (obiettivo) | ✅ sulle azioni primarie | Le 7 azioni primarie e ripetute — salda, procedi alla transazione, manda tutto, tutto pronto, libera tavolo, salva, continua — sono **tutte ≥ 44 × 44** |
-| **EN 301 549 §11.7** | — | ✅ | La scala si inizializza dallo schermo e propone «Grande» una volta sola; «Riduci animazioni» parte da `prefers-reduced-motion` e lo segue finché l'utente non sceglie. I due controlli stanno in **Profilo → Dati generali**, dopo «Lingua» — Impostazioni è del locale, questa è di chi guarda lo schermo — più il Login, che è l'unica schermata da cui il Profilo non si raggiunge. Da tastiera ovunque |
+| **EN 301 549 §11.7** | — | ⚠️ parziale | La scala si inizializza dallo schermo e propone «Grande» una volta sola; il movimento segue `prefers-reduced-motion` con una regola globale. **L'override manuale che §11.7 prevede esiste solo per la scala** (controllo sul Login + scorciatoie da tastiera ovunque): quello per il movimento è **rinviato** (§10.2) |
 
 ## 9. Il percorso critico a 250%, solo da tastiera
 
@@ -593,22 +593,50 @@ quasi nero e in grassetto contro un secondario che è grigio e più leggero. Se 
 giorno quel salto non bastasse, la strada è il peso o l'opacità della tessera
 intera, non il colore dell'inchiostro.
 
-**2 · I bordi a riposo (1.4.11).** `PN.BORDER` fa 1,24:1 sul bianco: il bordo di
+**2 · Il comando del movimento — RINVIATO il 13/09.** La scheda che teneva la
+scala e «Riduci le animazioni» è stata tolta dal prodotto per decisione: il
+comando del movimento si farà più avanti. Che cosa resta e che cosa no:
+
+- **Resta il meccanismo**, ed è vivo: `prefers-reduced-motion` spegne con una
+  regola globale tutte le 56 animazioni infinite del gestionale, comprese le
+  nove che durano oltre i cinque secondi. Chi ha la preferenza accesa nel
+  sistema operativo è coperto ovunque, senza chiedere niente a nessuno.
+- **Non c'è il comando nel prodotto.** Chi ha bisogno di ridurre il movimento
+  ma non sa che quell'impostazione di sistema esiste, non la trova qui.
+- **Il rischio è su WCAG 2.2.2 (livello A)**, non sull'AA: il criterio chiede
+  «un meccanismo» per fermare il movimento che parte da solo e dura più di
+  cinque secondi. Un'impostazione del sistema operativo che il sito rispetta è
+  largamente accettata come tale, ma il testo del criterio si aspetta che il
+  meccanismo stia nel contenuto. **Finché il comando non c'è, la conformità a
+  2.2.2 poggia su un'interpretazione e non su un fatto**, e va detto così in
+  qualunque dichiarazione.
+- La presa a cui il comando futuro si attaccherà è già in `byup-fit.js`
+  (`byupSetMoto`, tre stati: `auto` · `si` · `no`), documentata sul posto.
+
+**2-bis · La scala si cambia solo dal Login e da tastiera.** Tolto il controllo
+dal prodotto, restano due strade: le tre «A» sulla schermata di accesso — che
+è comunque il posto giusto, perché è il primo punto di contatto — e
+`⌘/Ctrl + Alt + +/−`, che funzionano su ogni schermata. Chi è già dentro e
+vuole cambiare misura deve conoscere la scorciatoia o uscire. Non è una
+violazione (1.4.4 è coperto dallo zoom del browser, che resta sempre), ma è una
+strada più stretta di quella che c'era.
+
+**3 · I bordi a riposo (1.4.11).** `PN.BORDER` fa 1,24:1 sul bianco: il bordo di
 un campo, da solo, non raggiunge i 3:1. Non l'ho cambiato perché il filetto
 sottile è il linguaggio visivo del prodotto e cambiarlo si vede ovunque. Lo
 stato di fuoco è coperto dall'anello; resta scoperto il **campo in errore**, che
 oggi si distingue solo per il bordo rosso — lì il colore non basta e servirebbe
 anche un segno.
 
-**3 · Lo scroll verticale del Login.** A 250% la scheda di accesso è più alta
+**4 · Lo scroll verticale del Login.** A 250% la scheda di accesso è più alta
 dello schermo. È conforme (1.4.10 vieta le due dimensioni insieme), ma si
 potrebbe far respirare il modulo invece di farlo scorrere.
 
-**4 · La colonna ferma è su una tabella sola.** L'ho messa sui Conti, che è
+**5 · La colonna ferma è su una tabella sola.** L'ho messa sui Conti, che è
 quella che scorre di più. La stessa ricetta — `byupColonnaFerma()` — va portata
 su Costi, Fatture e sulla tabella delle Statistiche.
 
-**5 · La fascia d'avviso copre la cima della pagina.** È un comportamento di
+**6 · La fascia d'avviso copre la cima della pagina.** È un comportamento di
 sempre, a ogni scala, e a «Molto grande» ne resta una sola e compatta. Ma
 copre, e chi arriva col `Tab` a un elemento sotto di lei lo trova coperto.
 

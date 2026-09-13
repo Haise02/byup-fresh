@@ -1146,3 +1146,26 @@ bisogno di ridurre il movimento quasi mai sa che quell'impostazione di sistema
 esiste: l'interruttore nel prodotto è il posto dove la scopre, ed è anche quello
 che rende 2.2.2 un fatto invece di un'interpretazione sul se un'impostazione del
 sistema operativo valga come «meccanismo».
+
+### Rettifica del 13 settembre 2026, sera
+
+La scheda «Dimensione dell'interfaccia» — con dentro le tre misure e «Riduci le
+animazioni» — **è stata tolta dal prodotto**. Le due sezioni qui sopra
+descrivono come era fatta e perché: restano perché la ricetta è valida e il
+lavoro è in git, non perché la scheda esista.
+
+Quello che vale oggi:
+
+- **La scala si sceglie sul Login** (le tre «A» in alto a destra) e da tastiera
+  con `⌘/Ctrl + Alt + +` e `−`, su qualunque schermata. La preferenza resta
+  per dispositivo. Tutto il resto — la tela logica, i breakpoint, il reflow —
+  non cambia di una riga: quello è il motore, e il motore è acceso.
+- **Il movimento segue la preferenza di sistema** e basta: `prefers-reduced-motion`
+  spegne tutte le animazioni con la regola globale in `byup-fit.js`. Il comando
+  nel prodotto è **rinviato**, e la presa a cui si attaccherà (`byupSetMoto`,
+  tre stati) è già lì, documentata sul posto.
+
+La conseguenza da non dimenticare sta in `A11Y-AUDIT.md` §10.2: finché quel
+comando non c'è, la conformità a **WCAG 2.2.2 (livello A)** poggia sul fatto
+che un'impostazione del sistema operativo conti come «meccanismo» — cosa
+largamente accettata, ma è un'interpretazione, non un fatto.

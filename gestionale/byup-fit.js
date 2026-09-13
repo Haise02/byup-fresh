@@ -219,6 +219,13 @@
     else d.removeAttribute('data-byup-moto');
   }
 
+  // Il MECCANISMO resta ed è vivo: `applicaMoto` gira all'avvio e a ogni cambio
+  // della preferenza di sistema, quindi `prefers-reduced-motion` spegne le 56
+  // animazioni infinite del gestionale senza che nessuno debba chiedere nulla.
+  // Quello che NON c'è (ancora) è il comando nel prodotto per decidere
+  // diversamente: rimandato il 13 settembre 2026. Finché non c'è, `byupSetMoto`
+  // non lo chiama nessuno — è la presa a cui quel comando si attaccherà, e
+  // sta qui perché toglierla e riscriverla non aggiunge niente.
   window.byupGetMoto = readMoto;                 // 'auto' | 'si' | 'no'
   window.byupMotoRidotto = motoRidotto;          // che cosa ne risulta davvero
   window.byupSistemaRiduce = sistemaRiduce;
