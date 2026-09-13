@@ -715,10 +715,25 @@ function MktDemografiaAggregata() {
         titolo="Segnali di spegnimento, per territorio"
         sotto={`Quota di locali con segnali di spegnimento · pubblicata solo dove i contributori distinti sono almeno ${sogliaContributori}`}
       />
-      <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:10}}>
-        {perTerritorio.slice(0, 8).map(t => (
-          <div key={t.citta} data-territorio={t.citta} style={{display:'flex', alignItems:'center', gap:12}}>
+      {/* TUTTI i territori, non i primi otto (P-216 · D-79, D-168). La regola
+          della soglia ha due metà, e la seconda è quella che si dimentica:
+          sotto soglia la cella non si pubblica E LO DICHIARA, invece di
+          sparire. Una soglia che nasconde senza dirlo produce lo stesso danno
+          che vorrebbe evitare, perché chi guarda non sa se quel territorio non
+          ha locali o se ne ha troppo pochi per parlarne — e la seconda è essa
+          stessa un'informazione. Se l'elenco è lungo si scorre: non si taglia.
+          Il numero dei contributori resta visibile anche sotto soglia, perché
+          è il conto dei locali Byup in quel territorio — un dato nostro, non
+          un aggregato di mercato — ed è quello che spiega perché la cella non
+          si pubblica. */}
+      <div className="adm-scroll" style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:10, maxHeight:360, overflowY:'auto'}}>
+        {perTerritorio.map(t => (
+          <div key={t.citta} data-territorio={t.citta} data-pubblicabile={t.pubblicabile ? 'sì' : 'no'}
+            style={{display:'flex', alignItems:'center', gap:12}}>
             <span style={{flex:1, minWidth:0, fontSize:14, fontWeight:600, color:ADM.TEXT}}>{t.citta}</span>
+            <span style={{fontSize:12.6, color:ADM.MUTED_SOFT, fontWeight:600, flexShrink:0}}>
+              {t.locali} {t.locali === 1 ? 'contributore' : 'contributori'}
+            </span>
             {t.pubblicabile ? (
               <>
                 <span style={{width:160, height:8, borderRadius:999, background:ADM.PANEL_SOFT, overflow:'hidden'}}>
@@ -727,8 +742,10 @@ function MktDemografiaAggregata() {
                 <span style={{width:52, textAlign:'right', fontSize:14, fontWeight:800, color:ADM.TEXT, fontFamily:'ui-monospace,monospace'}}>{t.quota}%</span>
               </>
             ) : (
-              <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>
-                {t.locali} {t.locali === 1 ? 'contributore' : 'contributori'} · sotto soglia, non si pubblica
+              // Non un trattino muto, che si scambia per uno zero: la cella
+              // dice di non essere pubblicabile e quanto le manca.
+              <span style={{width:220, textAlign:'right', fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>
+                sotto soglia, non si pubblica · ne servono {sogliaContributori - t.locali} in più
               </span>
             )}
           </div>

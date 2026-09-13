@@ -125,8 +125,10 @@ function AccDatiGenerali() {
   // condiviso delle sedi — non come una riga in più fra i locali — con
   // indirizzo e CAP (venues.address_zip è obbligatorio ed è il dato che
   // l'Agenzia vuole per il punto vendita). Eredita partita IVA, delega, conto
-  // Stripe, menù e regime fiscale; diventa il locale attivo e riparte da
-  // «Sala e tavoli», poi la Configurazione completa.
+  // Stripe e regime fiscale — non il MENÙ, che è della sede e può essere
+  // diverso da sede a sede (P-212 · D-144): quello si conferma nel percorso,
+  // precompilato con il menù del soggetto. Diventa il locale attivo e riparte
+  // da «Sala e tavoli», poi la verifica del menù e la Configurazione completa.
   const creaSede = (sede) => {
     const soggetto = (window.PN_SOGGETTI || []).find(x => x.ruolo === 'titolare') || { id: 'sf-cp', forma: 'societa' };
     const id = 'sede-' + Date.now().toString(36).slice(-4);
@@ -885,9 +887,22 @@ const AcBtnGhost = {
 // + richiesta al titolare), crea un nuovo locale (onboarding), oppure — la
 // catena — aggiunge una SEDE dello stesso soggetto (P-153 · D-110 emendata:
 // è MVP): stesso soggetto fiscale, stesso conto Stripe e POS virtuale, stesso
-// menù, stesso regime. Della sede nuova si dicono l'insegna e la sede
-// operativa con il CAP, poi si va dritti a «Sala e tavoli» e alla
-// configurazione completa: il resto è già completo perché è del soggetto.
+// regime. IL MENÙ NO (P-212 · D-144): è della sede e può essere diverso da
+// sede a sede — l'insegna in centro e quella in stazione hanno spesso carte
+// diverse — quindi si conferma nel percorso, precompilato con quello del
+// soggetto. Della sede nuova si dicono l'insegna e la sede operativa con il
+// CAP, poi «Sala e tavoli», la verifica del menù e la configurazione
+// completa: il resto è già completo perché è del soggetto.
+// Chi è il soggetto adesso: quello del cambio in corso se c'è, altrimenti
+// quello corrente. Lo leggono la scheda dei dati fiscali e la schermata della
+// catena, che deve dire a nome di chi nasce la sede nuova.
+function acSoggettoCorrente() {
+  const c = window.byupReadSoggettoChange ? window.byupReadSoggettoChange() : null;
+  if (c && c.stato === 'concluso' && c.nuovo) return c.nuovo;
+  if (c && c.previous_denominazione) return { denominazione: c.previous_denominazione, piva: c.previous_vat_number };
+  return AC_SOGGETTO;
+}
+
 function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
   const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca' | 'catena'
   const [query, setQuery] = React.useState('');
@@ -937,7 +952,11 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
               {step === 'scelta'
                 ? 'Il locale esiste già su byup, è una sede in più della tua catena, o parti da zero?'
                 : step === 'catena'
-                  ? `Stesso soggetto fiscale (${AC_TITOLARE.soggetto} · ${AC_TITOLARE.piva}), stesso conto Stripe, stesso menù. Della sede servono solo insegna e indirizzo; poi si imposta la sala.`
+                  // `AC_TITOLARE` non è mai esistito in questo repository, e
+                  // la schermata della catena andava in errore appena si
+                  // apriva: il soggetto è quello che la scheda dei dati
+                  // fiscali già legge (P-212, trovato applicandola).
+                  ? `Stesso soggetto fiscale (${acSoggettoCorrente().denominazione} · ${acSoggettoCorrente().piva}), stesso conto Stripe, stessa delega. Della sede servono insegna e indirizzo; poi la sala e il menù, che parte da quello del locale e si può cambiare.`
                   : 'Cerca il locale per nome e invia la richiesta al titolare.'}
             </div>
           </div>
@@ -982,7 +1001,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
               <span style={{flex: 1}}>
                 <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Catena: aggiungi una sede</span>
                 <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
-                  Un'altra sede dello stesso soggetto fiscale: eredita conto Stripe e menù. Serve solo la sede operativa, poi la sala.
+                  Un'altra sede dello stesso soggetto fiscale: eredita il conto Stripe e la delega. Serve la sede operativa, poi la sala e il menù.
                 </span>
               </span>
             </button>
@@ -1022,7 +1041,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
             {/* Quello che la sede eredita, detto una volta: sono cose del
                 soggetto, non della sede, e non si chiedono due volte. */}
             <div style={{padding:'10px 12px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
-              <b>Già completo, ereditato dal locale:</b> soggetto fiscale e dati per fatturazione, conto Stripe (acct_••••dE3v) e con lui il POS virtuale già comunicato, menù e listino, delega all'Agenzia. <b>Regime fiscale: lo stesso del locale</b> (documento commerciale online con le credenziali del soggetto: il canale non si riconfigura). Da impostare per questa sede: <b>Sala e tavoli</b>; i lettori Tap to Pay nascono con il primo telefono che incassa qui.
+              <b>Già completo, ereditato dal locale:</b> soggetto fiscale e dati per fatturazione, conto Stripe (acct_••••dE3v) e con lui il POS virtuale già comunicato, delega all'Agenzia. <b>Regime fiscale: lo stesso del locale</b> (documento commerciale online con le credenziali del soggetto: il canale non si riconfigura). Da impostare per questa sede: <b>Sala e tavoli</b> e il <b>menù</b>, che arriva precompilato con quello del locale e si conferma o si rifà — il menù è della sede e può essere diverso da sede a sede (D-144). I lettori Tap to Pay nascono con il primo telefono che incassa qui.
             </div>
             <button
               disabled={!sedeOk}

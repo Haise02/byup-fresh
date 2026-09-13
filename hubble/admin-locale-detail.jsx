@@ -1705,6 +1705,26 @@ function DrwFatturazione({ locale: l }) {
               nella tab Account, col suo motivo tipizzato e la nota. */}
           <AdmButton variant="secondary" size="sm" onClick={()=>setPopup('piano')}>Cambia piano</AdmButton>
         </div>
+        {/* LA PROVA DELLE CONDIZIONI ACCETTATE STA QUI (P-215 · D-159): il
+            Piano non è un documento versionato, ma uscendo dal catalogo non
+            deve portarsi via la prova. Se fra un anno l'esercente contesta una
+            voce in fattura, deve esserci scritto che cosa aveva accettato
+            all'attivazione e quando — ed è la fotografia dei termini che
+            l'abbonamento congela, con il riferimento alla versione dei Termini
+            allora in vigore. Stava in Contratti, dove nessuno la cerca. */}
+        {(() => {
+          const acc = ctrAccettazione(l.id, 'TC-01');
+          const quando = acc ? acc.quando : l.dataIscrizione;
+          return (
+            <div data-condizioni-accettate style={{marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`,
+              fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
+              <b style={{color:ADM.TEXT}}>Condizioni economiche accettate all'attivazione</b> —
+              fotografate il {fmtDateTime ? fmtDateTime(quando) : fmtDate(quando)}
+              {acc ? <> · con i Termini <b style={{color:ADM.TEXT}}>{acc.codice} v{acc.v}</b> allora in vigore</> : null}.
+              Ogni variazione del piano ne scatta una nuova.
+            </div>
+          );
+        })()}
         {feedback && <div style={{marginTop:12, padding:'9px 12px', background:ADM.OK_SOFT, borderRadius:8, fontSize:13, color:'#065F46', fontWeight:600}}>✓ {feedback}</div>}
       </AdmCard>
 
@@ -2629,11 +2649,14 @@ function DrwContratti({ locale: l }) {
           un documento versionato (P-200 · D-159): è una riga che rimanda
           all'abbonamento, dove il piano scelto e i suoi termini economici
           vivono già con la loro data. */}
+      {/* Qui il RIMANDO, non il dato (P-215): chi cerca la prova di un prezzo
+          la cerca sotto il prezzo, e questa sezione è il luogo dei documenti
+          versionati, cioè quello da cui D-159 ha fatto uscire il Piano. */}
       <div data-piano-prevalenza style={{padding:'11px 14px', borderRadius:10, background:ADM.PANEL_SOFT,
         border:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.2, color:ADM.MUTED, lineHeight:1.5}}>
         <b style={{color:ADM.TEXT}}>Condizioni particolari di attivazione (Piano)</b> — prima per prevalenza,
-        e non è un documento a catalogo: sono le condizioni economiche accettate all'attivazione
-        {l.dataIscrizione ? ` il ${fmtDate(l.dataIscrizione)}` : ''}, che stanno nell'abbonamento del locale.
+        e non è un documento a catalogo: le condizioni economiche accettate, con la loro data, stanno
+        nell'<b style={{color:ADM.TEXT}}>abbonamento</b> del locale.
       </div>
 
       {/* Gli altri documenti nell'ordine di PREVALENZA dell'art. 1 — TC, DPA —

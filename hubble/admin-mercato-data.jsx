@@ -425,7 +425,18 @@ const MKT_SPEGNIMENTO = (() => {
         const k = r.citta || '—';
         if (!per[k]) per[k] = { citta: k, locali: 0, spegnimento: 0 };
         per[k].locali++;
-        if (r.score >= 40) per[k].spegnimento++;
+        // LA SOGLIA È QUELLA DICHIARATA A SCHERMO, 65 (P-208 · D-171). Contava
+        // da 40 in su, che è la fascia «in calo»: giusta per la lista interna,
+        // dove si telefona a chi sta scivolando e non a chi ha già chiuso, ma
+        // sbagliata qui. Questa quota è l'unica cifra della pagina che possa
+        // uscire da Byup, e non dice da quale punteggio un segnale conti: chi
+        // legge la aggancia all'unico numero che ha davanti — «sopra 65 punti
+        // il locale è di fatto spento» — e capisce una cosa più grave di
+        // quella che il numero dice.
+        // Una fascia intermedia dichiarata sarebbe la via elegante e non si fa
+        // oggi: le chiusure vere osservate sono due, e con due casi non si
+        // calibra una soglia, tanto meno due.
+        if (r.score >= 65) per[k].spegnimento++;
       });
       return Object.values(per)
         .map(t => Object.assign({}, t, {
