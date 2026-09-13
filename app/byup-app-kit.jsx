@@ -499,7 +499,7 @@ window.ByupKit = {
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing, dietary_suggestions esigenze alimentari nei
+// preferenze, i consensi di marketing per canale, dietary_suggestions nei
 // suggerimenti) e per le opposizioni del legittimo interesse. Suggerimenti e
 // analisi d'uso restano legittimo interesse, e dal 2026-09-03 (P-26 · D-28)
 // hanno il loro INTERRUTTORE in «I miei dati» — dal 2026-09-04 (P-122)
@@ -522,10 +522,12 @@ window.ByupKit = {
 // recommendations e analytics, spento dietary_suggestions.
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
-//   promo generiche E su misura sullo storico ordini → basta A6 (che le
-//     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
-//     non reintrodurlo; il consenso unico NON copre i dati alimentari)
-//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   promo generiche → il consenso del canale su cui si scrive
+//     (marketing_email, marketing_sms, marketing_push)
+//   promo su misura sullo storico ordini → il canale E
+//     profilazione_marketing, che è una finalità e non un canale
+//   promo su pref. alimentari → il canale E A18 (mai da solo: il dato è
+//     sensibile, e nessun consenso di canale lo copre)
 //   suggerimenti in-app    → attivi salvo opposizione dall'interruttore di
 //                            «I miei dati» (LI, niente consenso; la città
 //                            viene dal contesto d'uso corrente, MAI dai log
@@ -623,23 +625,49 @@ window.ByupKit = {
     log() { return leggi(K_LOG, []); },
     // L'ultimo evento di una voce, per la data a schermo.
     ultimo(id) { const l = leggi(K_LOG, []).filter(r => (r.consent_type || r.id) === id); return l.length ? l[l.length - 1] : null; },
-    // ── Il marketing: un interruttore che ne apre tre, la profilazione a parte
+    // ── Il marketing: un interruttore per canale, la profilazione a parte
     // (P-163 · D-113), coi NOMI DEL MODELLO (P-161): «Email» → marketing_email;
-    // «Messaggi» → marketing_sms E marketing_whatsapp, due eventi con un gesto
-    // solo, perché l'informativa nomina entrambi i mezzi sotto una spunta;
-    // «Notifiche» → marketing_push; «Promo su misura sui tuoi ordini» →
-    // profilazione_marketing. Il vecchio A6 (un consenso solo per tutto) non si
-    // scrive più: se è l'unica traccia che c'è, si legge come i tre canali.
-    // Nessuno dei quattro è mai preselezionato.
-    MARKETING: { email: 'marketing_email', messaggi: ['marketing_sms', 'marketing_whatsapp'], notifiche: 'marketing_push', profilazione: 'profilazione_marketing' },
+    // «Messaggi» → marketing_sms; «Notifiche» → marketing_push; «Promo su
+    // misura sui tuoi ordini» → profilazione_marketing. Nessuno dei quattro è
+    // mai preselezionato.
+    //
+    // NIENTE RIPIEGO SUL VECCHIO CONSENSO UNICO (P-201 · D-160). Qui la
+    // lettura, non trovando nessuno dei consensi granulari, ripiegava sul
+    // vecchio A6 e da un solo assenso ne ricavava tre. Non serve e fa una cosa
+    // sbagliata: nessuno ha mai prestato quel consenso — la piattaforma non ha
+    // mai avuto un utente — e al primo cliente vero i consensi nascono già
+    // granulari con l'informativa in vigore, quindi non esiste alcuno storico
+    // da migrare e non esisterà. Ed era più permissivo dei documenti che
+    // avrebbe dovuto attuare: l'informativa vuole una spunta per canale.
+    // Chi non ha nessun consenso registrato non riceve niente, su nessun
+    // canale: è la regola vera e non ha eccezioni. La struttura che servirà il
+    // giorno in cui i tipi di consenso cambieranno di nuovo vive nel modello,
+    // non qui.
+    //
+    // WHATSAPP FUORI DAL PRIMO RILASCIO (P-205 · D-164). «Messaggi» scriveva
+    // due consensi con un gesto, marketing_sms e marketing_whatsapp, perché
+    // l'informativa nominava entrambi i mezzi sotto una spunta. Il canale però
+    // non esiste: nel modello `whatsapp_senders.is_active` nasce falso e la
+    // sua attivazione è subordinata alla valutazione del trasferimento verso
+    // Paesi terzi, che non è stata fatta; nessun fornitore WhatsApp compare
+    // fra i destinatari nei documenti privacy, e il fornitore dei messaggi
+    // brevi non eroga quel canale. Raccogliere marketing_whatsapp vorrebbe
+    // dire conservare un consenso che nessun invio potrà usare, e
+    // l'informativa consumer con la v0.27 ha smesso di nominarlo.
+    // Un gesto, un consenso. L'accorpamento in sé non era sbagliato: il giorno
+    // in cui il canale si accende — scelto il fornitore, fatta la valutazione,
+    // firmato l'accordo sul trattamento e iscritto nei registri —
+    // l'interruttore torna a valere per due mezzi e a scrivere due eventi. I
+    // tipi restano cinque nel modello, perché è ciò che rende possibile
+    // opporsi a un canale solo.
+    MARKETING: { email: 'marketing_email', messaggi: 'marketing_sms', notifiche: 'marketing_push', profilazione: 'profilazione_marketing' },
     marketing() {
       const st = (id) => window.ByupConsensi.stato(id);
-      const nuovi = st('marketing_email') || st('marketing_sms') || st('marketing_whatsapp') || st('marketing_push');
-      const a6 = st('A6');
-      const ok = (id) => nuovi ? !!(st(id) && st(id).ok) : !!(a6 && a6.ok);
-      const email = ok('marketing_email'), messaggi = ok('marketing_sms') || ok('marketing_whatsapp'), notifiche = ok('marketing_push');
+      const ok = (id) => !!(st(id) && st(id).ok);
+      const email = ok('marketing_email'), messaggi = ok('marketing_sms'), notifiche = ok('marketing_push');
       const p = st('profilazione_marketing');
-      return { email, messaggi, notifiche, profilazione: !!(p && p.ok), qualsiasi: email || messaggi || notifiche, maiChiesto: !nuovi && !a6 };
+      const nessuno = !st('marketing_email') && !st('marketing_sms') && !st('marketing_push');
+      return { email, messaggi, notifiche, profilazione: !!(p && p.ok), qualsiasi: email || messaggi || notifiche, maiChiesto: nessuno };
     },
     setMarketing(canale, ok) {
       const ids = window.ByupConsensi.MARKETING[canale]; if (!ids) return;

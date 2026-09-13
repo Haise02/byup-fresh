@@ -420,8 +420,10 @@ function AuthRegister({ onBack, onDone }) {
   const [prefs, setPrefs] = useStateA([]);
   const [terms, setTerms] = useStateA(false);
   // «Marketing byup» (P-163 · D-113): facoltativo e NON preselezionato; il
-  // sì accende i tre canali — email, messaggi (SMS e WhatsApp), notifiche —
-  // che poi si spengono uno per uno dal profilo. La profilazione («Promo su
+  // sì accende i tre canali — email, messaggi, notifiche — che poi si spengono
+  // uno per uno dal profilo. «Messaggi» sono i soli SMS: WhatsApp è fuori dal
+  // primo rilascio (P-205 · D-164), e un consenso che nessun invio può usare
+  // non si raccoglie. La profilazione («Promo su
   // misura sui tuoi ordini») è una spunta a parte, perché è una finalità e
   // non un canale: resta spenta se non la si tocca. La decisione (sì o no)
   // si registra alla creazione dell'account, coi nomi del modello.

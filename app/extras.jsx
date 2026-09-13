@@ -1133,12 +1133,15 @@ const CONSENSI_DEF = [
   // Spento, il motore dei suggerimenti non legge dieta né allergeni.
   { id: 'dietary_suggestions', label: 'Esigenze alimentari nei suggerimenti', desc: 'I piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti', dove: 'in Dieta & allergeni' },
   // Il marketing (P-163 · D-113): UN interruttore che ne apre tre — Email,
-  // Messaggi (SMS e WhatsApp), Notifiche — e la profilazione a parte. Prima
-  // A6 copriva in un colpo solo canali e profilazione e taceva gli SMS: era
-  // già fuori dall'informativa, che promette una spunta per canale e una
-  // spunta distinta per la profilazione. Il gruppo si rende con le sue righe
-  // figlie (vedi ConsensiPanel); le offerte su dati alimentari restano A18
-  // (art. 9). I nomi sono quelli del modello (P-161).
+  // Messaggi, Notifiche — e la profilazione a parte, perché è una finalità e
+  // non un canale. Il gruppo si rende con le sue righe figlie (vedi
+  // ConsensiPanel); le offerte su dati alimentari restano A18 (art. 9). I nomi
+  // sono quelli del modello (P-161).
+  // «Messaggi» vale per i soli SMS (P-205 · D-164): WhatsApp è predisposto nel
+  // modello e fuori dal primo rilascio finché non saranno compiuti la scelta
+  // del fornitore, la valutazione del trasferimento verso Paesi terzi,
+  // l'accordo sul trattamento e l'iscrizione nei registri — e l'informativa
+  // consumer, dalla v0.27, ha smesso di nominarlo.
   { id: 'marketing', gruppo: true, label: 'Marketing byup', desc: 'Novità e offerte da Byup, via email, messaggi e notifiche. Le trovi anche nella Posta dell\'app', dove: 'alla registrazione' },
   { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'Le offerte costruite su quello che ordini. Senza, ricevi le stesse di tutti', dove: 'alla registrazione' },
   // Suggerimenti e analisi d'uso NON stanno in questa lista: sono legittimo
@@ -1244,7 +1247,7 @@ function ConsensiPanel({ onOpenPrivacy }) {
   // si spegne anche il padre; il padre acceso li accende tutti.
   const CANALI = [
     { k: 'email',     label: 'Email',     desc: 'Le novità e le offerte nella tua casella di posta' },
-    { k: 'messaggi',  label: 'Messaggi',  desc: 'SMS e WhatsApp: una spunta per i due mezzi, come dice l\'informativa' },
+    { k: 'messaggi',  label: 'Messaggi',  desc: 'Gli SMS che arrivano al tuo numero' },
     { k: 'notifiche', label: 'Notifiche', desc: 'Quelle che compaiono sul telefono. Senza, le promo restano nella Posta e non suonano' },
   ];
   return (
