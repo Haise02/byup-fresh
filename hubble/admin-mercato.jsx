@@ -488,7 +488,21 @@ function MktIntensita() {
   );
 }
 
-// ═══════════ 6 · Demografia d'impresa ═══════════════════════════════════════
+// ═══════════ Locali che si stanno spegnendo ═════════════════════════════════
+// NON È UNA MISURA DI MERCATO (P-206 · D-168): è uno strumento del lavoro
+// commerciale, e per questo vive nella linguetta LOCALI, dove Byup guarda i
+// propri esercenti, e non più in Mercato accanto alle sette misure del settore.
+// La differenza non è di forma. L'articolo 10 dei Termini consente a Byup
+// «dati in forma aggregata e irreversibilmente anonima», e il registro dei
+// trattamenti descrive gli insight di mercato come «solo aggregati non
+// riconducibili a persone», con soglia di venti contributori per cella: un
+// punteggio per singolo locale non è né aggregato né anonimo, e per la ditta
+// individuale è anche un dato personale. In Mercato, presentato accanto a
+// indici di settore e con una nota sui destinatari esterni, quel punteggio si
+// leggeva come un prodotto da vendere.
+// Sapere quale proprio cliente sta per andarsene è invece lavoro ordinario di
+// chi vende un abbonamento: il calcolo non cambia — stessi quattro segnali,
+// stesse soglie, stessi nomi — cambia la stanza.
 function MktDemografia() {
   const { conteggi, critici, validazione } = MKT_SPEGNIMENTO;
   return (
@@ -540,7 +554,7 @@ function MktDemografia() {
         <MktNota>
           <strong style={{color:ADM.TEXT}}>La regola è dichiarata</strong>, non addestrata: ultimo accesso oltre 30 giorni (30 punti), carta ferma da oltre 120 (25),
           volume in calo oltre il 40% (30), adozione digitale sotto il 2% (10). Sopra 65 punti il locale è di fatto spento.
-          A chi guarda il tessuto d'impresa — banche, osservatori, consorzi — interessa proprio questo: un segnale che arriva prima del registro.
+          Serve a una cosa sola: accorgersi in tempo che un cliente sta smettendo di usare il servizio, e parlargli prima che se ne vada.
         </MktNota>
         <MktNota tono="cauto">
           <strong style={{color:ADM.TEXT}}>Quanto prima, non lo sappiamo ancora.</strong> Le chiusure vere osservate finora sono {validazione.chiusureOsservate},
@@ -678,8 +692,8 @@ function MercatoMenuDato() {
       <MktIntensita/>
 
       <SectionLabel title="Demografia d'impresa"
-        desc="Un locale che si spegne si vede prima qui che in qualsiasi registro"/>
-      <MktDemografia/>
+        desc="Quanti locali mostrano segnali di spegnimento, per territorio · nessun nome"/>
+      <MktDemografiaAggregata/>
 
       <SectionLabel title="Inflazione dei menu"
         desc="Indice continuo dei prezzi al pubblico · proxy dei servizi più tempestivo delle rilevazioni ufficiali"/>
@@ -688,4 +702,50 @@ function MercatoMenuDato() {
   );
 }
 
+// La quota per territorio: nessun nome, e solo dove i contributori distinti
+// arrivano a venti (P-206 · D-168 · soglia di D-79). Dove non ci arrivano, la
+// cella lo dichiara: una regola che non si vede funzionare almeno una volta
+// non si sa se c'è.
+function MktDemografiaAggregata() {
+  const { perTerritorio, sogliaContributori } = MKT_SPEGNIMENTO;
+  const pubblicabili = perTerritorio.filter(t => t.pubblicabile);
+  return (
+    <AdmCard padding={0}>
+      <MktTestata
+        titolo="Segnali di spegnimento, per territorio"
+        sotto={`Quota di locali con segnali di spegnimento · pubblicata solo dove i contributori distinti sono almeno ${sogliaContributori}`}
+      />
+      <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:10}}>
+        {perTerritorio.slice(0, 8).map(t => (
+          <div key={t.citta} data-territorio={t.citta} style={{display:'flex', alignItems:'center', gap:12}}>
+            <span style={{flex:1, minWidth:0, fontSize:14, fontWeight:600, color:ADM.TEXT}}>{t.citta}</span>
+            {t.pubblicabile ? (
+              <>
+                <span style={{width:160, height:8, borderRadius:999, background:ADM.PANEL_SOFT, overflow:'hidden'}}>
+                  <span style={{display:'block', height:'100%', width:`${t.quota}%`, background:ADM.WARN}}/>
+                </span>
+                <span style={{width:52, textAlign:'right', fontSize:14, fontWeight:800, color:ADM.TEXT, fontFamily:'ui-monospace,monospace'}}>{t.quota}%</span>
+              </>
+            ) : (
+              <span style={{fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600}}>
+                {t.locali} {t.locali === 1 ? 'contributore' : 'contributori'} · sotto soglia, non si pubblica
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'14px 22px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT}}>
+        <MktNota>
+          <strong style={{color:ADM.TEXT}}>Solo quote, mai nomi.</strong> Il punteggio del singolo locale non è un dato di mercato:
+          non è aggregato, non è anonimo, e per una ditta individuale è un dato personale. Vive fra i nostri locali, in Analisi Dati → Locali,
+          dove serve a chi segue quel cliente.
+          {pubblicabili.length === 0 && <> Con la rete di oggi nessun territorio arriva a {sogliaContributori} contributori: qui sotto non si pubblica niente, ed è la regola che funziona.</>}
+        </MktNota>
+      </div>
+    </AdmCard>
+  );
+}
+
 window.MercatoMenuDato = MercatoMenuDato;
+// La scheda dei locali che si spengono la monta la linguetta Locali (P-206).
+window.MktDemografia = MktDemografia;

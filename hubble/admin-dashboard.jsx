@@ -454,6 +454,10 @@ function AdmDashboard({ onNav }) {
           // Ultima, e staccata di senso dalle altre: le cinque prima dicono
           // come sta byup, questa com'è il mercato in cui sta. Dentro Locali,
           // il food cost dei ristoranti sembrava una nostra metrica.
+          // Qui dentro vanno solo quote aggregate e anonime (P-206 · D-168):
+          // l'elenco dei locali che si spengono, coi nomi e col punteggio, è
+          // passato in Locali, perché è lavoro commerciale e non un prodotto
+          // da mostrare a chi guarda il tessuto d'impresa.
           { id:'mercato',  label:'Mercato' },
         ]} active={tab} onChange={setTab}/>
         <div style={{flex:1}}/>
@@ -1941,6 +1945,15 @@ function DashLocali({ onNav, filtri }) {
       {/* ═════ CHURN LOCALI ═════ */}
       <SectionLabel title="Abbandono locali" desc="Quanti se ne vanno davvero, e quanti sono fermi sulla porta"/>
       {window.AnChurn ? <AnChurn/> : null}
+
+      {/* ═════ CHI SI STA SPEGNENDO ═════
+          La scheda viene da Mercato (P-206 · D-168): il punteggio è di un
+          locale preciso, quindi non è un dato di mercato — né aggregato né
+          anonimo — ed è invece lavoro ordinario di chi vende un abbonamento.
+          Qui sta accanto all'abbandono, che è la domanda a cui risponde:
+          chi sta per andarsene, mentre c'è ancora tempo per parlargli. */}
+      <SectionLabel title="Chi si sta spegnendo" desc="I nostri locali che stanno smettendo di usare il servizio, prima che se ne vadano"/>
+      {window.MktDemografia ? <MktDemografia/> : null}
 
       {/* Le card «tasso per piano» e «locali persi al mese» stavano qui e sono
           state tolte: dichiaravano decine di disdette al mese e centinaia in un

@@ -413,6 +413,28 @@ const MKT_SPEGNIMENTO = (() => {
     // chiusure vere osservate finora sono due, e con due casi non si dichiara
     // una media — si dichiara che il segnale c'era.
     validazione: { chiusureOsservate: LOCALI.filter(locChurned).length, anticipoOsservatoMesi: [4, 7] },
+    // LA QUOTA AGGREGATA PER TERRITORIO (P-206 · D-168). L'elenco coi nomi è
+    // uno strumento del lavoro commerciale e vive fra i nostri locali; quello
+    // che si può dire del MERCATO è una quota senza nomi, e solo dove i
+    // contributori distinti arrivano a venti — la stessa soglia di D-79, che
+    // il registro dei trattamenti scrive per gli insight. Sotto soglia la
+    // cella non si pubblica, e lo dichiara invece di sparire.
+    perTerritorio: (() => {
+      const per = {};
+      righe.forEach(r => {
+        const k = r.citta || '—';
+        if (!per[k]) per[k] = { citta: k, locali: 0, spegnimento: 0 };
+        per[k].locali++;
+        if (r.score >= 40) per[k].spegnimento++;
+      });
+      return Object.values(per)
+        .map(t => Object.assign({}, t, {
+          pubblicabile: t.locali >= 20,
+          quota: t.locali >= 20 ? Math.round((t.spegnimento / t.locali) * 100) : null,
+        }))
+        .sort((a, b) => b.locali - a.locali);
+    })(),
+    sogliaContributori: 20,
   };
 })();
 
