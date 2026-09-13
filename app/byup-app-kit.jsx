@@ -615,14 +615,25 @@ window.ByupKit = {
     // giuridica. Si registra una volta sola, e NON si revoca: una presa d'atto
     // è un fatto avvenuto e non si disfa; il permesso resta revocabile dalle
     // impostazioni del telefono senza che il prodotto debba accorgersene.
+    //
+    // L'AZIONE È `accepted`, E NON SI CAMBIA (P-209 · D-161). Il campo action
+    // del registro dei consensi ha un dominio CHIUSO di cinque valori —
+    // granted, revoked, opposed, opposition_withdrawn, accepted — e
+    // `acknowledged` non esiste: scriverlo qui passava nel mockup e il giorno
+    // in cui il registro diventa una tabella vera col suo controllo verrebbe
+    // rifiutato dal database, senza un messaggio comprensibile. `accepted` è
+    // la forma che D-161 ha prescritto ed è la stessa con cui si registra la
+    // presa d'atto dello staff sulle metriche di servizio. «Presa d'atto» in
+    // inglese suona `acknowledged`, ed è proprio questa somiglianza ad aver
+    // prodotto l'errore: non rimetterlo credendo di essere più precisi.
     presaDAtto(id) {
       const stato = leggi(K_STATO, {});
-      if (stato[id] && stato[id].action === 'acknowledged') return stato[id];
+      if (stato[id] && stato[id].action === 'accepted') return stato[id];
       const quando = new Date().toISOString();
       const versione = versioneDi(id);
-      stato[id] = { ok: true, action: 'acknowledged', quando, versione };
+      stato[id] = { ok: true, action: 'accepted', quando, versione };
       scrivi(K_STATO, stato);
-      appendi({ id, consent_type: id, action: 'acknowledged', ok: true, quando, versione });
+      appendi({ id, consent_type: id, action: 'accepted', ok: true, quando, versione });
       avvisa();
       return stato[id];
     },
