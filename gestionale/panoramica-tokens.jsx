@@ -1611,6 +1611,39 @@ if (!window.byupCucinaInfo) {
   window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
 }
 
+// ─── Chi dichiara la consegna al tavolo (P-196/P-197 · D-156) ──────────────
+// Il monitor di cucina sa che un piatto è FINITO, non che ha raggiunto il
+// tavolo: arriva a «pronto» e si ferma lì. Chi scrive la consegna dipende da
+// come lavora la sede, e la sede sceglie con un interruttore
+// (venue_settings.require_table_delivery_confirmation, predefinito falso):
+//   spento  il piatto pronto si REGISTRA come consegnato — vale per chi non ha
+//           personale dedicato al passe, e nessuno tocca niente;
+//   acceso  il piatto resta pronto finché chi lo porta non lo dichiara, dalla
+//           coda «Da consegnare» dell'app del cameriere o dalla card del
+//           tavolo in Sala. Due superfici e non una: l'app del cameriere è una
+//           scelta del locale, e un'impostazione che dipendesse da un'app mai
+//           aperta lascerebbe gli ordini pronti per sempre.
+// Riguarda i SOLI TAVOLI: al banco il cliente è davanti a chi prepara e pronto
+// e consegnato sono lo stesso istante; l'asporto ha la sua coda dei ritiri.
+// Lo leggono tre superfici e sta scritto in un posto solo — copiarlo in tre
+// file è la trappola che in questo prodotto ha già prodotto due difetti.
+if (!window.byupConsegnaConferma) {
+  const CONS_KEY = 'byup_consegna_conferma', CONS_FATTE = 'byup_consegne_tavolo';
+  const leggi = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } };
+  const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} window.dispatchEvent(new Event('byup-consegne-change')); };
+  window.byupConsegnaConferma = () => leggi(CONS_KEY, false) === true;
+  window.byupSetConsegnaConferma = (v) => scrivi(CONS_KEY, !!v);
+  // Le consegne dichiarate, per numero di tavolo: la Sala e l'app del
+  // cameriere le scrivono, il monitor le legge per spegnere il cronometro
+  // della voce che aspettava. Un fatto, non uno stato da sincronizzare.
+  window.byupConsegneTavolo = () => leggi(CONS_FATTE, {});
+  window.byupSegnaConsegnaTavolo = (n) => { const m = leggi(CONS_FATTE, {}); m[String(n)] = Date.now(); scrivi(CONS_FATTE, m); };
+  // La soglia dell'attesa sotto la lampada, in minuti: è la stessa che l'app
+  // del cameriere usa nella coda «Da consegnare», e si legge da qui invece di
+  // scriverla due volte.
+  window.PN_CONSEGNA_SOGLIA_MIN = 3;
+}
+
 // ─── I canali del cliente: il segno «dal QR» e i limiti (P-168 · D-118) ─────
 // Quando la sessione del tavolo nasce da una scansione del QR — dall'app o
 // dalla webapp — e non dal personale, la sala lo sa da un segno discreto,

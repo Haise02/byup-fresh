@@ -58,8 +58,17 @@
 // Nessuna conferma: con i guanti un «sei sicuro?» si impara a battere alla
 // cieca in due giorni, e da li' non protegge piu' da niente.
 //
-// Non c'e' «consegnata»: il mondo della cucina finisce a pronto, e il passe si
-// gestisce a voce.
+// Non c'e' «consegnata»: il mondo della cucina finisce a pronto (D-156), e il
+// monitor non dichiara mai la consegna — sa che il piatto e' finito, non che
+// ha raggiunto il tavolo.
+// Il tavolo che ha tutto pronto pero' non resta qui a occupare una colonna:
+// esce dalla board ed entra in «Ordini pronti» (P-196), la stessa lista che la
+// board a piatti ha gia', cosi' la board porta solo il lavoro che resta. Di li'
+// si ripristina, perche' un piatto cade o il cameriere non l'ha mai preso.
+// Quanto la voce ASPETTA in quella lista si mostra solo quando c'e' davvero
+// qualcosa da aspettare, cioe' quando la sede ha acceso la conferma della
+// consegna: altrimenti il pronto vale consegnato e un cronometro direbbe una
+// cosa falsa.
 //
 // ── UNO SCHERMO SOLO, A QUALUNQUE MISURA ─────────────────────────────────
 // Niente cornice fissa e niente scala: le card hanno sempre le stesse
@@ -909,11 +918,160 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa })
  *
  * `orologio` accelera il tempo per la demo; nella Cucina resta 1.
  */
+// ─── Ordini pronti ────────────────────────────────────────────────────────
+// I tavoli che la cucina ha finito. Non e' la board — non ci si lavora — e per
+// questo vive in un pannello che si apre quando serve rispondere a una domanda
+// sola, «questo l'ho gia' mandato?», e si chiude. Una cosa pero' si puo' fare:
+// RIPRISTINARE, perche' un piatto cade o il cameriere non l'ha mai preso.
+//
+// Quanto una voce ASPETTA si mostra solo quando la sede chiede la conferma
+// della consegna. Finche' il tavolo restava sulla board, il piatto pronto
+// stava sotto gli occhi del cuoco ed era lui a sporgersi e chiamare la sala;
+// portandolo in una lista chiusa quel controllo sparisce, e il piatto si
+// fredda sotto la lampada senza che nessuno lo veda. L'attesa e' cio' che
+// restituisce quel controllo — e per questo esiste solo dove l'attesa e' vera.
+function KdsProntiLista({ voci, ora, soglia, conferma, consegnata, attesaDi, onChiudi, onRipristina }) {
+  const [scelto, setScelto] = React.useState(null);
+  return (
+    <div onClick={onChiudi} style={{
+      position:'absolute', inset:0, zIndex:70, background:'rgba(15,17,21,0.28)',
+      display:'flex', justifyContent:'flex-end',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:420, maxWidth:'100%', height:'100%', position:'relative',
+        background: UI.card, borderLeft:'1px solid ' + UI.bordo,
+        display:'flex', flexDirection:'column',
+        boxShadow:'-18px 0 40px -20px rgba(15,17,21,0.35)',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'18px 18px 14px',
+                      flexShrink:0, borderBottom:'1px solid ' + UI.filo }}>
+          <span style={{ flex:1, fontSize:24, fontWeight:800, letterSpacing:'-0.02em', color: UI.testo }}>
+            Ordini pronti
+          </span>
+          <button type="button" onClick={onChiudi} aria-label="Chiudi" title="Chiudi"
+            style={{ width:48, height:48, borderRadius:12, flexShrink:0, display:'grid', placeItems:'center',
+                     background: UI.fondo, border:'2px solid ' + UI.bordo, color: UI.testo,
+                     cursor:'pointer', fontFamily:'inherit' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div className="pn-scroll" style={{ flex:1, minHeight:0, overflowY:'auto', padding:'10px 18px 18px' }}>
+          {voci.length === 0 ? (
+            <div style={{ fontSize:16, color: UI.muto, padding:'28px 2px', lineHeight:1.5 }}>
+              Ancora niente. Qui finiscono i tavoli quando tutti i loro piatti sono pronti.
+            </div>
+          ) : voci.map(v => {
+            const fatta = consegnata(v);
+            const att = attesaDi(v);
+            return (
+              <button key={v.id} type="button" onClick={() => setScelto(v)}
+                data-voce-pronta={v.id} data-tavolo={v.n} data-consegnata={fatta ? 'sì' : 'no'}
+                title={'Ripristina · ' + (v.tipo ? 'comanda' : 'Tavolo ' + v.n)}
+                style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left',
+                         padding:'13px 2px', borderBottom:'1px solid ' + UI.filo,
+                         background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
+                <span style={{ color: fatta ? STATO.pronto.ink : UI.muto, display:'flex', flexShrink:0 }}>
+                  {fatta ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12.5 9.5 18 20 6"/></svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.6" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></svg>
+                  )}
+                </span>
+                <span style={{ flex:1, minWidth:0 }}>
+                  <span style={{ display:'block', fontSize:19, fontWeight:700, color: UI.testo }}>
+                    {v.tipo ? (TIPO[v.tipo] + (v.cliente ? ' · ' + v.cliente : '')) : 'Tavolo ' + v.n}
+                  </span>
+                  <span style={{ display:'block', fontSize:15, color: UI.muto, marginTop:2 }}>
+                    {v.piatti} {v.piatti === 1 ? 'piatto' : 'piatti'} · pronto alle {orario(v.quando)}
+                    {/* Il tempo solo dove c'e' qualcosa da aspettare: a
+                        conferma spenta la voce e' gia' consegnata. */}
+                    {conferma && !fatta ? ' · aspetta da ' + att + "'" : ''}
+                    {fatta && conferma ? ' · consegnato' : ''}
+                  </span>
+                </span>
+                {conferma && !fatta && att > soglia && (
+                  <span style={{ flexShrink:0, padding:'3px 9px', borderRadius:999,
+                                 background:'#FFE9D5', color:'#C2410C', fontSize:14, fontWeight:800,
+                                 fontVariantNumeric:'tabular-nums' }}>{att}'</span>
+                )}
+                <span style={{ color: UI.muto, display:'flex', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {scelto && (
+          <div onClick={() => setScelto(null)} style={{
+            position:'absolute', inset:0, background:'rgba(15,17,21,0.45)',
+            display:'grid', placeItems:'center', padding:18, zIndex:2,
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: UI.card, borderRadius:16, padding:'20px 20px 16px', width:'100%',
+              boxShadow:'0 24px 60px -20px rgba(15,17,21,0.45)',
+            }}>
+              <div style={{ fontSize:20, fontWeight:800, color: UI.testo, marginBottom:6 }}>
+                Rimetti sulla board?
+              </div>
+              <div style={{ fontSize:16, color: UI.muto, lineHeight:1.45, marginBottom:16 }}>
+                {scelto.tipo ? TIPO[scelto.tipo] : 'Il tavolo ' + scelto.n} torna fra le comande com'era,
+                coi suoi piatti pronti.
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button type="button" onClick={() => setScelto(null)} style={{
+                  flex:1, height:DITO, borderRadius:12, background: UI.fondo,
+                  border:'2px solid ' + UI.bordo, color: UI.testo,
+                  fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Annulla</button>
+                <button type="button" onClick={() => { onRipristina(scelto); setScelto(null); }} style={{
+                  flex:1, height:DITO, borderRadius:12, background: STATO.pronto.ink,
+                  border:'none', color:'#fff',
+                  fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Rimetti</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   const ORA0 = oraZero != null ? oraZero : Date.now();
   const vel = orologio || 1;
   const [tavoli, setTavoli] = React.useState(comande || []);
   const [ora, setOra] = React.useState(ORA0);
+
+  // ── ORDINI PRONTI (P-196 · D-156) ───────────────────────────────────────
+  // Il tavolo che ha tutto pronto esce dalla board ed entra qui: `quando` e'
+  // l'ora della board (che nella demo corre), `reale` l'istante vero, che
+  // serve a capire se una consegna dichiarata in Sala e' arrivata dopo.
+  // `consegnato` nasce vero quando la sede NON chiede la conferma: il pronto
+  // vale consegnato e non c'e' niente da attendere.
+  const [usciti, setUsciti] = React.useState([]);
+  const [prontiAperti, setProntiAperti] = React.useState(false);
+  const [consegne, setConsegne] = React.useState(() => (window.byupConsegneTavolo ? window.byupConsegneTavolo() : {}));
+  React.useEffect(() => {
+    // La consegna si dichiara altrove — la card del tavolo in Sala, l'app del
+    // cameriere — e qui la voce passa a consegnata sotto gli occhi del cuoco.
+    const f = () => setConsegne(window.byupConsegneTavolo ? window.byupConsegneTavolo() : {});
+    window.addEventListener('byup-consegne-change', f);
+    window.addEventListener('storage', f);
+    return () => { window.removeEventListener('byup-consegne-change', f); window.removeEventListener('storage', f); };
+  }, []);
+  const chiedeConferma = window.byupConsegnaConferma ? window.byupConsegnaConferma() : false;
+  const SOGLIA = window.PN_CONSEGNA_SOGLIA_MIN || 3;
+  // Una voce e' consegnata se e' nata tale — conferma spenta — o se qualcuno
+  // l'ha dichiarata dopo che era entrata in lista.
+  const consegnata = v => v.consegnato || (v.n != null && (consegne[String(v.n)] || 0) >= v.reale);
+  const attesaDi = v => (consegnata(v) ? 0 : min(ora - v.quando));
+  const inRitardo = usciti.some(v => attesaDi(v) > SOGLIA);
 
   // ── I FILTRI DELLA TESTATA ──────────────────────────────────────────────
   // Sono gli stessi della board Pub, con lo stesso contratto, perche' la barra
@@ -921,10 +1079,9 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   // gestionale non possono avere due grammatiche.
   //   Canali     su cosa si sta lavorando — sala, asporto, delivery, banco
   //   Categorie  la stazione del piatto (Pizza, Primi, Secondi)
-  // «Ordini consegnati» no: nella barra e' un CONTEGGIO che apre un pannello a
-  // parte, non un filtro, e qui non servirebbe comunque — quello che e' uscito
-  // sta gia' nella sezione «Pronti» di ogni comanda, dove e' un registro
-  // sempre a portata di mano. La barra lo disegna solo a chi glielo passa.
+  // «Ordini pronti» non e' un filtro: e' un CONTEGGIO che apre un pannello a
+  // parte, ed e' dove finiscono i tavoli che hanno tutto pronto (P-196).
+  // La barra lo disegna a chi glielo passa, e adesso glielo passiamo.
   const TUTTI_C = 'Tutti i canali', TUTTE_CAT = 'Tutte le categorie';
   const [canale, setCanale] = React.useState(TUTTI_C);
   const [categoria, setCategoria] = React.useState(TUTTE_CAT);
@@ -951,7 +1108,10 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
                         .filter(u => u.ids.length),
       });
     })
-    .filter(c => c.piatti.length);
+    .filter(c => c.piatti.length)
+    // Chi e' andato in «Ordini pronti» non e' piu' lavoro: torna solo se
+    // qualcuno lo ripristina (P-196).
+    .filter(c => !usciti.some(v => v.id === c.id));
   // Le comande arrivano dall'esterno e possono cambiare (il servizio va
   // avanti). Quelle che il monitor ha gia' in mano NON si sovrascrivono: le
   // uscite che ha aperto lui sono sue, e ricalcolarle da fuori vorrebbe dire
@@ -1060,7 +1220,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
         setTimeout(() => { el.style.transition = ''; el.style.zIndex = ''; }, 460);
       });
     });
-  }, [fissati]);
+  }, [fissati, usciti]);
   // L'ordinamento e' stabile: i fissati salgono, tutto il resto mantiene
   // l'ordine d'arrivo. Nessuna card si sposta se non gliel'hai chiesto tu.
   const inOrdine = visibili.slice().sort((a, b) =>
@@ -1266,6 +1426,53 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
     });
   }, [voli]);
 
+  /** Il tavolo che ha tutto pronto lascia la board ed entra in «Ordini pronti»
+   *  (P-196 · D-156). Il movimento si deve VEDERE, o la card sparisce e chi ha
+   *  premuto non sa cosa e' successo: il calco si stacca, scivola verso
+   *  l'intestazione della lista, si rimpicciolisce e ci entra; le card che
+   *  restano scivolano a chiudere il buco, con la stessa tecnica del
+   *  fissaggio. Chi ha chiesto meno animazioni al sistema non vede niente.
+   *  La voce nasce CONSEGNATA quando la sede non chiede la conferma: in quel
+   *  caso il pronto vale consegnato e non c'e' nessun tempo da far scorrere. */
+  function archivia(t) {
+    const card = nodi.current[t.id];
+    if (MOTO() && card) {
+      // Le posizioni di prima: la scomparsa di questa card sposta le altre.
+      const m = {};
+      Object.keys(nodi.current).forEach(k => { const el = nodi.current[k]; if (el) m[k] = el.getBoundingClientRect(); });
+      prima.current = m;
+      volaVerso(card);
+    }
+    const conferma = window.byupConsegnaConferma ? window.byupConsegnaConferma() : false;
+    setUsciti(l => [{ id: t.id, n: t.n, tipo: t.tipo, ritiro: t.ritiro, cliente: t.cliente,
+      piatti: somma(t.piatti), quando: ora, reale: Date.now(), consegnato: !conferma }]
+      .concat(l.filter(v => v.id !== t.id)).slice(0, 60));
+  }
+
+  /** Il calco della card che se ne va: dal posto in cui sta al bottone della
+   *  lista, in coordinate di finestra — il bottone vive nella barra, fuori
+   *  dalla board, e le coordinate della board non lo raggiungerebbero. */
+  function volaVerso(card) {
+    const meta = document.querySelector('[data-ordini-pronti]');
+    const da = card.getBoundingClientRect();
+    const a = meta ? meta.getBoundingClientRect() : { left: da.left, top: 0, width: 40, height: 40 };
+    const calco = card.cloneNode(true);
+    calco.style.cssText = 'position:fixed; left:' + da.left + 'px; top:' + da.top + 'px; width:' + da.width + 'px; height:' + da.height + 'px; margin:0; z-index:200; pointer-events:none; overflow:hidden;';
+    document.body.appendChild(calco);
+    const dx = (a.left + a.width / 2) - (da.left + da.width / 2);
+    const dy = (a.top + a.height / 2) - (da.top + da.height / 2);
+    if (!calco.animate) { calco.remove(); return; }
+    const an = calco.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.12)', opacity: 0.1 },
+    ], { duration: 520, easing: 'cubic-bezier(.4,0,.2,1)' });
+    an.onfinish = () => calco.remove();
+    if (meta) {
+      meta.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
+        { duration: 420, delay: 380, easing: 'ease-out' });
+    }
+  }
+
   function avanti(tid, stato, ids) {
     const s = { tid, stato, ids };
     if (!s.tid || !s.ids.length) return;
@@ -1281,8 +1488,27 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
     // Dichiarare pronta una PARTE di un'uscita la spacca in due: quei piatti
     // sono usciti, gli altri no, e fingere il contrario e' la bugia che il
     // resto della serata si porta dietro.
-    if (s.stato === 'marcia') scrivi(s.tid, t => spacca(t, s.ids, ora, '-p'+ora));
+    if (s.stato === 'marcia') {
+      scrivi(s.tid, t => spacca(t, s.ids, ora, '-p'+ora));
+      // Se con questo gesto il tavolo ha finito, esce dalla board: `spacca` e'
+      // pura, quindi il risultato si conosce senza aspettare il render.
+      const t0 = tavoli.find(x => x.id === s.tid);
+      const t1 = t0 ? spacca(t0, s.ids, ora, '-p'+ora) : null;
+      if (t1 && finito(t1)) archivia(t1);
+    }
     azzera();
+  }
+
+  /** Dalla lista si RIPRISTINA: un piatto cade, il cliente contesta, il
+   *  cameriere non l'ha mai preso. Il tavolo torna sulla board com'era, coi
+   *  suoi piatti pronti, e ci resta finche' qualcuno non lo rimanda. */
+  function ripristina(v) {
+    if (MOTO()) {
+      const m = {};
+      Object.keys(nodi.current).forEach(k => { const el = nodi.current[k]; if (el) m[k] = el.getBoundingClientRect(); });
+      prima.current = m;
+    }
+    setUsciti(l => l.filter(x => x.id !== v.id));
   }
 
   function indietro(tid, stato, ids) {
@@ -1313,7 +1539,8 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           sola, dire come si chiama e' l'unica informazione di cui nessuno ha
           bisogno. */}
       {barra ? barra({ ora, canale, onCanale: setCanale, canali,
-                       categoria, onCategoria: setCategoria, categorie }) : (
+                       categoria, onCategoria: setCategoria, categorie,
+                       mandati: usciti.length, onMandati: () => setProntiAperti(true) }) : (
         <div style={{ height:72, flexShrink:0, display:'flex', alignItems:'center', gap:18,
                       padding:'0 14px 0 22px', background: PN.WHITE, borderBottom:'1px solid ' + UI.bordo }}>
           <span style={{ fontSize:30, fontWeight:800, letterSpacing:'-0.02em', color: UI.testo,
@@ -1321,6 +1548,25 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           <Filtro>Tutti i canali</Filtro>
           <Filtro>Tutte le categorie</Filtro>
           <span style={{ flex:1 }}/>
+          {/* Anche in anteprima la lista si apre dalla barra: e' li' che la
+              board a piatti la tiene, e le due cucine non possono avere due
+              grammatiche. */}
+          <button type="button" data-ordini-pronti="" onClick={() => setProntiAperti(true)}
+            title="Ordini pronti"
+            style={{ display:'inline-flex', alignItems:'center', gap:9, flexShrink:0, height:DITO,
+                     padding:'0 16px', borderRadius:12, background: UI.fondo,
+                     border:'2px solid ' + (inRitardo ? '#F97316' : UI.bordo),
+                     color: UI.testo, fontSize:17, fontWeight:700, cursor:'pointer',
+                     fontFamily:'inherit', whiteSpace:'nowrap' }}>
+            Ordini pronti
+            {usciti.length > 0 && (
+              <span style={{ minWidth:28, height:28, padding:'0 8px', borderRadius:999,
+                             display:'grid', placeItems:'center',
+                             background: inRitardo ? '#FFE9D5' : PN.WHITE,
+                             color: inRitardo ? '#C2410C' : UI.tempo,
+                             fontSize:15, fontWeight:800, fontVariantNumeric:'tabular-nums' }}>{usciti.length}</span>
+            )}
+          </button>
           <button type="button" onClick={schermo} title="Tutto schermo" aria-label="Tutto schermo"
             style={{ width:48, height:48, flexShrink:0, display:'grid', placeItems:'center',
                      background:'transparent', border:'none', cursor:'pointer' }}>
@@ -1353,6 +1599,12 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
             ))}
           </div>
         ))}
+
+        {prontiAperti && (
+          <KdsProntiLista voci={usciti} ora={ora} soglia={SOGLIA} conferma={chiedeConferma}
+            consegnata={consegnata} attesaDi={attesaDi}
+            onChiudi={() => setProntiAperti(false)} onRipristina={ripristina}/>
+        )}
       </div>
     </div>
   );

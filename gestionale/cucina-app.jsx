@@ -151,7 +151,7 @@ function CucinaApp() {
   // selezione multipla: si tiene l'ultima scelta, così il chip resta quello e
   // il comportamento resta quello che la board sa gestire.
   const barraCucina = ({ canale, onCanale, canali, categoria, onCategoria, categorie,
-                         consegnati, onConsegnati }) => {
+                         mandati, onMandati }) => {
     const tuttiC = canali[0], tutteCat = categorie[0];
     const Chip = window.KdsFilterChip;
     return (
@@ -172,12 +172,14 @@ function CucinaApp() {
         </div>
         <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
           {selettore()}
-          {/* Quello che è già uscito dalla cucina. Non è un filtro del board:
+          {/* Quello che la cucina ha già MANDATO. Non è un filtro del board:
               è la risposta a una domanda che in mezzo al servizio non ne aveva
               — «questo l'ho già mandato?» — e per questo apre un pannello e non
-              cambia quello che si sta guardando. */}
-          {onConsegnati && (
-            <button onClick={onConsegnati} title="Ordini consegnati"
+              cambia quello che si sta guardando. Non dice «consegnati», perché
+              il monitor non sa se il piatto ha raggiunto il tavolo (P-196 ·
+              D-156). */}
+          {onMandati && (
+            <button onClick={onMandati} title="Ordini pronti" data-ordini-pronti=""
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
               style={{
@@ -189,14 +191,14 @@ function CucinaApp() {
                 cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
                 transition:'background 150ms ease-out',
               }}>
-              Ordini consegnati
-              {consegnati > 0 && (
+              Ordini pronti
+              {mandati > 0 && (
                 <span style={{
                   minWidth: 22, height: 22, padding:'0 6px', borderRadius: 999,
                   display:'grid', placeItems:'center',
                   background: PN.BG, color: PN.MUTED,
                   fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
-                }}>{consegnati}</span>
+                }}>{mandati}</span>
               )}
             </button>
           )}

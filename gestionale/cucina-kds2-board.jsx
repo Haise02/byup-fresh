@@ -1082,7 +1082,7 @@ function Kds2Fullscreen({ onToggle, attivo }) {
 function Kds2Header({
   sorgenti, totale, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
   canale, onCanale, canali, categoria, onCategoria, categorie,
-  consegnati, onConsegnati,
+  mandati, onMandati,
 }) {
   const orologio = kds2Orario(ora);
   // `barra`: dentro il gestionale la prima banda arriva da fuori, fatta con i
@@ -1094,7 +1094,7 @@ function Kds2Header({
       padding: barra ? 0 : '16px ' + PAD_X + 'px 12px'}}>
 
       {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie,
-                       consegnati, onConsegnati })
+                       mandati, onMandati })
         : (
       /* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
          che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
@@ -1110,8 +1110,8 @@ function Kds2Header({
 
         <span style={{flex: 1}}/>
 
-        <button type="button" data-kds2-interattivo="" onClick={onConsegnati}
-          title="Ordini consegnati"
+        <button type="button" data-kds2-interattivo="" onClick={onMandati}
+          title="Ordini pronti"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
             height: H_BERSAGLIO, padding: '0 18px', borderRadius: 12,
@@ -1119,14 +1119,14 @@ function Kds2Header({
             color: K.TESTO, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
             fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
           }}>
-          Ordini consegnati
-          {consegnati > 0 && (
+          Ordini pronti
+          {mandati > 0 && (
             <span style={{
               minWidth: 30, height: 30, padding: '0 8px', borderRadius: 999,
               display: 'grid', placeItems: 'center',
               background: K.FONDO, color: K.TESTO_2,
               fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-            }}>{consegnati}</span>
+            }}>{mandati}</span>
           )}
         </button>
 
@@ -1226,8 +1226,12 @@ function Kds2Undo({ size = 22 }) {
   );
 }
 
-// ─── Ordini consegnati ────────────────────────────────────────────────────
-// Quello che è già uscito. Non è il board — non ci si lavora — ed è per questo
+// ─── Ordini pronti ────────────────────────────────────────────────────────
+// Quello che la cucina ha MANDATO. Non dice che sia arrivato al tavolo: il
+// monitor sa che il piatto è finito, non che qualcuno l'ha portato (P-196 ·
+// D-156), e il nome di prima — «Ordini consegnati» — dichiarava una cosa che
+// da qui non si può sapere.
+// Non è il board — non ci si lavora — ed è per questo
 // che vive in un pannello e non in una colonna: si apre quando serve rispondere
 // a una domanda sola, «questo l'ho già mandato?», e si chiude.
 // UNA COSA però si può fare: RIPRISTINARE. Il piatto caduto, quello contestato,
@@ -1235,7 +1239,7 @@ function Kds2Undo({ size = 22 }) {
 // conferma non è burocrazia: da qui si rimette un piatto IN PRODUZIONE, e un
 // tocco di consultazione che cucina di nascosto sarebbe il peggior incidente
 // del pannello.
-function Kds2Consegnati({ voci, onChiudi, onRipristina }) {
+function Kds2Pronti({ voci, onChiudi, onRipristina }) {
   // La voce in attesa di conferma. Vive qui e non nel board: è una domanda
   // aperta dentro il pannello, e chiudendo il pannello muore con lui.
   const [scelto, setScelto] = React.useState(null);
@@ -1262,7 +1266,7 @@ function Kds2Consegnati({ voci, onChiudi, onRipristina }) {
           borderBottom: '1px solid ' + K.BORDO_RIGA,
         }}>
           <span style={{flex: 1, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: K.TESTO}}>
-            Ordini consegnati
+            Ordini pronti
           </span>
           <button type="button" onClick={onChiudi} aria-label="Chiudi" title="Chiudi"
             style={{
@@ -1532,10 +1536,11 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
   const [pronti, setPronti]     = React.useState([]);
-  // Quello che è uscito dalla fascia: piatti dati per consegnati. Non tornano
-  // sul board — si guardano e basta.
-  const [consegnati, setConsegnati] = React.useState([]);
-  const [consegnatiAperti, setConsegnatiAperti] = React.useState(false);
+  // Quello che è uscito dalla fascia: piatti MANDATI dalla cucina. Non tornano
+  // sul board — si guardano e basta. Non si chiamano «consegnati» perché il
+  // monitor non sa se hanno raggiunto il tavolo (P-196 · D-156).
+  const [mandati, setMandati] = React.useState([]);
+  const [mandatiAperti, setMandatiAperti] = React.useState(false);
   const [tocchi, setTocchi]     = React.useState(0);
   const [canale, setCanale]       = React.useState(CANALI[0]);
   const [categoria, setCategoria] = React.useState(TUTTE_CATEGORIE);
@@ -1604,10 +1609,10 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       setPronti(s => {
         const scadute = s.filter(v => v.scadenza <= ora);
         if (scadute.length) {
-          // `tolte` viaggia anche qui: un consegnato si può RIPRISTINARE
+          // `tolte` viaggia anche qui: un piatto mandato si può RIPRISTINARE
           // (piatto caduto, contestato, rifatto), e senza le porzioni che
           // aveva tolto dal board il ripristino non avrebbe niente da rimettere.
-          setConsegnati(c => scadute
+          setMandati(c => scadute
             .map(v => ({ id: v.id, testo: v.testo, quando: v.scadenza, tolte: v.tolte }))
             .concat(c)
             .slice(0, 60));   // la memoria di un servizio, non un archivio
@@ -1870,14 +1875,14 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
     setPronti(s => s.filter(v => v.id !== voce.id));
   }
 
-  // Dal pannello dei consegnati, anche molto dopo. Qui l'attesa RIPARTE da
+  // Dal pannello dei mandati, anche molto dopo. Qui l'attesa RIPARTE da
   // adesso: un piatto ripristinato a servizio inoltrato è un piatto da rifare,
   // e tornare in cima al board con quaranta minuti di «attesa» scavalcherebbe
   // tutta la coda vera.
   function ripristinaConsegnato(voce) {
     const adesso = Date.now();
     rimettiInProduzione((voce.tolte || []).map(t => Object.assign({}, t, { firedAt: adesso })));
-    setConsegnati(c => c.filter(v => v.id !== voce.id));
+    setMandati(c => c.filter(v => v.id !== voce.id));
   }
 
   function nuovoOrdine() {
@@ -1908,7 +1913,7 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}
-        consegnati={consegnati.length} onConsegnati={() => setConsegnatiAperti(true)}/>
+        mandati={mandati.length} onMandati={() => setMandatiAperti(true)}/>
 
       {/* UN SOLO contenitore che scorre, per qualunque numero di righe: niente
           scroll annidato, niente colonne — la posizione in lista è la priorità,
@@ -1961,8 +1966,8 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
           il servizio vero di un locale. */}
       {!porzioniIniziali && <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>}
 
-      {consegnatiAperti && (
-        <Kds2Consegnati voci={consegnati} onChiudi={() => setConsegnatiAperti(false)}
+      {mandatiAperti && (
+        <Kds2Pronti voci={mandati} onChiudi={() => setMandatiAperti(false)}
           onRipristina={ripristinaConsegnato}/>
       )}
     </div>
