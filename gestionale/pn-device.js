@@ -13,12 +13,21 @@
 // speculare del «Pensata per lo smartphone» della webapp consumer.
 //
 // `data-pn-native` sull'<html> dice che QUESTA pagina, su QUESTO schermo, usa
-// il layout fluido: il CSS iniettato scioglie il frame 1440×900 e il blocco
-// zoom della pagina si mette da parte. Le pagine non ancora adattate al
-// tablet NON sono in TABLET_NATIVE e tengono lo zoom di sempre: si migra una
-// pagina per volta, senza degradare le altre.
+// il layout fluido: il frame riempie la finestra invece di tenere la tela di
+// design 1440×900. Le pagine non ancora adattate al tablet NON sono in
+// TABLET_NATIVE e tengono la tela di sempre: si migra una pagina per volta,
+// senza degradare le altre.
 // Misura su window (non su screen): si prova ridimensionando la finestra e si
 // verifica in headless con --window-size.
+//
+// ── Chi fa che cosa, dal 13 settembre 2026 ─────────────────────────────────
+// Questo file classifica lo SCHERMO (fisico) e decide il gate del telefono.
+// La GEOMETRIA del frame — larghezza, altezza, zoom, margine — è di
+// byup-fit.js, che la tiene coerente con la scala d'interfaccia scelta
+// dall'utente (Normale · Grande · Molto grande). I due si parlano con
+// `data-pn-native` in andata e con `window.byupLogicalW()` al ritorno: il
+// predicato «stretto» qui sotto misura la TELA LOGICA, non la finestra,
+// altrimenti a scala alta non scatterebbe mai.
 (function () {
   var PHONE_SHORT_MAX = 600;
   var TABLET_W_MAX = 1280;
@@ -57,14 +66,17 @@
   }
 
   // ── CSS: frame fluido dove il layout è nativo, frame nascosto sotto il gate.
-  // !important per vincere sul width/zoom inline che il blocco zoom può aver
-  // già scritto prima di un resize.
+  // La GEOMETRIA (width, height, zoom, margin) è di byup-fit.js, che la scrive
+  // inline e la tiene coerente con la scala scelta dall'utente: qui restano
+  // senza `!important` come rete di sicurezza, così se il fit non gira il frame
+  // è comunque fluido, e quando gira vince lui. Il vecchio `!important` serviva
+  // a coprire lo stile inline stantio del blocco zoom di pagina; quel blocco
+  // non esiste più e il fit riscrive sempre entrambi i modi.
   var css = [
     'html[data-pn-native] body { display: block !important; min-height: 100svh; }',
     'html[data-pn-native] .frame {',
-    '  width: 100% !important; height: 100svh !important;',
-    '  margin: 0 !important; border-radius: 0 !important; box-shadow: none !important;',
-    '  zoom: 1 !important;',
+    '  width: 100%; height: 100svh; margin: 0;',
+    '  border-radius: 0 !important; box-shadow: none !important;',
     '}',
     'html[data-pn-gate] .frame, html[data-pn-gate] #root { display: none !important; }',
     '#pn-gate a { -webkit-tap-highlight-color: transparent; }',
@@ -141,9 +153,11 @@
       (d === 'phone' && PHONE_OK.indexOf(page) !== -1) ||
       (d === 'tablet' && TABLET_NATIVE.indexOf(page) !== -1);
     var changed = el.getAttribute('data-pn-device') !== d;
-    // La banda «stretto/largo» (900px) cambia anche RESTANDO tablet — la
-    // rotazione di un iPad — e i layout che la leggono devono rirenderizzare.
-    var band = window.innerWidth < 900 ? 'narrow' : 'wide';
+    // La banda «stretto/largo» (900px di TELA LOGICA) cambia anche RESTANDO
+    // nella stessa classe — la rotazione di un iPad, o un cambio di scala su
+    // desktop — e i layout che la leggono devono rirenderizzare. Quando a
+    // cambiare è la sola scala se ne accorge byup-fit, che emette lui l'evento.
+    var band = (window.byupLogicalW ? window.byupLogicalW() : window.innerWidth) < 900 ? 'narrow' : 'wide';
     var bandChanged = lastBand !== null && band !== lastBand;
     lastBand = band;
     el.setAttribute('data-pn-device', d);
@@ -154,16 +168,34 @@
   }
 
   // ── Predicato «stretto» e helper dei layout adattivi ──────────────────────
-  // Telefono, oppure tablet sotto i 900px (il portrait): anche con le sidebar
-  // a barretta le griglie a tre colonne lì non respirano. Vivono QUI e non nei
+  // Telefono, oppure tela logica sotto i 900px: anche con le sidebar a
+  // barretta le griglie a tre colonne lì non respirano. Vivono QUI e non nei
   // token perché questo è l'unico file caricato da ogni pagina del gestionale
   // — l'onboarding, per dirne una, i token non li carica affatto.
   // STG impila i layout di pagina; STMIN + STSCROLL fanno scorrere le TABELLE
   // nel loro contenitore, colonne intatte. Mai overflow-x sul corpo intero di
   // una card: l'overflow-y diventa clip (regola CSS) e taglia le legende.
+  //
+  // ── La misura è la TELA LOGICA, non la finestra (13 settembre 2026) ───────
+  // Prima qui c'era `window.innerWidth`, cioè la finestra fisica. Funzionava
+  // finché lo zoom del frame restava intorno a 1: da quando l'utente può
+  // portarlo a 1,75× e 2,5× le due misure divergono di un fattore tre — su un
+  // monitor da 1920 a scala massima la finestra è sempre 1920 mentre la tela
+  // dentro cui i componenti vivono è 646. Con la vecchia misura una tabella a
+  // sette colonne che sull'iPad in verticale scorre correttamente, ingrandita
+  // al 250% su un desktop si schiacciava: il predicato non scattava mai.
+  // Adesso `statStretto` legge la tela logica (byup-fit.js), quindi TUTTI i
+  // layout stretti già costruiti per il tablet si accendono anche a scala
+  // alta, senza toccare i ventitré file che usano questi helper.
+  //
+  // La CLASSIFICAZIONE invece resta fisica, ed è giusto così: un telefono è un
+  // telefono a qualunque zoom, e il gate «Qui serve più spazio» non deve
+  // comparire a chi ingrandisce il gestionale su un portatile.
   window.statPhone = function () { return classify() === 'phone'; };
   window.statStretto = function () {
-    return classify() === 'phone' || (classify() === 'tablet' && window.innerWidth < 900);
+    if (classify() === 'phone') return true;
+    var w = window.byupLogicalW ? window.byupLogicalW() : window.innerWidth;
+    return w < 900;
   };
   window.STG = function (desk, mobile) {
     return window.statStretto() ? (mobile === undefined ? '1fr' : mobile) : desk;

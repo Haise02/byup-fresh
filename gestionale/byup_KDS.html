@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-byup-fluid>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<script src="byup-fit.js?v=a11y"></script>
 <title>byup — KDS</title>
 <link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -24,11 +25,10 @@
      cinque millimetri. Scalare non aiuta mai i bersagli: rimpicciolisce
      insieme dito e cosa da toccare, quindi il rapporto resta identico.
      Quello che si adatta e' QUANTE card ci stanno, non quanto sono grandi. */
-  .frame { width: 100vw; height: 100vh; overflow: hidden; }
+  .frame { width: 100vw; height: 100vh; overflow: hidden; }  /* misure poi riscritte da byup-fit.js con la scala scelta */
   .board::-webkit-scrollbar { width: 12px; }
   .board::-webkit-scrollbar-thumb { background: #D3C7C7; border-radius: 999px; border: 3px solid #F7F5F5; }
   .board::-webkit-scrollbar-track { background: transparent; }
-  button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #0F1115; outline-offset: -3px; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .001ms !important; } }
 </style>
 </head>
@@ -48,10 +48,11 @@
      token ed esegue codice di ieri. E' successo: `PN_PARTNER` risultava non
      definito mentre il file servito lo conteneva. Si alza il numero quando i
      token cambiano — e' la convenzione del repo. -->
-<script type="text/babel" src="panoramica-tokens.jsx?v=6"></script>
+<script type="text/babel" src="panoramica-tokens.jsx?v=a11y"></script>
+<script type="text/babel" src="byup-a11y.jsx?v=a11y"></script>
 
-<script type="text/babel" src="kds-tavoli.jsx?v=13"></script>
-<script type="text/babel" src="kds-tavoli-mock.jsx?v=2"></script>
+<script type="text/babel" src="kds-tavoli.jsx?v=a11y"></script>
+<script type="text/babel" src="kds-tavoli-mock.jsx?v=a11y"></script>
 <script type="text/babel">
 // La route di anteprima: la board da sola, a tutto schermo, coi dati finti.
 // Dentro il gestionale la stessa board vive nella Cucina, alimentata dal
