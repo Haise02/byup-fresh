@@ -3069,9 +3069,8 @@ const SVI_LABEL  = {
   letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 8,
 };
 
-const svEur = (n, tondo) => '€' + (tondo && Math.abs(n % 1) < 0.005
-  ? String(Math.round(n))
-  : (n || 0).toFixed(2).replace('.', ','));
+// svEur sta in sala-vendita-data.jsx: la usa anche la finestra della fattura,
+// che Contabilità carica senza caricare questa schermata (P-220).
 
 // Tagli di cortesia: le banconote che il cliente può realisticamente porgere
 // per quella cifra. Niente "esatto" — il campo ci nasce già sopra.

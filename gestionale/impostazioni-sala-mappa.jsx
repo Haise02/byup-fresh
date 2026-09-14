@@ -81,6 +81,7 @@ function FloorPlan({
   tavoli, furniture, groups, selected,
   onCreateTable, onCreateFurniture,
   onMoveTable, onBulkMoveTables, onMoveFurniture, onResizeFurniture, onDeleteFurniture,
+  onRotateFurniture,
   onMergeTables, onRotateTable, onSelectTable, onEditTable
 }) {
   const COLS = cols || 10, ROWS = rows || 6;

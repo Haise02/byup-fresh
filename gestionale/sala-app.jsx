@@ -126,7 +126,7 @@ function SalaApp() {
     // l'aliquota già risolta e congelata (P-180 · D-131). Da qui in poi
     // nessuno la ricalcola: il conto e il documento di cortesia leggono
     // quello che c'è scritto.
-    const tavolo = tavoli.find(x => x.id === tableId);
+    const tavolo = getTavoli().find(x => x.id === tableId);
     if (tavolo) {
       const nate = cart.items.map((i, k) => ({
         id: `n${Date.now()}-${k}`, nome: i.nome, qty: i.qty, prezzo: i.prezzo,

@@ -156,6 +156,15 @@ window.SALA_ASPORTO_CONTI = SALA_ASPORTO_CONTI;
 window.SALA_ORDINI_STORICO = SALA_ORDINI_STORICO;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Il formato degli importi della vendita diretta. Sta qui, e non nella
+// schermata, perché lo usa anche la finestra della fattura, che Contabilità
+// carica senza caricare la vendita diretta: da lì il riepilogo IVA andava in
+// errore (P-220).
+const svEur = (n, tondo) => '€' + (tondo && Math.abs(n % 1) < 0.005
+  ? String(Math.round(n))
+  : (n || 0).toFixed(2).replace('.', ','));
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Un ordine chiuso al banco È un conto in Contabilità: stesso incasso, stesso
 // scontrino, guardato dall'altra parte del locale. Qui c'è la traduzione fra
 // le due forme, in un posto solo, perché il rimando dal dettaglio ordine

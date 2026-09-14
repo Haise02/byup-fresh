@@ -2183,7 +2183,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                   <span style={{fontSize: 15, fontWeight: 700, color: PN.MUTED, flexShrink: 0}}>€</span>
                   <input
                     id="nm-prezzo" inputMode="decimal" value={prezzoMenu}
-                    onChange={e => setPrezzoAyce(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onChange={e => setPrezzoMenu(e.target.value.replace(/[^\d.,]/g, ''))}
                     onBlur={() => setPrezzoTocco(true)}
                     onKeyDown={e => { if (e.key === 'Enter') salva(); }}
                     placeholder="0,00"
