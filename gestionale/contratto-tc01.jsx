@@ -30,7 +30,12 @@
 // il modello non ha tabelle per le fatture ricevute) e la figura dell'
 // incaricato indicato da Byup con rinnovo a suo carico (ritirata da D-103), e
 // dall'art. 2 il «percorso di titolarità dell'Account», che D-104 dichiara
-// inesistente nel prodotto.
+// inesistente nel prodotto. Il 14 settembre 2026 è uscita la mediazione
+// preventiva — l'articolo a sé e l'inciso «e di mediatori indicati da Byup»
+// dell'art. 6 — perché contraddiceva TC-01 0.32 art. 21, dove Byup dichiara
+// di non essere soggetta all'obbligo di designare mediatori, e D-167, che sul
+// lato consumer esclude l'impegno preventivo a un organismo di conciliazione;
+// il foro esclusivo è sceso all'art. 24.
 //
 // Nel merito il testo è un mock: clausole segnaposto fedeli nella SOSTANZA,
 // che sanano le divergenze trovate nella rilettura del 28/08/2026 — Byup è
@@ -61,10 +66,10 @@ const TC01 = {
   versione: '0.24',
   pubblicata: '2026-09-03',
   efficace: '2026-10-03',
-  generata: '2026-09-03',
+  generata: '2026-09-14',
   // Impronta dichiarata dalla generazione: si confronta con quella calcolata
   // sulle clausole qui sotto (tc01Verifica).
-  impronta: '9bf2c708',
+  impronta: 'b67017ee',
   // I DOCUMENTI VERSIONATI del contratto. Il Piano non c'è (P-200 · D-159):
   // il dominio dei documenti versionati serve a ciò che è uguale per tutti —
   // una versione, un'impronta, una data di efficacia valide per l'intera
@@ -93,7 +98,7 @@ const TC01 = {
     { n: 5, h: 'Modifica delle condizioni e dei listini', vessatoria: true,
       p: 'Byup può modificare i presenti Termini e i listini con preavviso di almeno trenta giorni, comunicato nel gestionale e via email, indicando che cosa cambia. In caso di disaccordo il locale può recedere prima dell\'efficacia delle modifiche, senza penali. Gli aumenti di listino oltre l\'indice FOI sono comunicati con lo stesso preavviso e la stessa facoltà di recesso.' },
     { n: 6, h: 'Trasparenza verso il locale', vessatoria: false,
-      p: 'Ai sensi del Regolamento (UE) 2019/1150, Byup dichiara i principali parametri che determinano il posizionamento del locale nella vetrina e nella discovery della Byup App e ogni trattamento differenziato; ogni restrizione, sospensione o cessazione è comunicata con la sua motivazione e, salvo i casi di legge, con preavviso; il locale dispone di un sistema interno di gestione dei reclami e di mediatori indicati da Byup.' },
+      p: 'Ai sensi del Regolamento (UE) 2019/1150, Byup dichiara i principali parametri che determinano il posizionamento del locale nella vetrina e nella discovery della Byup App e ogni trattamento differenziato; ogni restrizione, sospensione o cessazione è comunicata con la sua motivazione e, salvo i casi di legge, con preavviso; il locale dispone di un sistema interno di gestione dei reclami, gratuito e con riscontro tracciato entro trenta giorni.' },
     { n: 7, h: 'Limitazione di responsabilità', vessatoria: true,
       p: 'Nei limiti consentiti dalla legge, Byup non risponde dei danni indiretti o del lucro cessante derivanti da interruzioni del servizio, e la responsabilità complessiva è limitata ai corrispettivi versati nei dodici mesi precedenti l\'evento. Restano ferme le responsabilità inderogabili di legge.' },
     { n: 8, h: 'Manleva', vessatoria: true,
@@ -130,9 +135,7 @@ const TC01 = {
       p: 'Byup può evolvere, sostituire o dismettere singole funzionalità del gestionale, dandone preavviso ragionevole quando la modifica riduce in modo apprezzabile le capacità del piano sottoscritto.' },
     { n: 23, h: 'Pagamenti e facoltà di opporre eccezioni', vessatoria: true,
       p: 'Il locale non può sospendere o ritardare i pagamenti dovuti eccependo contestazioni sul servizio; le eccezioni si fanno valere nelle forme dell\'art. 20, salvo quanto inderogabilmente previsto dalla legge.' },
-    { n: 24, h: 'Mediazione preventiva', vessatoria: true,
-      p: 'Prima di adire il giudice, le parti si impegnano a esperire un tentativo di mediazione presso un organismo accreditato nel luogo del foro competente. Il tentativo non pregiudica i provvedimenti urgenti.' },
-    { n: 25, h: 'Legge applicabile e foro esclusivo', vessatoria: true,
+    { n: 24, h: 'Legge applicabile e foro esclusivo', vessatoria: true,
       p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
   ],
 };
