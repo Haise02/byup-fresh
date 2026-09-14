@@ -68,7 +68,7 @@ function HubPillola({ color = 'PLAN_FREE', children, forte, size = 'md' }) {
   const soft = ADM[color + '_SOFT'] || 'rgba(15,17,21,0.06)';
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
+      alignItems: 'center', gap: 5,
       padding: size === 'sm' ? '2px 7px' : '3px 9px', borderRadius: 5,
       background: forte ? c : soft, color: forte ? '#fff' : c,
       fontSize: size === 'sm' ? 12 : 13, fontWeight: 700, whiteSpace: 'nowrap',

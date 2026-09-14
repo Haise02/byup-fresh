@@ -124,7 +124,7 @@ function ImpSalaTavoli() {
       const parsed = salaLeggiConfig(salaSedeCorrente().id);
       if (Array.isArray(parsed) && parsed.length) {
         return parsed.map(s => ({
-          tavoli: [], furniture: [], groups: [], ...s,
+          furniture: [], groups: [], ...s,
           tavoli: (s.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })),
         }));
       }
@@ -152,7 +152,7 @@ function ImpSalaTavoli() {
       setSede(prev => (prev.id === s.id ? prev : s));
       if (s.id !== sede.id) {
         const cfg = salaLeggiConfig(s.id);
-        if (cfg) setSale(cfg.map(x => ({ tavoli: [], furniture: [], groups: [], ...x, tavoli: (x.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })) })));
+        if (cfg) setSale(cfg.map(x => ({ furniture: [], groups: [], ...x, tavoli: (x.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })) })));
       }
     };
     ['byup-locale-change', 'storage'].forEach(e => window.addEventListener(e, ri));

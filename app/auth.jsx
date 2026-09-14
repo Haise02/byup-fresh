@@ -88,7 +88,21 @@ function AuthBackground() {
 }
 
 // ─── Campo input "immersivo" (su sfondo rosa) ───────────────
-function GlassField({ label, value, onChange, type = 'text', placeholder, rightSlot, ...rest }) {
+// Il rest delle proprietà si calcola a mano e non con `...rest` nel parametro:
+// Babel lo compila in _objectWithoutProperties(props, _excluded), e `_excluded`
+// è una variabile globale che l'ultimo script caricato sovrascrive. Qui
+// valeva ["key"], così `rightSlot` non veniva più tolto e arrivava
+// sull'<input>, dove React lo segnalava (P-220).
+const AF_PROPRIE = ['label', 'value', 'onChange', 'type', 'placeholder', 'rightSlot'];
+const afRest = (props) => {
+  const rest = {};
+  for (const k in props) if (AF_PROPRIE.indexOf(k) === -1) rest[k] = props[k];
+  return rest;
+};
+
+function GlassField(props) {
+  const { label, value, onChange, type = 'text', placeholder, rightSlot } = props;
+  const rest = afRest(props);
   const [focus, setFocus] = useStateA(false);
   return (
     <div style={{ marginBottom: 16 }}>
@@ -330,7 +344,9 @@ function AuthForgot({ onBack }) {
 // ════════════════════════════════════════════════════════════
 
 // Campo input chiaro (stile coerente con i form dell'app)
-function LightField({ label, value, onChange, type = 'text', placeholder, rightSlot, ...rest }) {
+function LightField(props) {
+  const { label, value, onChange, type = 'text', placeholder, rightSlot } = props;
+  const rest = afRest(props);
   const [focus, setFocus] = useStateA(false);
   const inputRef = useRefA(null);
   // Su Chrome desktop l'input date mostra ANCHE l'indicatore nativo accanto

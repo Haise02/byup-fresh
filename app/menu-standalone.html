@@ -10740,7 +10740,6 @@ function VenuePremium({
     onClick: onBook,
     style: {
       flex: 'none',
-      border: 'none',
       cursor: 'pointer',
       fontFamily: 'inherit',
       background: 'rgba(255,255,255,.14)',
@@ -24532,7 +24531,6 @@ function MenuScreen({
           display: 'flex',
           gap: 14,
           cursor: 'pointer',
-          transition: 'box-shadow 0.4s ease, border-color 0.2s',
           boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
           border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
           transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s'
@@ -26091,7 +26089,7 @@ function HomeScreen({
     onSearch: () => __goApp('search'),
     onFilters: () => __goApp(),
     onCardClick: () => __goApp()
-  }) : /*#__PURE__*/React.createElement(React.Fragment, null, before, /*#__PURE__*/React.createElement("div", {
+  }) : /*#__PURE__*/React.createElement(React.Fragment, null, topBar, /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '40px 22px',
       textAlign: 'center',
@@ -28289,7 +28287,6 @@ function DishDetailScreen({
       fontSize: 15,
       fontWeight: 700,
       fontFamily: 'inherit',
-      cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
       justifyContent: isEdit ? 'center' : 'space-between',

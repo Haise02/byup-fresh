@@ -1564,7 +1564,6 @@ function MenuScreen({ state, setState, goTo }) {
                     <div onClick={() => goTo('dish', { dishId: d.id, versione: d.versione })} data-dish={d.name} style={{
                       background: SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
                       display: 'flex', gap: 14, cursor: 'pointer',
-                      transition: 'box-shadow 0.4s ease, border-color 0.2s',
                       boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
                       transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
@@ -2369,7 +2368,7 @@ function HomeScreen({ state, setState, goTo }) {
           />
         ) : (
           <>
-            {before}
+            {topBar}
             <div style={{ padding: '40px 22px', textAlign: 'center', color: MUTED }}>
               Caricamento Home…
             </div>
@@ -3437,7 +3436,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           <button onClick={addToCart} disabled={cucinaBloccato || localeChiuso} style={{ opacity: (cucinaBloccato || localeChiuso) ? 0.5 : 1, cursor: (cucinaBloccato || localeChiuso) ? 'not-allowed' : 'pointer',
             flex: 1, height: 56, borderRadius: 999, border: 'none',
             background: WINE, color: '#fff',
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: isEdit ? 'center' : 'space-between', padding: '0 24px',
             boxShadow: `0 4px 16px ${WINE}40`,
           }}>

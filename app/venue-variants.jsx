@@ -365,7 +365,7 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
               <div style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 17, marginTop: 3 }}>Cena degli chef · 5 portate</div>
               <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,.75)', marginTop: 2 }}>Con vini in abbinamento · 65€ a persona</div>
             </div>
-            <button onClick={onBook} style={{ flex: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            <button onClick={onBook} style={{ flex: 'none', cursor: 'pointer', fontFamily: 'inherit',
               background: 'rgba(255,255,255,.14)', color: '#fff', border: '1px solid rgba(255,255,255,.35)',
               fontSize: 11.5, fontWeight: 800, padding: '9px 13px', borderRadius: 999,
               backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>Riserva</button>
