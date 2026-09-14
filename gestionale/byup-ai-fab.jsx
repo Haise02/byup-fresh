@@ -52,7 +52,7 @@ const AI_GRAD = 'linear-gradient(135deg, #FF5A5F 0%, #F472B6 52%, #A78BFA 100%)'
 
 // ─── Posizione del bollino ────────────────────────────────────────────────
 const FAB = 72, MARG = 12, POS_KEY = 'byup.ai.fab.pos';
-const fra = (v, min, max) => Math.max(min, Math.min(max, v));
+const fabFra = (v, min, max) => Math.max(min, Math.min(max, v));
 
 // Il frame scala tutta la console con `zoom`, quindi un pixel di schermo NON
 // è un pixel di frame: senza dividere per il fattore, il bollino scapperebbe
@@ -150,8 +150,8 @@ function BuAiFab() {
         // Agganciato resta agganciato: si riallinea al suo bordo, che con la
         // finestra più stretta si è spostato.
         const q = {
-          x: p.lato === 'sinistra' ? 0 : p.lato === 'destra' ? fw - FAB : fra(p.x, MARG, fw - FAB - MARG),
-          y: p.lato === 'alto' ? 0 : p.lato === 'basso' ? fh - FAB : fra(p.y, MARG, fh - FAB - MARG),
+          x: p.lato === 'sinistra' ? 0 : p.lato === 'destra' ? fw - FAB : fabFra(p.x, MARG, fw - FAB - MARG),
+          y: p.lato === 'alto' ? 0 : p.lato === 'basso' ? fh - FAB : fabFra(p.y, MARG, fh - FAB - MARG),
           lato: p.lato || null,
         };
         return (q.x === p.x && q.y === p.y && q.lato === (p.lato || null)) ? p : q;
@@ -205,8 +205,8 @@ function BuAiFab() {
       // Durante il trascinamento il margine è più stretto: serve poter
       // arrivare fino al bordo, che è proprio dove ci si aggancia.
       setPos({
-        x: fra((ev.clientX - fr.left) / z - offX, 0, fw - FAB),
-        y: fra((ev.clientY - fr.top) / z - offY, 0, fh - FAB),
+        x: fabFra((ev.clientX - fr.left) / z - offX, 0, fw - FAB),
+        y: fabFra((ev.clientY - fr.top) / z - offY, 0, fh - FAB),
         lato: null,
       });
     };
@@ -228,8 +228,8 @@ function BuAiFab() {
           // agganciato, con due pixel di scarto, si leggerebbe come un errore.
           const lato = latoVicino(p.x, p.y, fw, fh);
           const q = {
-            x: lato === 'sinistra' ? 0 : lato === 'destra' ? fw - FAB : fra(p.x, MARG, fw - FAB - MARG),
-            y: lato === 'alto' ? 0 : lato === 'basso' ? fh - FAB : fra(p.y, MARG, fh - FAB - MARG),
+            x: lato === 'sinistra' ? 0 : lato === 'destra' ? fw - FAB : fabFra(p.x, MARG, fw - FAB - MARG),
+            y: lato === 'alto' ? 0 : lato === 'basso' ? fh - FAB : fabFra(p.y, MARG, fh - FAB - MARG),
             lato,
           };
           // Il posto scelto vale su tutte le schermate: spostarlo una volta

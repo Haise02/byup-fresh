@@ -1,16 +1,16 @@
 // map.jsx — Leaflet real map (CartoDB Positron tiles, Google-like)
 // When Google Maps key is ready: swap LeafletMap init for google.maps.Map
-const PINK = '#E32459';
-const PINK_DARK = '#B81C47';
+const PINK_MAP = '#E32459';
+const PINK_DARK_MAP = '#B81C47';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
-const __BYUP_DARK = (() => { try { const x = localStorage.getItem('byup.themeMode')||'light'; if(x==='dark')return true; if(x==='auto')return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); return false; } catch { return false; } })();
-const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
-const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
-const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
-const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
-const SURF = __BYUP_DARK ? '#211f22' : '#fff';
-const TINT = __BYUP_DARK ? '#2b272c' : '#f6f6f6';
+const __BYUP_DARK_MAP = (() => { try { const x = localStorage.getItem('byup.themeMode')||'light'; if(x==='dark')return true; if(x==='auto')return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); return false; } catch { return false; } })();
+const TEXT_MAP = __BYUP_DARK_MAP ? '#f6ece9' : '#1c0f15';
+const MUTED_MAP = __BYUP_DARK_MAP ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER_MAP = __BYUP_DARK_MAP ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_PAGE_MAP = __BYUP_DARK_MAP ? '#161514' : '#FBF4F1';
+const SURF_MAP = __BYUP_DARK_MAP ? '#211f22' : '#fff';
+const TINT_MAP = __BYUP_DARK_MAP ? '#2b272c' : '#f6f6f6';
 
 const CATEGORIES = [
   { id: 'all',      label: 'Tutti' },
@@ -35,23 +35,23 @@ const VENUES_BY_CITY = {
   roma: [
     // ── Prati / Vaticano ─────────────────────────────────────────────
     { id: 'set',  name: 'Al Settembrini',    cat: 'Ristorante romano',    distance: '1.6 km',
-      lat: 41.9065, lng: 12.4642, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '20-30€', rating: 4.6,
+      lat: 41.9065, lng: 12.4642, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '20-30€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop' },
     { id: 'ang',  name: "Osteria dell'Angelo", cat: 'Osteria romana',     distance: '1.8 km',
-      lat: 41.9078, lng: 12.4608, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
+      lat: 41.9078, lng: 12.4608, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'prz',  name: 'Pizzarium',          cat: 'Pizza al taglio',     distance: '2.0 km',
-      lat: 41.9058, lng: 12.4588, color: PINK,  open: true,  hours: '11:00 – 22:00', cuisine: 'Pizza',    price: '5-15€',  rating: 4.8,
+      lat: 41.9058, lng: 12.4588, color: PINK_MAP,  open: true,  hours: '11:00 – 22:00', cuisine: 'Pizza',    price: '5-15€',  rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=70&auto=format&fit=crop' },
     // ── Trastevere ───────────────────────────────────────────────────
     { id: 'imp',  name: "All'Impronta",       cat: 'Ristorante',          distance: '0.8 km',
-      lat: 41.8960, lng: 12.4718, color: PINK,  open: true,  hours: '19:00 – 24:00', cuisine: 'Italiana', price: '25-35€', rating: 4.5,
+      lat: 41.8960, lng: 12.4718, color: PINK_MAP,  open: true,  hours: '19:00 – 24:00', cuisine: 'Italiana', price: '25-35€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop' },
     { id: 'ton',  name: 'Da Tonino',          cat: 'Osteria romana',      distance: '1.3 km',
-      lat: 41.8892, lng: 12.4678, color: PINK,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.5,
+      lat: 41.8892, lng: 12.4678, color: PINK_MAP,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=70&auto=format&fit=crop' },
     { id: 'sora', name: 'Sora Lella',         cat: 'Trattoria storica',   distance: '1.2 km',
-      lat: 41.8935, lng: 12.4785, color: PINK,  open: true,  hours: '12:30 – 22:30', cuisine: 'Italiana', price: '30-45€', rating: 4.7,
+      lat: 41.8935, lng: 12.4785, color: PINK_MAP,  open: true,  hours: '12:30 – 22:30', cuisine: 'Italiana', price: '30-45€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop' },
     { id: 'bfd',  name: 'Bir & Fud',          cat: 'Birrificio artigianale', distance: '1.4 km',
       lat: 41.8898, lng: 12.4695, color: PLUM,  open: true,  hours: '18:00 – 02:00', cuisine: 'Pub',      price: '15-25€', rating: 4.5,
@@ -70,20 +70,20 @@ const VENUES_BY_CITY = {
       lat: 41.8880, lng: 12.4750, color: PLUM,  open: false, hours: 'Apre alle 18:00', cuisine: 'Pub',    price: '15-25€', rating: 4.3,
       photo: 'https://images.unsplash.com/photo-1538488881038-592d2b6c4b78?w=600&q=70&auto=format&fit=crop' },
     { id: 'rem',  name: 'Da Remo',            cat: 'Pizzeria romana',     distance: '2.4 km',
-      lat: 41.8768, lng: 12.4778, color: PINK,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '10-18€', rating: 4.8,
+      lat: 41.8768, lng: 12.4778, color: PINK_MAP,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '10-18€', rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70&auto=format&fit=crop' },
     { id: 'chec', name: 'Checchino dal 1887', cat: 'Osteria storica',     distance: '2.6 km',
-      lat: 41.8752, lng: 12.4795, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '30-45€', rating: 4.6,
+      lat: 41.8752, lng: 12.4795, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '30-45€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=70&auto=format&fit=crop' },
     { id: 'vol',  name: 'Voltaire Pub',       cat: 'Pub artigianale',     distance: '2.5 km',
       lat: 41.8782, lng: 12.4762, color: PLUM,  open: true,  hours: '17:00 – 02:00', cuisine: 'Pub',      price: '10-20€', rating: 4.3,
       photo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop' },
     // ── Campo de' Fiori / Navona ──────────────────────────────────────
     { id: 'ros',  name: 'Roscioli',           cat: 'Salumeria con cucina', distance: '0.6 km',
-      lat: 41.8948, lng: 12.4725, color: PINK,  open: true,  hours: '12:30 – 24:00', cuisine: 'Italiana', price: '25-40€', rating: 4.9,
+      lat: 41.8948, lng: 12.4725, color: PINK_MAP,  open: true,  hours: '12:30 – 24:00', cuisine: 'Italiana', price: '25-40€', rating: 4.9,
       photo: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d6?w=600&q=70&auto=format&fit=crop' },
     { id: 'emm',  name: 'Emma Pizzeria',      cat: 'Pizzeria gourmet',    distance: '0.5 km',
-      lat: 41.8958, lng: 12.4718, color: PINK,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '12-22€', rating: 4.7,
+      lat: 41.8958, lng: 12.4718, color: PINK_MAP,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '12-22€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&q=70&auto=format&fit=crop' },
     { id: 'bnc',  name: 'Barnum Café',        cat: 'Cocktail bar',        distance: '0.3 km',
       lat: 41.8968, lng: 12.4728, color: ORANGE, open: true, hours: '09:00 – 02:00', cuisine: 'Cocktail', price: '10-20€', rating: 4.5,
@@ -93,17 +93,17 @@ const VENUES_BY_CITY = {
       photo: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?w=600&q=70&auto=format&fit=crop' },
     // ── Monti / Colosseo ─────────────────────────────────────────────
     { id: 'mar',  name: 'Da Mario',           cat: 'Trattoria',           distance: '2.1 km',
-      lat: 41.8904, lng: 12.4918, color: PINK,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.4,
+      lat: 41.8904, lng: 12.4918, color: PINK_MAP,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.4,
       photo: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&q=70&auto=format&fit=crop' },
     { id: 'lir',  name: 'Li Rioni',           cat: 'Pizzeria',            distance: '1.6 km',
-      lat: 41.8892, lng: 12.4942, color: PINK,  open: true,  hours: '19:30 – 24:00', cuisine: 'Pizza',    price: '8-16€',  rating: 4.6,
+      lat: 41.8892, lng: 12.4942, color: PINK_MAP,  open: true,  hours: '19:30 – 24:00', cuisine: 'Pizza',    price: '8-16€',  rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1575444758702-4a6b9222336e?w=600&q=70&auto=format&fit=crop' },
     { id: 'tre',  name: 'Ai Tre Scalini',     cat: 'Enoteca',             distance: '1.4 km',
       lat: 41.8942, lng: 12.4938, color: ORANGE, open: true, hours: '12:00 – 02:00', cuisine: 'Cocktail', price: '15-25€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=600&q=70&auto=format&fit=crop' },
     // ── San Lorenzo / Pigneto ────────────────────────────────────────
     { id: 'pom',  name: 'Pommidoro',          cat: 'Trattoria storica',   distance: '3.0 km',
-      lat: 41.8968, lng: 12.5145, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '20-30€', rating: 4.4,
+      lat: 41.8968, lng: 12.5145, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '20-30€', rating: 4.4,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'pig',  name: 'Pigneto 41',         cat: 'Cocktail bar',        distance: '3.8 km',
       lat: 41.8858, lng: 12.5215, color: ORANGE, open: true, hours: '19:00 – 02:00', cuisine: 'Cocktail', price: '8-18€',  rating: 4.5,
@@ -113,14 +113,14 @@ const VENUES_BY_CITY = {
       lat: 41.9115, lng: 12.5188, color: ORANGE, open: true, hours: '11:00 – 23:30', cuisine: 'Gelato',   price: '3-8€',   rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600&q=70&auto=format&fit=crop' },
     { id: 'par',  name: 'La Pratolina',       cat: 'Pizzeria',            distance: '3.2 km',
-      lat: 41.9215, lng: 12.5048, color: PINK,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '12-20€', rating: 4.5,
+      lat: 41.9215, lng: 12.5048, color: PINK_MAP,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '12-20€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&q=70&auto=format&fit=crop' },
     // ── Flaminio ─────────────────────────────────────────────────────
     { id: 'jaz',  name: 'Blue Note',          cat: 'Jazz bar',            distance: '2.8 km',
       lat: 41.8988, lng: 12.4760, color: ORANGE, open: true, hours: '20:00 – 02:00', cuisine: 'Cocktail', price: '20-30€', rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=600&q=70&auto=format&fit=crop' },
     { id: 'ostf', name: 'Osteria Flaminio',   cat: 'Ristorante',          distance: '1.9 km',
-      lat: 41.9172, lng: 12.4768, color: PINK,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '20-35€', rating: 4.5,
+      lat: 41.9172, lng: 12.4768, color: PINK_MAP,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '20-35€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=70&auto=format&fit=crop' },
     { id: 'lou',  name: 'Lounge 22',          cat: 'Cocktail bar',        distance: '1.1 km',
       lat: 41.9012, lng: 12.4846, color: ORANGE, open: true, hours: '18:00 – 02:00', cuisine: 'Cocktail', price: '15-25€', rating: 4.7,
@@ -134,11 +134,11 @@ const VENUES_BY_CITY = {
       photo: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?w=600&q=70&auto=format&fit=crop' },
     // ── Sforno (Cinecittà) ────────────────────────────────────────────
     { id: 'piz',  name: 'Sforno',             cat: 'Pizzeria',            distance: '3.2 km',
-      lat: 41.9155, lng: 12.4960, color: PINK,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '10-20€', rating: 4.7,
+      lat: 41.9155, lng: 12.4960, color: PINK_MAP,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '10-20€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=70&auto=format&fit=crop' },
     // ── Garbatella / Ostiense ────────────────────────────────────────
     { id: 'grz',  name: 'Grazia & Graziella', cat: 'Trattoria di quartiere', distance: '4.7 km',
-      lat: 41.8578, lng: 12.4858, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.4,
+      lat: 41.8578, lng: 12.4858, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.4,
       photo: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=70&auto=format&fit=crop' },
     { id: 'tram', name: 'Tram Depot',         cat: 'Pub storico',         distance: '4.4 km',
       lat: 41.8612, lng: 12.4712, color: PLUM,  open: true,  hours: '17:00 – 02:00', cuisine: 'Pub',      price: '10-20€', rating: 4.3,
@@ -149,17 +149,17 @@ const VENUES_BY_CITY = {
       photo: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=600&q=70&auto=format&fit=crop' },
     // ── Monteverde ───────────────────────────────────────────────────
     { id: 'mvd',  name: 'Osteria di Monteverde', cat: 'Trattoria',        distance: '4.0 km',
-      lat: 41.8722, lng: 12.4438, color: PINK,  open: false, hours: 'Apre alle 19:00', cuisine: 'Italiana', price: '15-28€', rating: 4.5,
+      lat: 41.8722, lng: 12.4438, color: PINK_MAP,  open: false, hours: 'Apre alle 19:00', cuisine: 'Italiana', price: '15-28€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d6?w=600&q=70&auto=format&fit=crop' },
     // ── EUR ──────────────────────────────────────────────────────────
     { id: 'eur',  name: 'Il Sorpasso EUR',    cat: 'Bistrot',             distance: '7.6 km',
-      lat: 41.8328, lng: 12.4672, color: PINK,  open: true,  hours: '12:30 – 23:30', cuisine: 'Italiana', price: '20-30€', rating: 4.4,
+      lat: 41.8328, lng: 12.4672, color: PINK_MAP,  open: true,  hours: '12:30 – 23:30', cuisine: 'Italiana', price: '20-30€', rating: 4.4,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
   ],
 
   milano: [
     { id: 'rat',   name: 'Ratanà',            cat: 'Cucina meneghina',    distance: '0.8 km',
-      lat: 45.4845, lng: 9.1958, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '35-55€', rating: 4.7,
+      lat: 45.4845, lng: 9.1958, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '35-55€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'dry',   name: 'Dry Milano',        cat: 'Cocktail & pizza',    distance: '1.2 km',
       lat: 45.4728, lng: 9.1868, color: ORANGE, open: true, hours: '18:00 – 02:00', cuisine: 'Cocktail', price: '15-30€', rating: 4.8,
@@ -174,22 +174,22 @@ const VENUES_BY_CITY = {
       lat: 45.4712, lng: 9.2088, color: ORANGE, open: true, hours: '19:00 – 02:00', cuisine: 'Cocktail', price: '15-25€', rating: 4.9,
       photo: 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=600&q=70&auto=format&fit=crop' },
     { id: 'sorb',  name: 'Sorbillo Milano',   cat: 'Pizzeria napoletana', distance: '0.5 km',
-      lat: 45.4638, lng: 9.1918, color: PINK,  open: true,  hours: '12:00 – 23:30', cuisine: 'Pizza',    price: '8-18€',  rating: 4.7,
+      lat: 45.4638, lng: 9.1918, color: PINK_MAP,  open: true,  hours: '12:00 – 23:30', cuisine: 'Pizza',    price: '8-18€',  rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70&auto=format&fit=crop' },
     { id: 'nav',   name: 'Navigli Bar',       cat: 'Bar con aperitivo',   distance: '2.5 km',
       lat: 45.4492, lng: 9.1728, color: ORANGE, open: true, hours: '08:00 – 02:00', cuisine: 'Cocktail', price: '10-20€', rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=600&q=70&auto=format&fit=crop' },
     { id: 'cro',   name: 'Osteria del Crotto', cat: 'Trattoria milanese', distance: '1.8 km',
-      lat: 45.4658, lng: 9.1818, color: PINK,  open: false, hours: 'Apre alle 19:00', cuisine: 'Italiana', price: '30-50€', rating: 4.6,
+      lat: 45.4658, lng: 9.1818, color: PINK_MAP,  open: false, hours: 'Apre alle 19:00', cuisine: 'Italiana', price: '30-50€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=70&auto=format&fit=crop' },
   ],
 
   firenze: [
     { id: 'lat',   name: 'Il Latini',         cat: 'Trattoria fiorentina', distance: '0.5 km',
-      lat: 43.7715, lng: 11.2498, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '25-40€', rating: 4.6,
+      lat: 43.7715, lng: 11.2498, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '25-40€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'anv',   name: "All'Antico Vinaio", cat: 'Fiaschetteria storica', distance: '0.3 km',
-      lat: 43.7698, lng: 11.2558, color: PINK,  open: true,  hours: '10:30 – 21:00', cuisine: 'Italiana', price: '5-15€',  rating: 4.8,
+      lat: 43.7698, lng: 11.2558, color: PINK_MAP,  open: true,  hours: '10:30 – 21:00', cuisine: 'Italiana', price: '5-15€',  rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=70&auto=format&fit=crop' },
     { id: 'nei',   name: 'Gelateria dei Neri', cat: 'Gelateria artigianale', distance: '0.6 km',
       lat: 43.7665, lng: 11.2518, color: ORANGE, open: true, hours: '11:00 – 23:00', cuisine: 'Gelato',   price: '2-7€',   rating: 4.7,
@@ -201,10 +201,10 @@ const VENUES_BY_CITY = {
       lat: 43.7688, lng: 11.2538, color: ORANGE, open: true, hours: '18:00 – 03:00', cuisine: 'Cocktail', price: '8-18€',  rating: 4.5,
       photo: 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=600&q=70&auto=format&fit=crop' },
     { id: 'buc',   name: 'Buca Mario',        cat: 'Ristorante storico',  distance: '0.2 km',
-      lat: 43.7705, lng: 11.2528, color: PINK,  open: true,  hours: '12:00 – 22:30', cuisine: 'Italiana', price: '30-50€', rating: 4.4,
+      lat: 43.7705, lng: 11.2528, color: PINK_MAP,  open: true,  hours: '12:00 – 22:30', cuisine: 'Italiana', price: '30-50€', rating: 4.4,
       photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop' },
     { id: 'brrr',  name: "Brac",              cat: 'Libreria con cucina', distance: '0.7 km',
-      lat: 43.7672, lng: 11.2572, color: PINK,  open: true,  hours: '10:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
+      lat: 43.7672, lng: 11.2572, color: PINK_MAP,  open: true,  hours: '10:00 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=70&auto=format&fit=crop' },
     { id: 'vol2',  name: 'Mostodolce',        cat: 'Birrificio artigianale', distance: '1.2 km',
       lat: 43.7748, lng: 11.2548, color: PLUM,  open: true,  hours: '12:00 – 01:00', cuisine: 'Pub',      price: '10-18€', rating: 4.5,
@@ -213,10 +213,10 @@ const VENUES_BY_CITY = {
 
   venezia: [
     { id: 'test',  name: 'Alle Testiere',     cat: 'Osteria di pesce',    distance: '0.4 km',
-      lat: 45.4352, lng: 12.3518, color: PINK,  open: true,  hours: '12:00 – 22:00', cuisine: 'Italiana', price: '40-60€', rating: 4.8,
+      lat: 45.4352, lng: 12.3518, color: PINK_MAP,  open: true,  hours: '12:00 – 22:00', cuisine: 'Italiana', price: '40-60€', rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'cov',   name: 'Al Covo',           cat: 'Ristorante veneziano', distance: '0.6 km',
-      lat: 45.4345, lng: 12.3528, color: PINK,  open: true,  hours: '12:45 – 22:30', cuisine: 'Italiana', price: '35-55€', rating: 4.7,
+      lat: 45.4345, lng: 12.3528, color: PINK_MAP,  open: true,  hours: '12:45 – 22:30', cuisine: 'Italiana', price: '35-55€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=70&auto=format&fit=crop' },
     { id: 'bja',   name: 'Bacaro Jazz',       cat: 'Bar veneziano',       distance: '0.3 km',
       lat: 45.4378, lng: 12.3358, color: ORANGE, open: true, hours: '17:00 – 02:00', cuisine: 'Cocktail', price: '10-20€', rating: 4.5,
@@ -228,19 +228,19 @@ const VENUES_BY_CITY = {
       lat: 45.4462, lng: 12.3268, color: PLUM,  open: true,  hours: '16:00 – 01:00', cuisine: 'Pub',      price: '10-18€', rating: 4.3,
       photo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop' },
     { id: 'do',    name: "Da Fiore",          cat: 'Ristorante veneziano', distance: '1.0 km',
-      lat: 45.4398, lng: 12.3318, color: PINK,  open: true,  hours: '12:30 – 22:00', cuisine: 'Italiana', price: '50-80€', rating: 4.9,
+      lat: 45.4398, lng: 12.3318, color: PINK_MAP,  open: true,  hours: '12:30 – 22:00', cuisine: 'Italiana', price: '50-80€', rating: 4.9,
       photo: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=70&auto=format&fit=crop' },
   ],
 
   napoli: [
     { id: 'nsor',  name: 'Sorbillo',          cat: 'Pizzeria storica',    distance: '0.3 km',
-      lat: 40.8518, lng: 14.2528, color: PINK,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '6-14€',  rating: 4.9,
+      lat: 40.8518, lng: 14.2528, color: PINK_MAP,  open: true,  hours: '12:30 – 23:30', cuisine: 'Pizza',    price: '6-14€',  rating: 4.9,
       photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70&auto=format&fit=crop' },
     { id: 'mich',  name: "Da Michele",        cat: 'Pizzeria storica',    distance: '0.5 km',
-      lat: 40.8505, lng: 14.2555, color: PINK,  open: true,  hours: '11:00 – 23:00', cuisine: 'Pizza',    price: '5-10€',  rating: 4.8,
+      lat: 40.8505, lng: 14.2555, color: PINK_MAP,  open: true,  hours: '11:00 – 23:00', cuisine: 'Pizza',    price: '5-10€',  rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&q=70&auto=format&fit=crop' },
     { id: 'matt',  name: 'Mattonella',        cat: 'Osteria napoletana',  distance: '2.2 km',
-      lat: 40.8322, lng: 14.2278, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
+      lat: 40.8322, lng: 14.2278, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '15-25€', rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop' },
     { id: 'menn',  name: 'Mennella',          cat: 'Gelateria storica',   distance: '2.0 km',
       lat: 40.8318, lng: 14.2298, color: ORANGE, open: true, hours: '10:00 – 24:00', cuisine: 'Gelato',   price: '2-6€',   rating: 4.8,
@@ -252,19 +252,19 @@ const VENUES_BY_CITY = {
       lat: 40.8448, lng: 14.2348, color: PLUM,  open: true,  hours: '18:00 – 02:00', cuisine: 'Pub',      price: '10-18€', rating: 4.3,
       photo: 'https://images.unsplash.com/photo-1538488881038-592d2b6c4b78?w=600&q=70&auto=format&fit=crop' },
     { id: 'nconc', name: "Concettina ai Tre Santi", cat: 'Pizzeria gourmet', distance: '1.8 km',
-      lat: 40.8558, lng: 14.2468, color: PINK,  open: true,  hours: '12:00 – 23:30', cuisine: 'Pizza',    price: '10-20€', rating: 4.9,
+      lat: 40.8558, lng: 14.2468, color: PINK_MAP,  open: true,  hours: '12:00 – 23:30', cuisine: 'Pizza',    price: '10-20€', rating: 4.9,
       photo: 'https://images.unsplash.com/photo-1575444758702-4a6b9222336e?w=600&q=70&auto=format&fit=crop' },
   ],
 
   palermo: [
     { id: 'vesp',  name: 'Osteria dei Vespri', cat: 'Alta cucina siciliana', distance: '0.4 km',
-      lat: 38.1148, lng: 13.3618, color: PINK,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '35-55€', rating: 4.8,
+      lat: 38.1148, lng: 13.3618, color: PINK_MAP,  open: true,  hours: '12:30 – 23:00', cuisine: 'Italiana', price: '35-55€', rating: 4.8,
       photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70&auto=format&fit=crop' },
     { id: 'frat',  name: 'Fratelli Russo',    cat: 'Pizzeria siciliana',  distance: '0.6 km',
-      lat: 38.1135, lng: 13.3638, color: PINK,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '8-16€',  rating: 4.6,
+      lat: 38.1135, lng: 13.3638, color: PINK_MAP,  open: true,  hours: '19:00 – 24:00', cuisine: 'Pizza',    price: '8-16€',  rating: 4.6,
       photo: 'https://images.unsplash.com/photo-1575444758702-4a6b9222336e?w=600&q=70&auto=format&fit=crop' },
     { id: 'cal2',  name: 'Da Calogero',       cat: 'Trattoria di mare',   distance: '12.0 km',
-      lat: 38.2138, lng: 13.3268, color: PINK,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '20-35€', rating: 4.7,
+      lat: 38.2138, lng: 13.3268, color: PINK_MAP,  open: true,  hours: '12:00 – 23:00', cuisine: 'Italiana', price: '20-35€', rating: 4.7,
       photo: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=600&q=70&auto=format&fit=crop' },
     { id: 'ila',   name: 'Gelateria Ilardo',  cat: 'Gelateria storica',   distance: '0.3 km',
       lat: 38.1128, lng: 13.3598, color: ORANGE, open: true, hours: '08:00 – 24:00', cuisine: 'Gelato',   price: '2-6€',   rating: 4.7,
@@ -332,7 +332,7 @@ function createClusterIcon(cluster) {
     className: '',
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
-      background:${PINK};color:#fff;
+      background:${PINK_MAP};color:#fff;
       border:3px solid #fff;
       box-shadow:0 4px 16px rgba(227,36,89,0.45),0 1px 4px rgba(0,0,0,0.18);
       display:flex;align-items:center;justify-content:center;
@@ -495,7 +495,7 @@ function VenueCardsTray({ venues, onSelect }) {
         {venues.map(v => (
           <button key={v.id} onClick={() => onSelect(v)} style={{
             flexShrink: 0, width: 165, padding: 0,
-            background: SURF, border: 'none', borderRadius: 18,
+            background: SURF_MAP, border: 'none', borderRadius: 18,
             cursor: 'pointer', textAlign: 'left', overflow: 'hidden',
             boxShadow: '0 8px 28px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)',
           }}>
@@ -526,17 +526,17 @@ function VenueCardsTray({ venues, onSelect }) {
             </div>
             <div style={{ padding: '9px 11px 11px' }}>
               <div style={{
-                fontSize: 13.5, fontWeight: 800, color: TEXT, letterSpacing: -0.2,
+                fontSize: 13.5, fontWeight: 800, color: TEXT_MAP, letterSpacing: -0.2,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{v.name}</div>
               <div style={{
-                marginTop: 2, fontSize: 11.5, color: MUTED,
+                marginTop: 2, fontSize: 11.5, color: MUTED_MAP,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {v.cat}
                 </span>
-                <span style={{ flexShrink: 0, marginLeft: 6, color: TEXT, fontWeight: 600 }}>
+                <span style={{ flexShrink: 0, marginLeft: 6, color: TEXT_MAP, fontWeight: 600 }}>
                   {mapDistanze() ? v.distance : mapCitta()}
                 </span>
               </div>
@@ -576,7 +576,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'absolute', inset: 0, background: BG_PAGE_MAP, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="phone" pageKey="map" message="Tocca un locale per sbirciare il menu." bottom={118} size={116}/> : null; })()}
 
 
@@ -603,7 +603,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
 
           <div style={{
             flex: 1, height: 42, borderRadius: 12, border: '1.5px solid #ebebeb',
-            background: TINT, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
+            background: TINT_MAP, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
           }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="7.5" stroke="#9a9a9a" strokeWidth="2"/>
@@ -613,22 +613,22 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               placeholder="Cerca ristorante o zona…"
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: TEXT, background: 'transparent', minWidth: 0 }}
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: TEXT_MAP, background: 'transparent', minWidth: 0 }}
             />
           </div>
 
           <button onClick={onOpenFilters} style={{
-            width: 42, height: 42, borderRadius: 12, border: `1.5px solid ${BORDER}`,
-            background: TINT, cursor: 'pointer', flexShrink: 0,
+            width: 42, height: 42, borderRadius: 12, border: `1.5px solid ${BORDER_MAP}`,
+            background: TINT_MAP, cursor: 'pointer', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18M6 12h12M9 18h6" stroke={TEXT} strokeWidth="2" strokeLinecap="round"/>
+              <path d="M3 6h18M6 12h12M9 18h6" stroke={TEXT_MAP} strokeWidth="2" strokeLinecap="round"/>
             </svg>
             {activeFilterCount > 0 && (
               <span style={{
                 position: 'absolute', top: -3, right: -3, width: 17, height: 17,
-                background: PINK, color: '#fff', borderRadius: 999,
+                background: PINK_MAP, color: '#fff', borderRadius: 999,
                 fontSize: 9, fontWeight: 800,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{activeFilterCount}</span>
@@ -647,9 +647,9 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
             return (
               <button key={cat.id} onClick={() => { setCatFilter(cat.id); setActive(null); }} style={{
                 flexShrink: 0, padding: '6px 14px', borderRadius: 999,
-                border: `1.5px solid ${on ? PINK : BORDER}`,
-                background: on ? PINK : SURF,
-                color: on ? '#fff' : TEXT,
+                border: `1.5px solid ${on ? PINK_MAP : BORDER_MAP}`,
+                background: on ? PINK_MAP : SURF_MAP,
+                color: on ? '#fff' : TEXT_MAP,
                 fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}>
@@ -687,25 +687,25 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
           {/* Recenter */}
           <button onClick={() => setActive(null)} style={{
             width: 42, height: 42, borderRadius: 12,
-            background: SURF, border: 'none',
+            background: SURF_MAP, border: 'none',
             boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="3.5" fill={PINK}/>
-              <path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22" stroke={PINK} strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="12" cy="12" r="7.5" stroke={PINK} strokeWidth="1.5" fill="none" opacity="0.35"/>
+              <circle cx="12" cy="12" r="3.5" fill={PINK_MAP}/>
+              <path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22" stroke={PINK_MAP} strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="7.5" stroke={PINK_MAP} strokeWidth="1.5" fill="none" opacity="0.35"/>
             </svg>
           </button>
 
           {/* Zoom pill */}
           <div style={{
-            background: SURF, borderRadius: 12,
+            background: SURF_MAP, borderRadius: 12,
             boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
             overflow: 'hidden', display: 'flex', flexDirection: 'column',
           }}>
             <button onClick={() => mapControlsRef.current?.zoomIn()} style={{
-              width: 42, height: 42, border: 'none', background: SURF,
+              width: 42, height: 42, border: 'none', background: SURF_MAP,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderBottom: '1px solid #ebebeb',
             }}>
@@ -714,7 +714,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
               </svg>
             </button>
             <button onClick={() => mapControlsRef.current?.zoomOut()} style={{
-              width: 42, height: 42, border: 'none', background: SURF,
+              width: 42, height: 42, border: 'none', background: SURF_MAP,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -751,14 +751,14 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
       }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: SURF, borderRadius: '22px 22px 0 0',
+        background: SURF_MAP, borderRadius: '22px 22px 0 0',
         boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
         zIndex: 21,
         animation: 'sheetUp 280ms ease-out',
         padding: '10px 18px 44px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-          <div style={{ width: 38, height: 4, borderRadius: 999, background: TINT }}/>
+          <div style={{ width: 38, height: 4, borderRadius: 999, background: TINT_MAP }}/>
         </div>
 
         <div onClick={onOpenVenue} style={{ cursor: 'pointer' }}>
@@ -805,25 +805,25 @@ function VenueSheet({ venue, onClose, onOpenVenue, onOpenMenu }) {
             }}>
               {venue.open ? 'Aperto ora' : 'Chiuso'}
             </span>
-            <span style={{ color: MUTED, fontSize: 13 }}>
+            <span style={{ color: MUTED_MAP, fontSize: 13 }}>
               {' · '}{venue.hours}
             </span>
           </div>
           <span style={{
-            background: TINT, borderRadius: 999, padding: '4px 10px',
-            fontSize: 12.5, fontWeight: 600, color: TEXT,
+            background: TINT_MAP, borderRadius: 999, padding: '4px 10px',
+            fontSize: 12.5, fontWeight: 600, color: TEXT_MAP,
           }}>{venue.price}</span>
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
           <button onClick={(e) => { e.stopPropagation(); onOpenVenue(); }} style={{
             flex: 1, padding: '13px 0', borderRadius: 14,
-            border: `1.5px solid ${PINK}`, background: SURF,
-            color: PINK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+            border: `1.5px solid ${PINK_MAP}`, background: SURF_MAP,
+            color: PINK_MAP, fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
           }}>Prenota</button>
           <button onClick={(e) => { e.stopPropagation(); onOpenMenu(); }} style={{
             flex: 1, padding: '13px 0', borderRadius: 14, border: 'none',
-            background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+            background: `linear-gradient(135deg, ${PINK_MAP} 0%, ${PINK_DARK_MAP} 100%)`,
             color: '#fff', fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
             boxShadow: '0 6px 18px rgba(227,36,89,0.40)',
           }}>Menù</button>
@@ -882,8 +882,8 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
 
   return (
     <div style={{
-      position: 'absolute', inset: 0, background: SURF,
-      display: 'flex', flexDirection: 'column', overflow: 'hidden', color: TEXT,
+      position: 'absolute', inset: 0, background: SURF_MAP,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden', color: TEXT_MAP,
     }}>
       <div style={{ padding: '60px 20px 0', flexShrink: 0 }}>
         <button onClick={onBack} style={{
@@ -896,7 +896,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
           </svg>
         </button>
         <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.5, marginTop: 14 }}>Posta</div>
-        <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
+        <div style={{ fontSize: 13, color: MUTED_MAP, marginTop: 2 }}>
           {onlyNews ? 'Aggiornamenti dal team byup' : (tab === 'news' ? 'Aggiornamenti dal team byup' : 'Offerte dai tuoi locali preferiti')}
         </div>
       </div>
@@ -904,7 +904,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
       {promoVisibile && (
         <div style={{
           margin: '14px 20px 4px', flexShrink: 0,
-          background: TINT, borderRadius: 12, padding: 4, display: 'flex', gap: 4,
+          background: TINT_MAP, borderRadius: 12, padding: 4, display: 'flex', gap: 4,
         }}>
           {[
             { id: 'news',  label: 'Novità', count: news.length + extraNews.length },
@@ -914,9 +914,9 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
             return (
               <button key={t.id} onClick={() => setTab(t.id)} style={{
                 flex: 1, padding: '9px 10px',
-                background: active ? SURF : 'transparent', border: 'none', cursor: 'pointer',
+                background: active ? SURF_MAP : 'transparent', border: 'none', cursor: 'pointer',
                 fontSize: 13.5, fontWeight: 700,
-                color: active ? TEXT : MUTED,
+                color: active ? TEXT_MAP : MUTED_MAP,
                 borderRadius: 9,
                 boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -925,8 +925,8 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
                 {t.label}
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
-                  background: active ? (t.id === 'news' ? PINK : '#FF6B35') : (__BYUP_DARK ? 'rgba(255,255,255,.08)' : TINT),
-                  color: active ? '#fff' : MUTED,
+                  background: active ? (t.id === 'news' ? PINK_MAP : '#FF6B35') : (__BYUP_DARK_MAP ? 'rgba(255,255,255,.08)' : TINT_MAP),
+                  color: active ? '#fff' : MUTED_MAP,
                 }}>{t.count}</span>
               </button>
             );
@@ -954,27 +954,27 @@ function ByupNewsCard({ item, onClick }) {
   };
   return (
     <div onClick={onClick} style={{
-      background: SURF, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, boxShadow: __BYUP_DARK ? 'none' : '0 2px 10px -6px rgba(77,18,46,.12)',
+      background: SURF_MAP, border: `1px solid ${BORDER_MAP}`, borderRadius: 16, padding: 14, boxShadow: __BYUP_DARK_MAP ? 'none' : '0 2px 10px -6px rgba(77,18,46,.12)',
       marginBottom: 10, display: 'flex', gap: 12, cursor: 'pointer',
     }}>
       <div style={{
         width: 42, height: 42, borderRadius: 12,
-        background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+        background: `linear-gradient(135deg, ${PINK_MAP} 0%, ${PINK_DARK_MAP} 100%)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        boxShadow: `0 3px 10px ${PINK}40`,
+        boxShadow: `0 3px 10px ${PINK_MAP}40`,
       }}>
         {iconByKind[item.kind] || iconByKind.feature}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5, color: TEXT, letterSpacing: -0.2 }}>byup</div>
-          <div style={{ fontSize: 11.5, color: MUTED, flexShrink: 0 }}>{item.ago}</div>
+          <div style={{ fontWeight: 800, fontSize: 14.5, color: TEXT_MAP, letterSpacing: -0.2 }}>byup</div>
+          <div style={{ fontSize: 11.5, color: MUTED_MAP, flexShrink: 0 }}>{item.ago}</div>
         </div>
-        <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT, marginTop: 4, letterSpacing: -0.2 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT_MAP, marginTop: 4, letterSpacing: -0.2 }}>
           {item.title}
         </div>
         <div style={{
-          marginTop: 3, fontSize: 13, color: MUTED, lineHeight: 1.4,
+          marginTop: 3, fontSize: 13, color: MUTED_MAP, lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{item.preview}</div>
@@ -986,17 +986,17 @@ function ByupNewsCard({ item, onClick }) {
 function PromoMessageCard({ item }) {
   return (
     <div style={{
-      background: SURF, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '14px 16px',
+      background: SURF_MAP, border: `1px solid ${BORDER_MAP}`, borderRadius: 14, padding: '14px 16px',
       marginBottom: 10, cursor: 'pointer',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: TEXT, letterSpacing: -0.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 14.5, fontWeight: 800, color: TEXT_MAP, letterSpacing: -0.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.venue}
         </div>
-        <div style={{ fontSize: 11.5, color: MUTED, flexShrink: 0 }}>{item.ago}</div>
+        <div style={{ fontSize: 11.5, color: MUTED_MAP, flexShrink: 0 }}>{item.ago}</div>
       </div>
       <div style={{
-        marginTop: 4, fontSize: 13.5, color: MUTED, lineHeight: 1.4,
+        marginTop: 4, fontSize: 13.5, color: MUTED_MAP, lineHeight: 1.4,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
         overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{item.preview}</div>

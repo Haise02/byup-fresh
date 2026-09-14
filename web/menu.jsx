@@ -1,5 +1,5 @@
 // byup — Menu locale + Divisione + Home con ordine attivo
-const { useState, useRef, useEffect } = React;
+const { useState: useStateMenu, useRef: useRefMenu, useEffect: useEffectMenu } = React;
 
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
@@ -61,7 +61,7 @@ const ALLERGENS = {
 const DECONGELATO_DOT = { label: 'Decongelato', icon: '❄️' };
 
 function AllergenDots({ ids, decongelato }) {
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useStateMenu(null);
   const voci = (ids || []).map(id => ({ key: id, ...ALLERGENS[id] })).filter(v => v.label)
     .concat(decongelato ? [{ key: '__decongelato', ...DECONGELATO_DOT }] : []);
   return (
@@ -382,8 +382,8 @@ function AppOnlySheet({ onClose }) {
 // Montato una sola volta dentro la colonna della web app: ascolta l'evento
 // globale e mostra il popup, confinato alla colonna (overflow hidden).
 function AppOnlyHost() {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
+  const [open, setOpen] = useStateMenu(false);
+  useEffectMenu(() => {
     const h = () => setOpen(true);
     window.addEventListener('byup:apponly', h);
     return () => window.removeEventListener('byup:apponly', h);
@@ -400,13 +400,13 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
   const senzaTavolo = takeaway || banco;
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   const CAT_ICONS = { 'Antipasti': '🥖', 'Primi piatti': '🍝', 'Secondi piatti': '🥩', 'Dolci': '🍰', 'Bevande': '🍷' };
-  const [tab, setTab] = useState('Antipasti');
-  const scrollRef = useRef(null);
-  const sectionRefs = useRef({});
-  const tabBarRef = useRef(null);
+  const [tab, setTab] = useStateMenu('Antipasti');
+  const scrollRef = useRefMenu(null);
+  const sectionRefs = useRefMenu({});
+  const tabBarRef = useRefMenu(null);
 
   // IntersectionObserver: aggiorna la tab attiva mentre si scorre
-  useEffect(() => {
+  useEffectMenu(() => {
     const root = scrollRef.current;
     if (!root) return;
     const observer = new IntersectionObserver(entries => {
@@ -432,7 +432,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
   };
 
   // Scroll la tab bar per tenere la tab attiva visibile
-  useEffect(() => {
+  useEffectMenu(() => {
     const bar = tabBarRef.current;
     if (!bar) return;
     const activeEl = bar.querySelector(`[data-tab="${tab}"]`);
@@ -465,17 +465,17 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
     } catch {}
     return false;
   })();
-  const [searchQ, setSearchQ] = useState('');
-  const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
-  const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
-  const [confirm, setConfirm] = useState(false);
+  const [searchQ, setSearchQ] = useStateMenu('');
+  const [sheetMode, setSheetMode] = useStateMenu('collapsed'); // 'collapsed' | 'expanded'
+  const [splitPickItem, setSplitPickItem] = useStateMenu(null); // piatto per il popup "con chi dividi?" (swipe ←)
+  const [confirm, setConfirm] = useStateMenu(false);
   // Prompt coperti: appare al primo ingresso al tavolo (non da Vetrina), una sola volta
-  const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
+  const [copertiSheetOpen, setCopertiSheetOpen] = useStateMenu(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
   // Il coperto è esposto qui, dove la riga compare (P-192): il momento si
   // registra alla prima comparsa e viaggia con l'ordine, che nascerà dopo.
-  useEffect(() => {
+  useEffectMenu(() => {
     if (senzaTavolo || fromVenue) return;
     const r = byupCopertoRiga(0, 1);
     if (r.attiva && window.byupCopertoEsposto) window.byupCopertoEsposto(true);
@@ -483,9 +483,9 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
   // Chi ha ordinato al banco e poi si siede: scansionando il QR del tavolo gli
   // si chiede se portarcelo (P-192 · D-146). Si chiede una volta sola: se dice
   // di no, l'ordine resta al banco e nessuno glielo richiede.
-  const [bancoDaPortare, setBancoDaPortare] = useState(() => (modo === 'tavolo' ? byupBancoLeggi() : null));
+  const [bancoDaPortare, setBancoDaPortare] = useStateMenu(() => (modo === 'tavolo' ? byupBancoLeggi() : null));
   const portaBancoAlTavolo = () => { byupBancoPulisci(); setBancoDaPortare(null); };
-  useEffect(() => {
+  useEffectMenu(() => {
     // All'asporto non c'è un tavolo: niente prompt dei coperti (D-14).
     // A locale chiuso il QR non apre alcuna sessione (P-169): niente coperti.
     const localeChiuso = !!(window.byupLocaleChiusoMessaggio && window.byupLocaleChiusoMessaggio());
@@ -1159,8 +1159,8 @@ function MenuScreen({ state, setState, goTo, takeaway = false, modo = 'tavolo' }
 // giù invece che dopo averlo alzato.
 const SOGLIA_TRASCINA = 28;
 function useTrascinaFoglio(mode, setMode) {
-  const rif = useRef(null);
-  const trascinato = useRef(false);
+  const rif = useRefMenu(null);
+  const trascinato = useRefMenu(false);
   const inizio = (e) => {
     if (e.button != null && e.button !== 0) return;
     // Premuto su un bottone (cestino, invio ordine): quello non è un
@@ -1199,13 +1199,13 @@ function useTrascinaFoglio(mode, setMode) {
 // ← sinistra: apre il popup "con chi dividi?"
 // La riga molleggia al rilascio; oltre soglia scatta l'azione con flash.
 function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDish, setQty }) {
-  const [dx, setDx] = useState(0);
-  const [drag, setDrag] = useState(false);
-  const [flash, setFlash] = useState(null); // 'table' | 'pick'
-  const [askUndo, setAskUndo] = useState(false);   // conferma: togliere la divisione fra persone
-  const start = useRef(0);
-  const active = useRef(false);
-  const moved = useRef(false);
+  const [dx, setDx] = useStateMenu(0);
+  const [drag, setDrag] = useStateMenu(false);
+  const [flash, setFlash] = useStateMenu(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useStateMenu(false);   // conferma: togliere la divisione fra persone
+  const start = useRefMenu(0);
+  const active = useRefMenu(false);
+  const moved = useRefMenu(false);
   const TH = 78;
   const onDown = (e) => {
     active.current = true; moved.current = false;
@@ -1359,7 +1359,7 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
 
 // Sheet "con chi dividi?" aperto dallo swipe ← su un piatto
 function SplitPickSheet({ item, participants, onConfirm, onClose }) {
-  const [sel, setSel] = useState({});
+  const [sel, setSel] = useStateMenu({});
   const people = participants.filter(pp => !pp.isMe && !pp.isGuest);
   const n = Object.values(sel).filter(Boolean).length;
   const per = item.unitPrice / (n + 1);
@@ -1423,7 +1423,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
   // la cucina non sa per quando preparare e il cliente non sa quando passare.
   // Le fasce sono le stesse del gestionale per gli ordini al banco: quarti
   // d'ora da adesso in poi.
-  const [ritiro, setRitiro] = useState('');
+  const [ritiro, setRitiro] = useStateMenu('');
   const fasce = React.useMemo(() => asportoFasce(), [takeaway]);
   const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
   // applica la divisione a tutte le porzioni della riga
@@ -1771,7 +1771,7 @@ function OrderRecoverySheet({ order, onClose }) {
   const android = platform === 'android';
   // Un codice solo (P-154): quello di ritiro, che è anche quello del recupero.
   const raw = order?.codiceRitiro || order?.code || '';
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useStateMenu(false);
   const copyCode = async () => {
     try { await navigator.clipboard.writeText(raw); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch {}
   };
@@ -1885,10 +1885,10 @@ function OrderRecoverySheet({ order, onClose }) {
 // l'app recupera l'ordine. La proposta ha una scadenza — ritiro più la
 // tolleranza — e quando passa la home lo dice e chiude il bivio.
 function TakeawayHome({ order, goTo, onRecover }) {
-  const [cassaOpen, setCassaOpen] = useState(false);
+  const [cassaOpen, setCassaOpen] = useStateMenu(false);
   const totale = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
-  const [, setTick] = useState(0);
-  useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(id); }, []);
+  const [, setTick] = useStateMenu(0);
+  useEffectMenu(() => { const id = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(id); }, []);
   const scade = order.scade ? new Date(order.scade) : null;
   const scaduto = !!scade && Date.now() > scade.getTime();
   const hhmm = (d) => d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
@@ -2001,9 +2001,9 @@ function TakeawayHome({ order, goTo, onRecover }) {
 // ─── HOME with active order card ───────────────────────────
 function HomeScreen({ state, setState, goTo }) {
   const order = state.activeOrder;
-  const [orderExpanded, setOrderExpanded] = useState(false);
-  const [guestsOpen, setGuestsOpen] = useState(false);
-  const [recoverOpen, setRecoverOpen] = useState(false); // sheet recupero ordine (codice + store)
+  const [orderExpanded, setOrderExpanded] = useStateMenu(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
+  const [recoverOpen, setRecoverOpen] = useStateMenu(false); // sheet recupero ordine (codice + store)
   const covers = order?.covers || (order?.guests?.length || 1);
   const loggedIn = (order?.guests || []).filter(g => g.isApp || g.isWebApp).length;
 
@@ -2061,8 +2061,8 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
   // La finestra notturna (P-148): dentro, «Paga ora» aspetta mezzanotte
   // italiana come in cassa e nell'app; il conto alla rovescia batte ogni secondo.
   const notte = window.byupNotteInfo ? window.byupNotteInfo() : { dentro: false, mancano: 0 };
-  const [, setNotteTick] = useState(0);
-  useEffect(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
+  const [, setNotteTick] = useStateMenu(0);
+  useEffectMenu(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const fmtTime = (d) => {
     if (!d) return '';
     const dd = new Date(d);
@@ -2210,7 +2210,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                 flex: 1.2, height: 42, borderRadius: 999, border: 'none',
                 background: '#fff', color: accentDark,
                 fontSize: 14, fontWeight: 700,
-                fontFamily: 'inherit', cursor: 'pointer',
+                fontFamily: 'inherit',
               }}>Paga ora</button>
             </div>
           </>
@@ -2238,7 +2238,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                 flex: 1, height: 38, borderRadius: 999, border: 'none',
                 background: '#fff', color: accentDark,
                 fontSize: 13.5, fontWeight: 700,
-                fontFamily: 'inherit', cursor: 'pointer',
+                fontFamily: 'inherit',
               }}>Paga ora</button>
             </div>
           </>
@@ -2287,7 +2287,7 @@ const removeGuestFromOrder = (setState, id) => setState(s => {
 
 function GuestsSheet({ order, loggedIn, covers, onClose, onAddGuest, onRemoveGuest }) {
   const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
-  const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
+  const [shareState, setShareState] = useStateMenu('idle'); // 'idle' | 'copied'
   const guests = order?.guests || [];
   const appCount = guests.filter(g => g.isApp).length;
   const webappCount = guests.filter(g => g.isWebApp).length;
@@ -2491,12 +2491,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   // In modifica il counter NON cambia la quantità della riga: sceglie a quante
   // unità (1..maxApply) applicare la personalizzazione. maxApply = qty della riga.
   const maxApply = editing ? editing.qty : Infinity;
-  const [expanded, setExpanded] = useState(false);
-  const [extras, setExtras] = useState(() => ({ ...(editing?.extras || {}) }));
-  const [removed, setRemoved] = useState(() => ({ ...(editing?.removed || {}) })); // ingredient -> true
-  const [variants, setVariants] = useState(() => ({ ...(editing?.variants || {}) }));
-  const [nutriOpen, setNutriOpen] = useState(true);
-  const [qty, setQty] = useState(() => editing?.qty || 1);
+  const [expanded, setExpanded] = useStateMenu(false);
+  const [extras, setExtras] = useStateMenu(() => ({ ...(editing?.extras || {}) }));
+  const [removed, setRemoved] = useStateMenu(() => ({ ...(editing?.removed || {}) })); // ingredient -> true
+  const [variants, setVariants] = useStateMenu(() => ({ ...(editing?.variants || {}) }));
+  const [nutriOpen, setNutriOpen] = useStateMenu(true);
+  const [qty, setQty] = useStateMenu(() => editing?.qty || 1);
 
   if (!dish) {
     return <div style={{ padding: 80, textAlign: 'center', color: MUTED }}>Piatto non trovato.</div>;
@@ -3246,7 +3246,7 @@ function Root() {
   const modo = ingressoModo();
   const takeaway = modo === 'asporto';
 
-  const [state, setState] = useState({
+  const [state, setState] = useStateMenu({
     cart: [],
     splits: {},
     activeOrder: {
@@ -3291,7 +3291,7 @@ function Root() {
     },
     participants: null,
   });
-  const [route, setRoute] = useState(() => {
+  const [route, setRoute] = useStateMenu(() => {
     const valid = ['menu','venue','home'];
     try {
       const h = (window.location.hash || '').replace('#','');
@@ -3305,7 +3305,7 @@ function Root() {
   // no-op (il mock non emette), ma è il punto in cui il backend pusherà gli update
   // condivisi — piatti/claim/divisioni degli altri ospiti e saldo che scende per
   // pagamenti da app/cassa. Vedi specifica dei flussi 5.9 e 11.6.
-  useEffect(() => {
+  useEffectMenu(() => {
     const sid = state.activeOrder && state.activeOrder.id;
     if (!window.ByupAPI || takeaway || !sid) return;
     return window.ByupAPI.subscribe(sid, (session) => {

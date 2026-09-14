@@ -1,7 +1,7 @@
 // byup — Vetrina del locale (ripristinata dall'originale byup-App/extras.jsx)
 // VenueOriginal + helper, esposta come window.VenueScreen. Usata dalla web app
 // (menu.jsx): header del menu -> vetrina; back -> menu; Prenota -> popup app.
-const { useState, useEffect, useRef } = React;
+const { useState: useStateVenue, useEffect: useEffectVenue, useRef: useRefVenue } = React;
 
 const PINK_X = '#E32459';
 const TEXT_X = '#1F1A1B';
@@ -24,8 +24,8 @@ function byupStelle(media) {
 }
 
 function VenueMapThumbnail({ lat, lng }) {
-  const divRef = useRef(null);
-  useEffect(() => {
+  const divRef = useRefVenue(null);
+  useEffectVenue(() => {
     if (!window.L || !divRef.current) return;
     const map = window.L.map(divRef.current, {
       center: [lat, lng], zoom: 15,
@@ -60,32 +60,32 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
     'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=70&auto=format&fit=crop',
   ];
-  const [faqOpen, setFaqOpen] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [moreClosing, setMoreClosing] = useState(false);
+  const [faqOpen, setFaqOpen] = useStateVenue(0);
+  const [moreOpen, setMoreOpen] = useStateVenue(false);
+  const [moreClosing, setMoreClosing] = useStateVenue(false);
   function closeMore() { setMoreClosing(true); }
   function onMoreAnimEnd() { if (moreClosing) { setMoreOpen(false); setMoreClosing(false); } }
-  const [bioExpanded, setBioExpanded] = useState(false);
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [heroExpanded, setHeroExpanded] = useState(false);
+  const [bioExpanded, setBioExpanded] = useStateVenue(false);
+  const [photoIdx, setPhotoIdx] = useStateVenue(0);
+  const [heroExpanded, setHeroExpanded] = useStateVenue(false);
   const HERO_SHORT = 220;
   const HERO_TALL  = 370;
-  const dragStart = useRef(null);
-  const autoTimer = useRef(null);
-  const scrollRef = useRef(null);
-  const lastScrollY = useRef(0);
+  const dragStart = useRefVenue(null);
+  const autoTimer = useRefVenue(null);
+  const scrollRef = useRefVenue(null);
+  const lastScrollY = useRefVenue(0);
 
   const resetAutoTimer = () => {
     if (autoTimer.current) clearInterval(autoTimer.current);
     autoTimer.current = setInterval(() => setPhotoIdx(i => (i + 1) % photos.length), 8000);
   };
 
-  useEffect(() => {
+  useEffectVenue(() => {
     resetAutoTimer();
     return () => { if (autoTimer.current) clearInterval(autoTimer.current); };
   }, []);
 
-  useEffect(() => {
+  useEffectVenue(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
@@ -121,9 +121,9 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
       resetAutoTimer();
     }
   };
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState(null);
-  const [reportSent, setReportSent] = useState(false);
+  const [reportOpen, setReportOpen] = useStateVenue(false);
+  const [reportReason, setReportReason] = useStateVenue(null);
+  const [reportSent, setReportSent] = useStateVenue(false);
   const faqs = [
     { q: 'Siete aperti il sabato?', a: 'Sì, dalle 12:00 alle 23:00 con orario continuato.' },
     { q: 'Avete opzioni vegane?', a: 'Certo, almeno 5 piatti vegani sono sempre disponibili.' },
@@ -625,7 +625,7 @@ function Section({ title, children }) {
   );
 }
 function PromoTag({ children, info }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useStateVenue(false);
   return (
     <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
       <span onClick={() => setOpen(o => !o)} style={{

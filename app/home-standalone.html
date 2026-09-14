@@ -2750,9 +2750,9 @@ Object.assign(window, {
 /* global React, ReactDOM */
 // extras.jsx — Profile, Venue, Booking sheet, fancy food icons
 const {
-  useState,
-  useEffect,
-  useRef
+  useState: useStateE,
+  useEffect: useEffectE,
+  useRef: useRefE
 } = React;
 
 // ─── Chiusure straordinarie del locale (P-46 · D-34) ───────────────────────
@@ -3025,7 +3025,7 @@ function AllergensView({
   // granted, spegnerlo revoked; a interruttore spento il motore del menù non
   // legge dieta né allergeni. Il filtro del menù (P-65, P-74) non c'entra: è
   // la persona che filtra, non il motore che suggerisce.
-  const [dietSugg, setDietSugg] = useState(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
+  const [dietSugg, setDietSugg] = useStateE(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
   const cambiaDietSugg = v => {
     ByupConsensi.set('dietary_suggestions', !!v);
     setDietSugg(!!v);
@@ -3040,13 +3040,13 @@ function AllergensView({
   // (Il flusso era stato travolto dal rewrite «Beta v2» del 2026-08-12:
   // ripristinato il 2026-08-17 — i toggle scrivevano un dato art. 9 senza
   // chiedere niente.)
-  const [consensoOk, setConsensoOk] = useState(() => {
+  const [consensoOk, setConsensoOk] = useStateE(() => {
     const st = ByupConsensi.stato('dietary_preferences');
     return !!(st && st.ok);
   });
-  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
-  const [chkA3, setChkA3] = useState(false);
-  const [chkA18, setChkA18] = useState(false);
+  const [pending, setPending] = useStateE(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useStateE(false);
+  const [chkA18, setChkA18] = useStateE(false);
   const applica = (group, id) => setPrefs(p => ({
     ...p,
     [group]: {
@@ -3556,7 +3556,7 @@ function OrdersView({
   // initialOpenId: id ordine da aprire all'arrivo (deep-link da "Vedi scontrino").
   // 'recent' → apre il più recente (primo della lista).
   const resolvedOpen = initialOpenId === 'recent' ? PROFILE_ORDERS[0]?.id || null : PROFILE_ORDERS.some(o => o.id === initialOpenId) ? initialOpenId : null;
-  const [openId, setOpenId] = useState(resolvedOpen);
+  const [openId, setOpenId] = useStateE(resolvedOpen);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       animation: 'fade 0.2s ease'
@@ -3812,12 +3812,12 @@ function PagamentiView({
     expiry: null,
     preferred: false
   }];
-  const [cards, setCards] = useState(INITIAL);
-  const [addOpen, setAddOpen] = useState(startAdd);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [newNum, setNewNum] = useState('');
-  const [newExp, setNewExp] = useState('');
-  const [newCvv, setNewCvv] = useState('');
+  const [cards, setCards] = useStateE(INITIAL);
+  const [addOpen, setAddOpen] = useStateE(startAdd);
+  const [confirmDelete, setConfirmDelete] = useStateE(null);
+  const [newNum, setNewNum] = useStateE('');
+  const [newExp, setNewExp] = useStateE('');
+  const [newCvv, setNewCvv] = useStateE('');
   const preferred = cards.find(c => c.preferred);
   const others = cards.filter(c => !c.preferred);
   function setPreferred(id) {
@@ -4372,10 +4372,10 @@ function PreferitivView({
   items: itemsProp,
   onItems
 }) {
-  const [itemsSelf, setItemsSelf] = useState(PROFILE_PREFERITI);
+  const [itemsSelf, setItemsSelf] = useStateE(PROFILE_PREFERITI);
   const items = itemsProp || itemsSelf;
   const setItems = onItems || setItemsSelf;
-  const [gusti, setGusti] = useState(() => window.ByupGusti ? window.ByupGusti.leggi() : []);
+  const [gusti, setGusti] = useStateE(() => window.ByupGusti ? window.ByupGusti.leggi() : []);
   const commuta = id => setGusti(window.ByupGusti.commuta(id));
   function remove(id) {
     setItems(prev => prev.filter(v => v.id !== id));
@@ -4592,10 +4592,10 @@ function PreferitivView({
 function SegnalaView({
   onBack
 }) {
-  const [stars, setStars] = useState(0);
-  const [hovered, setHovered] = useState(0);
-  const [testo, setTesto] = useState('');
-  const [sent, setSent] = useState(false);
+  const [stars, setStars] = useStateE(0);
+  const [hovered, setHovered] = useStateE(0);
+  const [testo, setTesto] = useStateE('');
+  const [sent, setSent] = useStateE(false);
   function invia() {
     if (!stars && !testo.trim()) return;
     setSent(true);
@@ -4899,15 +4899,15 @@ function MieiDatiView({
     genere: pro.genere || null,
     nascita: pro.nascita || '1990-04-15'
   };
-  const [nome, setNome] = useState(salvato.nome);
-  const [cognome, setCognome] = useState(salvato.cognome);
+  const [nome, setNome] = useStateE(salvato.nome);
+  const [cognome, setCognome] = useStateE(salvato.cognome);
   // Il genere NON è preselezionato (P-84): un valore già scelto in un campo
   // facoltativo è un consenso presunto. Parte vuoto; «Preferisco non
   // specificare» resta, e svuota.
-  const [genere, setGenere] = useState(salvato.genere);
-  const [nascita, setNascita] = useState(salvato.nascita);
-  const [saved, setSaved] = useState(false);
-  const [conferma, setConferma] = useState(false);
+  const [genere, setGenere] = useStateE(salvato.genere);
+  const [nascita, setNascita] = useStateE(salvato.nascita);
+  const [saved, setSaved] = useStateE(false);
+  const [conferma, setConferma] = useStateE(false);
 
   // Il rifiuto sotto i quattordici anni, con la frase della registrazione:
   // la data non si salva e il pulsante resta spento.
@@ -5320,8 +5320,8 @@ const CONSENSI_DEF = [
 function SuggerimentiCard({
   inCassetto
 }) {
-  const [, forza] = useState(0);
-  const [conferma, setConferma] = useState(false);
+  const [, forza] = useStateE(0);
+  const [conferma, setConferma] = useStateE(false);
   const attivo = ByupUso.suggerimenti();
   const eventi = ByupUso.eventi();
   const ultimo = eventi.length ? new Date(eventi[eventi.length - 1].quando) : null;
@@ -5485,8 +5485,8 @@ function ConsensiPanel({
 }) {
   // Chiuso di default: i consensi sono un cassetto, non la prima cosa da
   // leggere ogni volta. La testata riassume (quanti attivi) e apre.
-  const [aperto, setAperto] = useState(false);
-  const [, forza] = useState(0);
+  const [aperto, setAperto] = useStateE(false);
+  const [, forza] = useStateE(0);
   const sep = {
     borderBottom: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`
   };
@@ -5768,8 +5768,8 @@ function AccountFormView({
   successMsg,
   onBack
 }) {
-  const [values, setValues] = useState(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
-  const [done, setDone] = useState(false);
+  const [values, setValues] = useStateE(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
+  const [done, setDone] = useStateE(false);
   function submit() {
     const filled = fields.every((f, i) => f.readOnly || values[i]?.trim());
     if (!filled) return;
@@ -6030,10 +6030,10 @@ function ProfileScreen({
   const initialAddCard = params.get('add') === '1';
   // I locali preferiti, vivi (P-143): il conteggio in alto e quello sulla
   // tessera leggono da qui, non dalla costante di partenza.
-  const [preferiti, setPreferiti] = useState(PROFILE_PREFERITI);
-  const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
-  const [avatarSheet, setAvatarSheet] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
+  const [preferiti, setPreferiti] = useStateE(PROFILE_PREFERITI);
+  const [view, setView] = useStateE(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
+  const [avatarSheet, setAvatarSheet] = useStateE(false);
+  const [avatarUrl, setAvatarUrl] = useStateE(PROFILE_AVATARS[0]);
   const nextAvatar = () => {
     const i = PROFILE_AVATARS.indexOf(avatarUrl);
     setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
@@ -6041,7 +6041,7 @@ function ProfileScreen({
   };
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
-  useEffect(() => {
+  useEffectE(() => {
     if (params.get('view') || params.get('order') || params.get('add')) {
       try {
         const p = new URLSearchParams(window.location.search);
@@ -6053,15 +6053,15 @@ function ProfileScreen({
       } catch {}
     }
   }, []);
-  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useStateE(false);
+  const [confirmLogout, setConfirmLogout] = useStateE(false);
   const logout = () => {
     try {
       localStorage.removeItem('byup_auth');
     } catch {}
     window.location.href = 'byup Home.html?auth=login';
   };
-  const [lang, setLang] = useState('it');
+  const [lang, setLang] = useStateE('it');
   const themeMode = (() => {
     try {
       return localStorage.getItem('byup.themeMode') || 'light';
@@ -6106,7 +6106,7 @@ function ProfileScreen({
     label: 'Deutsch'
   }];
   const currentLang = LANGS.find(l => l.code === lang) || LANGS[0];
-  const [allergenPrefs, setAllergenPrefs] = useState(() => {
+  const [allergenPrefs, setAllergenPrefs] = useStateE(() => {
     // Senza consenso A3 niente dato: se il registro non ha un sì, le spunte
     // salvate si azzerano al caricamento — comprese quelle nate nel periodo
     // in cui la Beta v2 aveva perso il flusso consensi e i toggle scrivevano
@@ -6137,7 +6137,7 @@ function ProfileScreen({
       };
     }
   });
-  useEffect(() => {
+  useEffectE(() => {
     try {
       localStorage.setItem('byup_allergens', JSON.stringify(allergenPrefs));
     } catch {}
@@ -7442,23 +7442,23 @@ function BookingSheet({
   // Redesign UX: una sola schermata, tre scelte visive (quando · ora · quanti),
   // dati personali già compilati e ripiegati, riepilogo sempre visibile nel footer.
   const isEdit = !!editBooking;
-  const [step, setStep] = useState(0); // 0 form, 1 success
-  const [date, setDate] = useState('Oggi');
-  const [time, setTime] = useState(defaultTime || '20:30');
-  const [people, setPeople] = useState(2);
-  const [name, setName] = useState('Mario Rossi');
-  const [phone, setPhone] = useState('+39 333 1234567');
-  const [note, setNote] = useState('');
+  const [step, setStep] = useStateE(0); // 0 form, 1 success
+  const [date, setDate] = useStateE('Oggi');
+  const [time, setTime] = useStateE(defaultTime || '20:30');
+  const [people, setPeople] = useStateE(2);
+  const [name, setName] = useStateE('Mario Rossi');
+  const [phone, setPhone] = useStateE('+39 333 1234567');
+  const [note, setNote] = useStateE('');
   // Gli allergeni del tavolo sono un DATO, non una frase in fondo a una nota
   // (P-188 · reservation_allergens): quattordici chip, gli stessi del
   // gestionale, e chi ha già dichiarato le sue allergie nel profilo se li
   // trova scelti — con la libertà di toglierli, perché stasera si prenota
   // magari per qualcun altro. Viaggiano coi CODICI del modello, non con le
   // etichette che si leggono a schermo.
-  const [allergeni, setAllergeni] = useState([]);
-  const [occasioni, setOccasioni] = useState([]);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [prefilled, setPrefilled] = useState(false);
+  const [allergeni, setAllergeni] = useStateE([]);
+  const [occasioni, setOccasioni] = useStateE([]);
+  const [detailsOpen, setDetailsOpen] = useStateE(false);
+  const [prefilled, setPrefilled] = useStateE(false);
   const ALLERG_APP = window.ByupKit && window.ByupKit.ALLERGENI || [];
   // Le occasioni sono quelle che il gestionale già conosce: se ne aggiungo
   // una qui, la sala non saprebbe che cosa farsene.
@@ -7479,7 +7479,7 @@ function BookingSheet({
     label: 'Altro'
   }];
   const togglaIn = (set, id) => set(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
-  useEffect(() => {
+  useEffectE(() => {
     if (open) {
       setStep(0);
       setDetailsOpen(false);
@@ -7510,7 +7510,7 @@ function BookingSheet({
   // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
   // si passa al primo aperto (P-46).
   const giorni = appGiorniPrenotabili();
-  useEffect(() => {
+  useEffectE(() => {
     if (!open) return;
     const g = giorni.find(x => x.label === date);
     if (g && g.chiusura) {
@@ -8140,8 +8140,8 @@ function VenueMapThumbnail({
   lat,
   lng
 }) {
-  const divRef = useRef(null);
-  useEffect(() => {
+  const divRef = useRefE(null);
+  useEffectE(() => {
     if (!window.L || !divRef.current) return;
     const map = window.L.map(divRef.current, {
       center: [lat, lng],
@@ -8184,12 +8184,12 @@ function ReelStack({
   items
 }) {
   const n = items.length;
-  const [cur, setCur] = useState(0);
-  const [dx, setDx] = useState(0);
-  const stoppedRef = useRef(false);
-  const dragRef = useRef(null);
-  const movedRef = useRef(false);
-  useEffect(() => {
+  const [cur, setCur] = useStateE(0);
+  const [dx, setDx] = useStateE(0);
+  const stoppedRef = useRefE(false);
+  const dragRef = useRefE(null);
+  const movedRef = useRefE(false);
+  useEffectE(() => {
     const t = setInterval(() => {
       if (stoppedRef.current || dragRef.current) return;
       setCur(c => (c + 1) % n);
@@ -8294,9 +8294,9 @@ function VenueOriginal({
   const v = venue || {};
   const photos = v.photos || ['https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=70&auto=format&fit=crop'];
   const dishes = v.dishes || ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop', 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=70&auto=format&fit=crop'];
-  const [faqOpen, setFaqOpen] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [moreClosing, setMoreClosing] = useState(false);
+  const [faqOpen, setFaqOpen] = useStateE(0);
+  const [moreOpen, setMoreOpen] = useStateE(false);
+  const [moreClosing, setMoreClosing] = useStateE(false);
   function closeMore() {
     setMoreClosing(true);
   }
@@ -8306,27 +8306,27 @@ function VenueOriginal({
       setMoreClosing(false);
     }
   }
-  const [saved, setSaved] = useState(false);
-  const [bioExpanded, setBioExpanded] = useState(false);
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [heroExpanded, setHeroExpanded] = useState(false);
+  const [saved, setSaved] = useStateE(false);
+  const [bioExpanded, setBioExpanded] = useStateE(false);
+  const [photoIdx, setPhotoIdx] = useStateE(0);
+  const [heroExpanded, setHeroExpanded] = useStateE(false);
   const HERO_SHORT = 220;
   const HERO_TALL = 370;
-  const dragStart = useRef(null);
-  const autoTimer = useRef(null);
-  const scrollRef = useRef(null);
-  const lastScrollY = useRef(0);
+  const dragStart = useRefE(null);
+  const autoTimer = useRefE(null);
+  const scrollRef = useRefE(null);
+  const lastScrollY = useRefE(0);
   const resetAutoTimer = () => {
     if (autoTimer.current) clearInterval(autoTimer.current);
     autoTimer.current = setInterval(() => setPhotoIdx(i => (i + 1) % photos.length), 8000);
   };
-  useEffect(() => {
+  useEffectE(() => {
     resetAutoTimer();
     return () => {
       if (autoTimer.current) clearInterval(autoTimer.current);
     };
   }, []);
-  useEffect(() => {
+  useEffectE(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
@@ -8367,10 +8367,10 @@ function VenueOriginal({
       resetAutoTimer();
     }
   };
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reviewsOpen, setReviewsOpen] = useState(false);
-  const [reportReason, setReportReason] = useState(null);
-  const [reportSent, setReportSent] = useState(false);
+  const [reportOpen, setReportOpen] = useStateE(false);
+  const [reviewsOpen, setReviewsOpen] = useStateE(false);
+  const [reportReason, setReportReason] = useStateE(null);
+  const [reportSent, setReportSent] = useStateE(false);
   const faqs = [{
     q: 'Siete aperti il sabato?',
     a: 'Sì, dalle 12:00 alle 23:00 con orario continuato.'
@@ -9689,7 +9689,7 @@ function PromoTag({
   children,
   info
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useStateE(false);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'inline-flex',
@@ -11329,11 +11329,11 @@ window.VenuePremium = VenuePremium;
 (function(){
 // map.jsx — Leaflet real map (CartoDB Positron tiles, Google-like)
 // When Google Maps key is ready: swap LeafletMap init for google.maps.Map
-const PINK = '#E32459';
-const PINK_DARK = '#B81C47';
+const PINK_MAP = '#E32459';
+const PINK_DARK_MAP = '#B81C47';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
-const __BYUP_DARK = (() => {
+const __BYUP_DARK_MAP = (() => {
   try {
     const x = localStorage.getItem('byup.themeMode') || 'light';
     if (x === 'dark') return true;
@@ -11343,12 +11343,12 @@ const __BYUP_DARK = (() => {
     return false;
   }
 })();
-const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
-const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
-const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
-const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
-const SURF = __BYUP_DARK ? '#211f22' : '#fff';
-const TINT = __BYUP_DARK ? '#2b272c' : '#f6f6f6';
+const TEXT_MAP = __BYUP_DARK_MAP ? '#f6ece9' : '#1c0f15';
+const MUTED_MAP = __BYUP_DARK_MAP ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER_MAP = __BYUP_DARK_MAP ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_PAGE_MAP = __BYUP_DARK_MAP ? '#161514' : '#FBF4F1';
+const SURF_MAP = __BYUP_DARK_MAP ? '#211f22' : '#fff';
+const TINT_MAP = __BYUP_DARK_MAP ? '#2b272c' : '#f6f6f6';
 const CATEGORIES = [{
   id: 'all',
   label: 'Tutti'
@@ -11391,7 +11391,7 @@ const VENUES_BY_CITY = {
     distance: '1.6 km',
     lat: 41.9065,
     lng: 12.4642,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11405,7 +11405,7 @@ const VENUES_BY_CITY = {
     distance: '1.8 km',
     lat: 41.9078,
     lng: 12.4608,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11419,7 +11419,7 @@ const VENUES_BY_CITY = {
     distance: '2.0 km',
     lat: 41.9058,
     lng: 12.4588,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '11:00 – 22:00',
     cuisine: 'Pizza',
@@ -11435,7 +11435,7 @@ const VENUES_BY_CITY = {
     distance: '0.8 km',
     lat: 41.8960,
     lng: 12.4718,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '19:00 – 24:00',
     cuisine: 'Italiana',
@@ -11449,7 +11449,7 @@ const VENUES_BY_CITY = {
     distance: '1.3 km',
     lat: 41.8892,
     lng: 12.4678,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:00',
     cuisine: 'Italiana',
@@ -11463,7 +11463,7 @@ const VENUES_BY_CITY = {
     distance: '1.2 km',
     lat: 41.8935,
     lng: 12.4785,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 22:30',
     cuisine: 'Italiana',
@@ -11549,7 +11549,7 @@ const VENUES_BY_CITY = {
     distance: '2.4 km',
     lat: 41.8768,
     lng: 12.4778,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '19:00 – 24:00',
     cuisine: 'Pizza',
@@ -11563,7 +11563,7 @@ const VENUES_BY_CITY = {
     distance: '2.6 km',
     lat: 41.8752,
     lng: 12.4795,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11593,7 +11593,7 @@ const VENUES_BY_CITY = {
     distance: '0.6 km',
     lat: 41.8948,
     lng: 12.4725,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 24:00',
     cuisine: 'Italiana',
@@ -11607,7 +11607,7 @@ const VENUES_BY_CITY = {
     distance: '0.5 km',
     lat: 41.8958,
     lng: 12.4718,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:30',
     cuisine: 'Pizza',
@@ -11651,7 +11651,7 @@ const VENUES_BY_CITY = {
     distance: '2.1 km',
     lat: 41.8904,
     lng: 12.4918,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:00',
     cuisine: 'Italiana',
@@ -11665,7 +11665,7 @@ const VENUES_BY_CITY = {
     distance: '1.6 km',
     lat: 41.8892,
     lng: 12.4942,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '19:30 – 24:00',
     cuisine: 'Pizza',
@@ -11695,7 +11695,7 @@ const VENUES_BY_CITY = {
     distance: '3.0 km',
     lat: 41.8968,
     lng: 12.5145,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11739,7 +11739,7 @@ const VENUES_BY_CITY = {
     distance: '3.2 km',
     lat: 41.9215,
     lng: 12.5048,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:30',
     cuisine: 'Pizza',
@@ -11769,7 +11769,7 @@ const VENUES_BY_CITY = {
     distance: '1.9 km',
     lat: 41.9172,
     lng: 12.4768,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:00',
     cuisine: 'Italiana',
@@ -11829,7 +11829,7 @@ const VENUES_BY_CITY = {
     distance: '3.2 km',
     lat: 41.9155,
     lng: 12.4960,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '19:00 – 24:00',
     cuisine: 'Pizza',
@@ -11845,7 +11845,7 @@ const VENUES_BY_CITY = {
     distance: '4.7 km',
     lat: 41.8578,
     lng: 12.4858,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11891,7 +11891,7 @@ const VENUES_BY_CITY = {
     distance: '4.0 km',
     lat: 41.8722,
     lng: 12.4438,
-    color: PINK,
+    color: PINK_MAP,
     open: false,
     hours: 'Apre alle 19:00',
     cuisine: 'Italiana',
@@ -11907,7 +11907,7 @@ const VENUES_BY_CITY = {
     distance: '7.6 km',
     lat: 41.8328,
     lng: 12.4672,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:30',
     cuisine: 'Italiana',
@@ -11922,7 +11922,7 @@ const VENUES_BY_CITY = {
     distance: '0.8 km',
     lat: 45.4845,
     lng: 9.1958,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -11992,7 +11992,7 @@ const VENUES_BY_CITY = {
     distance: '0.5 km',
     lat: 45.4638,
     lng: 9.1918,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:30',
     cuisine: 'Pizza',
@@ -12020,7 +12020,7 @@ const VENUES_BY_CITY = {
     distance: '1.8 km',
     lat: 45.4658,
     lng: 9.1818,
-    color: PINK,
+    color: PINK_MAP,
     open: false,
     hours: 'Apre alle 19:00',
     cuisine: 'Italiana',
@@ -12035,7 +12035,7 @@ const VENUES_BY_CITY = {
     distance: '0.5 km',
     lat: 43.7715,
     lng: 11.2498,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -12049,7 +12049,7 @@ const VENUES_BY_CITY = {
     distance: '0.3 km',
     lat: 43.7698,
     lng: 11.2558,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '10:30 – 21:00',
     cuisine: 'Italiana',
@@ -12105,7 +12105,7 @@ const VENUES_BY_CITY = {
     distance: '0.2 km',
     lat: 43.7705,
     lng: 11.2528,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 22:30',
     cuisine: 'Italiana',
@@ -12119,7 +12119,7 @@ const VENUES_BY_CITY = {
     distance: '0.7 km',
     lat: 43.7672,
     lng: 11.2572,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '10:00 – 23:00',
     cuisine: 'Italiana',
@@ -12148,7 +12148,7 @@ const VENUES_BY_CITY = {
     distance: '0.4 km',
     lat: 45.4352,
     lng: 12.3518,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 22:00',
     cuisine: 'Italiana',
@@ -12162,7 +12162,7 @@ const VENUES_BY_CITY = {
     distance: '0.6 km',
     lat: 45.4345,
     lng: 12.3528,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:45 – 22:30',
     cuisine: 'Italiana',
@@ -12218,7 +12218,7 @@ const VENUES_BY_CITY = {
     distance: '1.0 km',
     lat: 45.4398,
     lng: 12.3318,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 22:00',
     cuisine: 'Italiana',
@@ -12233,7 +12233,7 @@ const VENUES_BY_CITY = {
     distance: '0.3 km',
     lat: 40.8518,
     lng: 14.2528,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:30',
     cuisine: 'Pizza',
@@ -12247,7 +12247,7 @@ const VENUES_BY_CITY = {
     distance: '0.5 km',
     lat: 40.8505,
     lng: 14.2555,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '11:00 – 23:00',
     cuisine: 'Pizza',
@@ -12261,7 +12261,7 @@ const VENUES_BY_CITY = {
     distance: '2.2 km',
     lat: 40.8322,
     lng: 14.2278,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -12317,7 +12317,7 @@ const VENUES_BY_CITY = {
     distance: '1.8 km',
     lat: 40.8558,
     lng: 14.2468,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:30',
     cuisine: 'Pizza',
@@ -12332,7 +12332,7 @@ const VENUES_BY_CITY = {
     distance: '0.4 km',
     lat: 38.1148,
     lng: 13.3618,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:30 – 23:00',
     cuisine: 'Italiana',
@@ -12346,7 +12346,7 @@ const VENUES_BY_CITY = {
     distance: '0.6 km',
     lat: 38.1135,
     lng: 13.3638,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '19:00 – 24:00',
     cuisine: 'Pizza',
@@ -12360,7 +12360,7 @@ const VENUES_BY_CITY = {
     distance: '12.0 km',
     lat: 38.2138,
     lng: 13.3268,
-    color: PINK,
+    color: PINK_MAP,
     open: true,
     hours: '12:00 – 23:00',
     cuisine: 'Italiana',
@@ -12451,7 +12451,7 @@ function createClusterIcon(cluster) {
     className: '',
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
-      background:${PINK};color:#fff;
+      background:${PINK_MAP};color:#fff;
       border:3px solid #fff;
       box-shadow:0 4px 16px rgba(227,36,89,0.45),0 1px 4px rgba(0,0,0,0.18);
       display:flex;align-items:center;justify-content:center;
@@ -12645,7 +12645,7 @@ function VenueCardsTray({
       flexShrink: 0,
       width: 165,
       padding: 0,
-      background: SURF,
+      background: SURF_MAP,
       border: 'none',
       borderRadius: 18,
       cursor: 'pointer',
@@ -12712,7 +12712,7 @@ function VenueCardsTray({
     style: {
       fontSize: 13.5,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MAP,
       letterSpacing: -0.2,
       whiteSpace: 'nowrap',
       overflow: 'hidden',
@@ -12722,7 +12722,7 @@ function VenueCardsTray({
     style: {
       marginTop: 2,
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MAP,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center'
@@ -12737,7 +12737,7 @@ function VenueCardsTray({
     style: {
       flexShrink: 0,
       marginLeft: 6,
-      color: TEXT,
+      color: TEXT_MAP,
       fontWeight: 600
     }
   }, mapDistanze() ? v.distance : mapCitta())))))));
@@ -12775,7 +12775,7 @@ function MapScreen({
     style: {
       position: 'absolute',
       inset: 0,
-      background: BG_PAGE,
+      background: BG_PAGE_MAP,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column'
@@ -12838,7 +12838,7 @@ function MapScreen({
       height: 42,
       borderRadius: 12,
       border: '1.5px solid #ebebeb',
-      background: TINT,
+      background: TINT_MAP,
       display: 'flex',
       alignItems: 'center',
       gap: 8,
@@ -12869,7 +12869,7 @@ function MapScreen({
       border: 'none',
       outline: 'none',
       fontSize: 14,
-      color: TEXT,
+      color: TEXT_MAP,
       background: 'transparent',
       minWidth: 0
     }
@@ -12879,8 +12879,8 @@ function MapScreen({
       width: 42,
       height: 42,
       borderRadius: 12,
-      border: `1.5px solid ${BORDER}`,
-      background: TINT,
+      border: `1.5px solid ${BORDER_MAP}`,
+      background: TINT_MAP,
       cursor: 'pointer',
       flexShrink: 0,
       display: 'flex',
@@ -12895,7 +12895,7 @@ function MapScreen({
     fill: "none"
   }, /*#__PURE__*/React.createElement("path", {
     d: "M3 6h18M6 12h12M9 18h6",
-    stroke: TEXT,
+    stroke: TEXT_MAP,
     strokeWidth: "2",
     strokeLinecap: "round"
   })), activeFilterCount > 0 && /*#__PURE__*/React.createElement("span", {
@@ -12905,7 +12905,7 @@ function MapScreen({
       right: -3,
       width: 17,
       height: 17,
-      background: PINK,
+      background: PINK_MAP,
       color: '#fff',
       borderRadius: 999,
       fontSize: 9,
@@ -12935,9 +12935,9 @@ function MapScreen({
         flexShrink: 0,
         padding: '6px 14px',
         borderRadius: 999,
-        border: `1.5px solid ${on ? PINK : BORDER}`,
-        background: on ? PINK : SURF,
-        color: on ? '#fff' : TEXT,
+        border: `1.5px solid ${on ? PINK_MAP : BORDER_MAP}`,
+        background: on ? PINK_MAP : SURF_MAP,
+        color: on ? '#fff' : TEXT_MAP,
         fontSize: 12.5,
         fontWeight: 600,
         cursor: 'pointer',
@@ -12987,7 +12987,7 @@ function MapScreen({
       width: 42,
       height: 42,
       borderRadius: 12,
-      background: SURF,
+      background: SURF_MAP,
       border: 'none',
       boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
       display: 'flex',
@@ -13004,23 +13004,23 @@ function MapScreen({
     cx: "12",
     cy: "12",
     r: "3.5",
-    fill: PINK
+    fill: PINK_MAP
   }), /*#__PURE__*/React.createElement("path", {
     d: "M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22",
-    stroke: PINK,
+    stroke: PINK_MAP,
     strokeWidth: "2",
     strokeLinecap: "round"
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "12",
     cy: "12",
     r: "7.5",
-    stroke: PINK,
+    stroke: PINK_MAP,
     strokeWidth: "1.5",
     fill: "none",
     opacity: "0.35"
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: SURF,
+      background: SURF_MAP,
       borderRadius: 12,
       boxShadow: '0 2px 12px rgba(0,0,0,0.14)',
       overflow: 'hidden',
@@ -13033,7 +13033,7 @@ function MapScreen({
       width: 42,
       height: 42,
       border: 'none',
-      background: SURF,
+      background: SURF_MAP,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -13056,7 +13056,7 @@ function MapScreen({
       width: 42,
       height: 42,
       border: 'none',
-      background: SURF,
+      background: SURF_MAP,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -13109,7 +13109,7 @@ function VenueSheet({
       left: 0,
       right: 0,
       bottom: 0,
-      background: SURF,
+      background: SURF_MAP,
       borderRadius: '22px 22px 0 0',
       boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
       zIndex: 21,
@@ -13127,7 +13127,7 @@ function VenueSheet({
       width: 38,
       height: 4,
       borderRadius: 999,
-      background: TINT
+      background: TINT_MAP
     }
   })), /*#__PURE__*/React.createElement("div", {
     onClick: onOpenVenue,
@@ -13221,17 +13221,17 @@ function VenueSheet({
     }
   }, venue.open ? 'Aperto ora' : 'Chiuso'), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: MUTED,
+      color: MUTED_MAP,
       fontSize: 13
     }
   }, ' · ', venue.hours)), /*#__PURE__*/React.createElement("span", {
     style: {
-      background: TINT,
+      background: TINT_MAP,
       borderRadius: 999,
       padding: '4px 10px',
       fontSize: 12.5,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MAP
     }
   }, venue.price)), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -13248,9 +13248,9 @@ function VenueSheet({
       flex: 1,
       padding: '13px 0',
       borderRadius: 14,
-      border: `1.5px solid ${PINK}`,
-      background: SURF,
-      color: PINK,
+      border: `1.5px solid ${PINK_MAP}`,
+      background: SURF_MAP,
+      color: PINK_MAP,
       fontSize: 14.5,
       fontWeight: 700,
       cursor: 'pointer'
@@ -13265,7 +13265,7 @@ function VenueSheet({
       padding: '13px 0',
       borderRadius: 14,
       border: 'none',
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+      background: `linear-gradient(135deg, ${PINK_MAP} 0%, ${PINK_DARK_MAP} 100%)`,
       color: '#fff',
       fontSize: 14.5,
       fontWeight: 700,
@@ -13352,11 +13352,11 @@ function PostaScreen({
     style: {
       position: 'absolute',
       inset: 0,
-      background: SURF,
+      background: SURF_MAP,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      color: TEXT
+      color: TEXT_MAP
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -13398,14 +13398,14 @@ function PostaScreen({
   }, "Posta"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MAP,
       marginTop: 2
     }
   }, onlyNews ? 'Aggiornamenti dal team byup' : tab === 'news' ? 'Aggiornamenti dal team byup' : 'Offerte dai tuoi locali preferiti')), promoVisibile && /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '14px 20px 4px',
       flexShrink: 0,
-      background: TINT,
+      background: TINT_MAP,
       borderRadius: 12,
       padding: 4,
       display: 'flex',
@@ -13427,12 +13427,12 @@ function PostaScreen({
       style: {
         flex: 1,
         padding: '9px 10px',
-        background: active ? SURF : 'transparent',
+        background: active ? SURF_MAP : 'transparent',
         border: 'none',
         cursor: 'pointer',
         fontSize: 13.5,
         fontWeight: 700,
-        color: active ? TEXT : MUTED,
+        color: active ? TEXT_MAP : MUTED_MAP,
         borderRadius: 9,
         boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
         display: 'inline-flex',
@@ -13447,8 +13447,8 @@ function PostaScreen({
         fontWeight: 700,
         padding: '1px 6px',
         borderRadius: 999,
-        background: active ? t.id === 'news' ? PINK : '#FF6B35' : __BYUP_DARK ? 'rgba(255,255,255,.08)' : TINT,
-        color: active ? '#fff' : MUTED
+        background: active ? t.id === 'news' ? PINK_MAP : '#FF6B35' : __BYUP_DARK_MAP ? 'rgba(255,255,255,.08)' : TINT_MAP,
+        color: active ? '#fff' : MUTED_MAP
       }
     }, t.count));
   })), /*#__PURE__*/React.createElement("div", {
@@ -13544,11 +13544,11 @@ function ByupNewsCard({
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClick,
     style: {
-      background: SURF,
-      border: `1px solid ${BORDER}`,
+      background: SURF_MAP,
+      border: `1px solid ${BORDER_MAP}`,
       borderRadius: 16,
       padding: 14,
-      boxShadow: __BYUP_DARK ? 'none' : '0 2px 10px -6px rgba(77,18,46,.12)',
+      boxShadow: __BYUP_DARK_MAP ? 'none' : '0 2px 10px -6px rgba(77,18,46,.12)',
       marginBottom: 10,
       display: 'flex',
       gap: 12,
@@ -13559,12 +13559,12 @@ function ByupNewsCard({
       width: 42,
       height: 42,
       borderRadius: 12,
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+      background: `linear-gradient(135deg, ${PINK_MAP} 0%, ${PINK_DARK_MAP} 100%)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      boxShadow: `0 3px 10px ${PINK}40`
+      boxShadow: `0 3px 10px ${PINK_MAP}40`
     }
   }, iconByKind[item.kind] || iconByKind.feature), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -13582,20 +13582,20 @@ function ByupNewsCard({
     style: {
       fontWeight: 800,
       fontSize: 14.5,
-      color: TEXT,
+      color: TEXT_MAP,
       letterSpacing: -0.2
     }
   }, "byup"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MAP,
       flexShrink: 0
     }
   }, item.ago)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14.5,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MAP,
       marginTop: 4,
       letterSpacing: -0.2
     }
@@ -13603,7 +13603,7 @@ function ByupNewsCard({
     style: {
       marginTop: 3,
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MAP,
       lineHeight: 1.4,
       display: '-webkit-box',
       WebkitLineClamp: 2,
@@ -13618,8 +13618,8 @@ function PromoMessageCard({
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      background: SURF,
-      border: `1px solid ${BORDER}`,
+      background: SURF_MAP,
+      border: `1px solid ${BORDER_MAP}`,
       borderRadius: 14,
       padding: '14px 16px',
       marginBottom: 10,
@@ -13636,7 +13636,7 @@ function PromoMessageCard({
     style: {
       fontSize: 14.5,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MAP,
       letterSpacing: -0.2,
       minWidth: 0,
       overflow: 'hidden',
@@ -13646,14 +13646,14 @@ function PromoMessageCard({
   }, item.venue), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MAP,
       flexShrink: 0
     }
   }, item.ago)), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4,
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_MAP,
       lineHeight: 1.4,
       display: '-webkit-box',
       WebkitLineClamp: 2,
@@ -15899,12 +15899,12 @@ window.AuthPermissions = AuthPermissions;
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // byup — Home screen prototype v2
 const {
-  useState,
-  useRef,
-  useEffect,
-  useMemo
+  useState: useStateApp,
+  useRef: useRefApp,
+  useEffect: useEffectApp,
+  useMemo: useMemoApp
 } = React;
-const __BYUP_DARK = (() => {
+const __BYUP_DARK_APP = (() => {
   try {
     const m = localStorage.getItem('byup.themeMode') || 'light';
     if (m === 'dark') return true;
@@ -15914,15 +15914,15 @@ const __BYUP_DARK = (() => {
     return false;
   }
 })();
-const PINK = '#E32459';
-const PINK_DARK = '#B81C47';
-const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
-const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
-const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
-const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
-const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
-const SURF = __BYUP_DARK ? '#211f22' : '#fff';
-const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';
+const PINK_APP = '#E32459';
+const PINK_DARK_APP = '#B81C47';
+const TEXT_APP = __BYUP_DARK_APP ? '#f6ece9' : '#1c0f15';
+const MUTED_APP = __BYUP_DARK_APP ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER_APP = __BYUP_DARK_APP ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY_APP = __BYUP_DARK_APP ? '#262229' : '#f7ece8';
+const BG_PAGE_APP = __BYUP_DARK_APP ? '#161514' : '#FBF4F1';
+const SURF_APP = __BYUP_DARK_APP ? '#211f22' : '#fff';
+const TINT_APP = __BYUP_DARK_APP ? '#2b272c' : '#f6f1ea';
 
 // Design system condiviso — byup-app-kit.jsx DEVE essere caricato prima di questo file.
 const BK = window.ByupKit;
@@ -15930,7 +15930,7 @@ const BK = window.ByupKit;
 // ─── Icons (coherent line set, stroke=1.7) ─────────────────
 const Icon = {
   Coin: p => {
-    const c = p.color || TEXT;
+    const c = p.color || TEXT_APP;
     const filled = p.fill && p.fill !== 'none';
     return /*#__PURE__*/React.createElement("svg", {
       width: p.size || 23,
@@ -15950,7 +15950,7 @@ const Icon = {
       fontFamily: "Fredoka, sans-serif",
       fontSize: "11.5",
       fontWeight: "700",
-      fill: filled ? BG_PAGE || '#fff' : c,
+      fill: filled ? BG_PAGE_APP || '#fff' : c,
       textAnchor: "middle",
       dominantBaseline: "central"
     }, "b"));
@@ -15960,7 +15960,7 @@ const Icon = {
     height: p.size || 22,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -15975,7 +15975,7 @@ const Icon = {
     height: p.size || 22,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -15991,7 +15991,7 @@ const Icon = {
       height: p.size || 20,
       viewBox: "0 0 24 24",
       fill: "none",
-      stroke: p.color || MUTED,
+      stroke: p.color || MUTED_APP,
       strokeWidth: filled ? 2.4 : 2,
       strokeLinecap: "round",
       strokeLinejoin: "round"
@@ -16015,7 +16015,7 @@ const Icon = {
     height: p.size || 20,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.7",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16067,7 +16067,7 @@ const Icon = {
     height: p.size || 14,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || MUTED,
+    stroke: p.color || MUTED_APP,
     strokeWidth: "1.9",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16083,7 +16083,7 @@ const Icon = {
     height: p.size || 14,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || MUTED,
+    stroke: p.color || MUTED_APP,
     strokeWidth: "1.9",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16098,7 +16098,7 @@ const Icon = {
     width: p.size || 14,
     height: p.size || 14,
     viewBox: "0 0 24 24",
-    fill: p.fill || PINK,
+    fill: p.fill || PINK_APP,
     stroke: "none"
   }, /*#__PURE__*/React.createElement("polygon", {
     points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
@@ -16109,7 +16109,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16127,7 +16127,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16137,24 +16137,24 @@ const Icon = {
     cx: "12",
     cy: "18",
     r: "1.6",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "19",
     cy: "16",
     r: "1.6",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "16",
     cy: "22",
     r: "1.6",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   })),
   Cocktail: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 30,
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16174,14 +16174,14 @@ const Icon = {
     cx: "22",
     cy: "4",
     r: "1.5",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   })),
   Beer: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 30,
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16201,7 +16201,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16219,14 +16219,14 @@ const Icon = {
     cx: "16",
     cy: "13",
     r: "3.5",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   })),
   Burger: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 30,
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16242,7 +16242,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16254,19 +16254,19 @@ const Icon = {
     cx: "13",
     cy: "9",
     r: "0.8",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "18",
     cy: "11",
     r: "0.8",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   })),
   Sandwich: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 30,
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16284,7 +16284,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16300,7 +16300,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16314,7 +16314,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16338,7 +16338,7 @@ const Icon = {
     height: p.size || 30,
     viewBox: "0 0 32 32",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16348,24 +16348,24 @@ const Icon = {
     cx: "11",
     cy: "11",
     r: "1.5",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "16",
     cy: "9",
     r: "1.5",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "21",
     cy: "11",
     r: "1.5",
-    fill: p.color || TEXT
+    fill: p.color || TEXT_APP
   })),
   Home: p => /*#__PURE__*/React.createElement("svg", {
     width: p.size || 24,
     height: p.size || 24,
     viewBox: "0 0 24 24",
     fill: p.fill || 'none',
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "1.8",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16373,7 +16373,7 @@ const Icon = {
     d: "M4.5 10.9c0-.95.45-1.85 1.21-2.42l4.5-3.38a3 3 0 0 1 3.58 0l4.5 3.38a3.03 3.03 0 0 1 1.21 2.42v5.6a3.5 3.5 0 0 1-3.5 3.5H8a3.5 3.5 0 0 1-3.5-3.5z"
   }), /*#__PURE__*/React.createElement("path", {
     d: "M12 15.1v2",
-    stroke: p.fill && p.fill !== 'none' ? '#fff' : p.color || TEXT
+    stroke: p.fill && p.fill !== 'none' ? '#fff' : p.color || TEXT_APP
   })),
   User: p => {
     const filled = p.fill && p.fill !== 'none';
@@ -16382,7 +16382,7 @@ const Icon = {
       height: p.size || 24,
       viewBox: "0 0 24 24",
       fill: p.fill || 'none',
-      stroke: p.color || TEXT,
+      stroke: p.color || TEXT_APP,
       strokeWidth: "1.8",
       strokeLinecap: "round",
       strokeLinejoin: "round"
@@ -16484,7 +16484,7 @@ const Icon = {
     height: p.size || 22,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || TEXT,
+    stroke: p.color || TEXT_APP,
     strokeWidth: "2",
     strokeLinecap: "round"
   }, /*#__PURE__*/React.createElement("line", {
@@ -16503,7 +16503,7 @@ const Icon = {
     height: p.size || 16,
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: p.color || PINK,
+    stroke: p.color || PINK_APP,
     strokeWidth: "2.5",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -16834,7 +16834,7 @@ function DetailSheet({
       right: 0,
       bottom: 0,
       zIndex: 51,
-      background: SURF,
+      background: SURF_APP,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       padding: '12px 20px 24px',
@@ -16910,7 +16910,7 @@ function DetailSheet({
       fontFamily: BK.TYPE.display,
       fontSize: 22,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_APP
     }
   }, item.title || item.name), /*#__PURE__*/React.createElement("button", {
     onClick: e => e.stopPropagation(),
@@ -16918,19 +16918,19 @@ function DetailSheet({
       width: 40,
       height: 40,
       borderRadius: 999,
-      border: `1.5px solid ${BORDER}`,
-      background: SURF,
+      border: `1.5px solid ${BORDER_APP}`,
+      background: SURF_APP,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       cursor: 'pointer'
     }
   }, /*#__PURE__*/React.createElement(Icon.Heart, {
-    color: PINK
+    color: PINK_APP
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14.5,
-      color: MUTED,
+      color: MUTED_APP,
       marginBottom: 12
     }
   }, place), /*#__PURE__*/React.createElement("div", {
@@ -16973,7 +16973,7 @@ function DetailSheet({
       borderRadius: 999,
       border: '1.5px solid rgba(227,36,89,.25)',
       background: 'rgba(227,36,89,.08)',
-      color: PINK,
+      color: PINK_APP,
       fontSize: 15,
       fontWeight: 700,
       fontFamily: 'inherit',
@@ -16987,7 +16987,7 @@ function DetailSheet({
       height: 50,
       borderRadius: 999,
       border: 'none',
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       fontSize: 15,
       fontWeight: 700,
@@ -17006,8 +17006,8 @@ function Tag({
       fontSize: 12.5,
       padding: '5px 10px',
       borderRadius: 999,
-      background: BG_GRAY,
-      color: TEXT,
+      background: BG_GRAY_APP,
+      color: TEXT_APP,
       fontWeight: 500,
       display: 'inline-flex',
       alignItems: 'center',
@@ -17047,7 +17047,7 @@ function FilterSheet({
       right: 0,
       bottom: 0,
       zIndex: 71,
-      background: SURF,
+      background: SURF_APP,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       padding: '12px 22px 24px',
@@ -17075,7 +17075,7 @@ function FilterSheet({
     style: {
       background: 'none',
       border: 'none',
-      color: MUTED,
+      color: MUTED_APP,
       fontSize: 14,
       fontWeight: 600,
       cursor: 'pointer',
@@ -17087,7 +17087,7 @@ function FilterSheet({
       fontFamily: BK.TYPE.display,
       fontSize: 17,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_APP
     }
   }, "Filtra per tipologia"), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
@@ -17099,7 +17099,7 @@ function FilterSheet({
       fontFamily: 'inherit',
       fontSize: 18,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_APP
     }
   }, "\xD7")), /*#__PURE__*/React.createElement(FilterGroup, {
     title: "Tipo dieta"
@@ -17147,7 +17147,7 @@ function FilterSheet({
     width: "32",
     height: "32",
     viewBox: "0 0 24 24",
-    fill: n <= minRating ? PINK : '#e0d8db'
+    fill: n <= minRating ? PINK_APP : '#e0d8db'
   }, /*#__PURE__*/React.createElement("polygon", {
     points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
   })))))), /*#__PURE__*/React.createElement(FilterGroup, {
@@ -17177,7 +17177,7 @@ function FilterSheet({
       height: 52,
       borderRadius: 999,
       border: 'none',
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       fontSize: 15,
       fontWeight: 700,
@@ -17199,7 +17199,7 @@ function FilterGroup({
     style: {
       fontSize: 14,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_APP,
       marginBottom: 10
     }
   }, title), /*#__PURE__*/React.createElement("div", {
@@ -17221,9 +17221,9 @@ function SelectChip({
       height: 38,
       padding: '0 16px',
       borderRadius: 999,
-      border: `1.5px solid ${active ? PINK : '#e0e0e0'}`,
-      background: active ? TINT : SURF,
-      color: active ? PINK : TEXT,
+      border: `1.5px solid ${active ? PINK_APP : '#e0e0e0'}`,
+      background: active ? TINT_APP : SURF_APP,
+      color: active ? PINK_APP : TEXT_APP,
       fontSize: 14,
       fontWeight: active ? 600 : 500,
       fontFamily: 'inherit',
@@ -17234,7 +17234,7 @@ function SelectChip({
     }
   }, active && /*#__PURE__*/React.createElement(Icon.Check, {
     size: 14,
-    color: PINK
+    color: PINK_APP
   }), label);
 }
 
@@ -17279,7 +17279,7 @@ function CategoryScreen({
 }) {
   const [T] = BK.useByupTheme();
   const icon = BK.ASSETS.cat[cat.id];
-  const [chip, setChip] = useState(null); // null | 'open' | 'top' | 'near'
+  const [chip, setChip] = useStateApp(null); // null | 'open' | 'top' | 'near'
   const names = CAT_SCREEN_NAMES[cat.id] || CAT_SCREEN_NAMES.pizza;
   const photos = (CAT_SCREEN_PHOTOS[cat.id] || CAT_SCREEN_PHOTOS.pizza).map(id => `https://images.unsplash.com/photo-${id}?w=600&q=70&auto=format&fit=crop`);
   const venues = names.map((n, i) => ({
@@ -18235,7 +18235,7 @@ const HERO_END_HOUR = {
   notte: 5
 };
 function useMomentCountdown(moment) {
-  const target = useMemo(() => {
+  const target = useMemoApp(() => {
     const now = new Date();
     const endH = HERO_END_HOUR[moment];
     const t = new Date(now);
@@ -18247,8 +18247,8 @@ function useMomentCountdown(moment) {
     }
     return t.getTime();
   }, [moment]);
-  const [left, setLeft] = useState(target - Date.now());
-  useEffect(() => {
+  const [left, setLeft] = useStateApp(target - Date.now());
+  useEffectApp(() => {
     const id = setInterval(() => setLeft(target - Date.now()), 1000);
     return () => clearInterval(id);
   }, [target]);
@@ -18586,7 +18586,7 @@ function RestaurantBigCard({
     height: "15",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: PINK,
+    stroke: PINK_APP,
     strokeWidth: "2.5",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -18617,7 +18617,7 @@ function RestaurantBigCard({
       padding: '0 13px',
       borderRadius: 999,
       background: 'rgba(255,255,255,0.94)',
-      color: PINK,
+      color: PINK_APP,
       fontSize: 12.5,
       fontWeight: 800,
       display: 'inline-flex',
@@ -18850,12 +18850,12 @@ function DisponibiliScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_APP,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
       fontFamily: '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
-      color: TEXT,
+      color: TEXT_APP,
       overflow: 'hidden',
       animation: 'dispoSlide 0.34s cubic-bezier(.2,.8,.2,1)'
     }
@@ -19055,7 +19055,7 @@ function DisponibiliScreen({
     style: {
       margin: '8px 4px 0',
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_APP,
       textAlign: 'center',
       animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + venues.length * 0.08}s both`
     }
@@ -19068,10 +19068,10 @@ function OfferCarousel({
   onTap
 }) {
   const [T] = BK.useByupTheme();
-  const ref = useRef(null);
-  const [idx, setIdx] = useState(0);
-  const pauseRef = useRef(0);
-  useEffect(() => {
+  const ref = useRefApp(null);
+  const [idx, setIdx] = useStateApp(0);
+  const pauseRef = useRefApp(0);
+  useEffectApp(() => {
     const el = ref.current;
     if (!el) return;
     const t = setInterval(() => {
@@ -19175,10 +19175,10 @@ function AutoLoopScroll({
   gap = 12
 }) {
   // speed in px/secondo. Accumulatore float: scrollLeft arrotonda, pos no.
-  const ref = useRef(null);
-  const pausedUntil = useRef(0);
-  const pos = useRef(0);
-  useEffect(() => {
+  const ref = useRefApp(null);
+  const pausedUntil = useRefApp(0);
+  const pos = useRefApp(0);
+  useEffectApp(() => {
     const el = ref.current;
     if (!el) return;
     let raf;
@@ -19415,7 +19415,7 @@ function StackCard({
       position: 'absolute',
       top: 11,
       left: 11,
-      background: SURF,
+      background: SURF_APP,
       borderRadius: 12,
       padding: '4px 9px',
       textAlign: 'center',
@@ -19425,7 +19425,7 @@ function StackCard({
     style: {
       fontSize: 9,
       fontWeight: 700,
-      color: PINK,
+      color: PINK_APP,
       letterSpacing: .6,
       lineHeight: 1.1
     }
@@ -19459,7 +19459,7 @@ function StackCard({
       position: 'absolute',
       top: 11,
       left: 11,
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       padding: '6px 11px',
       borderRadius: 13,
@@ -19532,7 +19532,7 @@ function StackCard({
       height: "14",
       viewBox: "0 0 24 24",
       fill: "none",
-      stroke: PINK,
+      stroke: PINK_APP,
       strokeWidth: "2.6",
       strokeLinecap: "round",
       strokeLinejoin: "round"
@@ -19605,12 +19605,12 @@ function StackCarousel({
   onCardClick
 }) {
   const n = items.length;
-  const [cur, setCur] = useState(0);
-  const [dx, setDx] = useState(0);
-  const pauseRef = useRef(0);
-  const dragRef = useRef(null);
-  const movedRef = useRef(false);
-  useEffect(() => {
+  const [cur, setCur] = useStateApp(0);
+  const [dx, setDx] = useStateApp(0);
+  const pauseRef = useRefApp(0);
+  const dragRef = useRefApp(null);
+  const movedRef = useRefApp(false);
+  useEffectApp(() => {
     const t = setInterval(() => {
       if (Date.now() < pauseRef.current || dragRef.current) return;
       setCur(c => (c + 1) % n);
@@ -19983,7 +19983,7 @@ function LeafletMini({
   mapRef,
   zoom = 13
 }) {
-  useEffect(() => {
+  useEffectApp(() => {
     const el = mapRef.current;
     if (!el || !window.L) return;
     const map = window.L.map(el, {
@@ -19997,7 +19997,7 @@ function LeafletMini({
       doubleClickZoom: false,
       keyboard: false
     });
-    window.L.tileLayer(`https://{s}.basemaps.cartocdn.com/${__BYUP_DARK ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, {
+    window.L.tileLayer(`https://{s}.basemaps.cartocdn.com/${__BYUP_DARK_APP ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, {
       subdomains: 'abcd',
       maxZoom: 20
     }).addTo(map);
@@ -20027,9 +20027,9 @@ function MapExpandOverlay({
   from,
   T
 }) {
-  const mapRef = useRef(null);
-  const [grown, setGrown] = useState(false);
-  useEffect(() => {
+  const mapRef = useRefApp(null);
+  const [grown, setGrown] = useStateApp(false);
+  useEffectApp(() => {
     const r = requestAnimationFrame(() => setGrown(true));
     return () => cancelAnimationFrame(r);
   }, []);
@@ -20042,7 +20042,7 @@ function MapExpandOverlay({
       top: grown ? 0 : from.top,
       height: grown ? '100%' : from.height,
       overflow: 'hidden',
-      background: __BYUP_DARK ? '#141214' : '#e9e4dd',
+      background: __BYUP_DARK_APP ? '#141214' : '#e9e4dd',
       transition: 'top 560ms cubic-bezier(.22,.9,.35,1), height 560ms cubic-bezier(.22,.9,.35,1)'
     }
   }, /*#__PURE__*/React.createElement(LeafletMini, {
@@ -20065,17 +20065,17 @@ function MapPreviewCard({
   onOpen
 }) {
   const [T] = BK.useByupTheme();
-  const wrapRef = useRef(null);
-  const mapRef = useRef(null);
-  const [expanding, setExpanding] = useState(null);
-  const firedRef = useRef(false);
-  const gestureRef = useRef({
+  const wrapRef = useRefApp(null);
+  const mapRef = useRefApp(null);
+  const [expanding, setExpanding] = useStateApp(null);
+  const firedRef = useRefApp(false);
+  const gestureRef = useRefApp({
     last: 0,
     armed: false,
     touchY: null,
     touchArmed: false
   });
-  useEffect(() => {
+  useEffectApp(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
     const scroller = wrap.closest('[data-byup-scroll]');
@@ -20253,7 +20253,7 @@ function HomeSections({
   // posizione vera quando c'è, dal centro della città scelta quando non c'è.
   // Sotto soglia la home resta com'è già quando i locali non ci sono, e
   // ricerca diretta, link e QR continuano a funzionare.
-  const [posizione, setPosizione] = useState(() => window.ByupPosizione ? {
+  const [posizione, setPosizione] = useStateApp(() => window.ByupPosizione ? {
     citta: window.ByupPosizione.citta(),
     distanze: window.ByupPosizione.distanze(),
     scoperta: window.ByupPosizione.scopertaAperta()
@@ -20262,7 +20262,7 @@ function HomeSections({
     distanze: true,
     scoperta: true
   });
-  useEffect(() => {
+  useEffectApp(() => {
     const ri = () => {
       if (window.ByupPosizione) setPosizione({
         citta: window.ByupPosizione.citta(),
@@ -20278,14 +20278,14 @@ function HomeSections({
     };
   }, []);
   const senzaScoperta = noVenues || !posizione.scoperta;
-  const [cittaOpen, setCittaOpen] = useState(false);
+  const [cittaOpen, setCittaOpen] = useStateApp(false);
   // Allow internal moment management when parent doesn't provide it (legacy callers).
-  const [intMoment, intSetMoment] = useState('ora');
+  const [intMoment, intSetMoment] = useStateApp('ora');
   const moment = extMoment ?? intMoment;
   const rawSetMoment = extSetMoment || intSetMoment;
   // Stato della richiesta "Avvisami quando disponibili" nella variante senza locali
-  const [notifyState, setNotifyState] = useState('idle'); // 'idle' | 'confirmed'
-  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+  const [notifyState, setNotifyState] = useStateApp('idle'); // 'idle' | 'confirmed'
+  const [notifyDialogOpen, setNotifyDialogOpen] = useStateApp(false);
   // Switching moment resets quick filters (each moment has its own chip set).
   const setMoment = m => {
     rawSetMoment(m);
@@ -20590,7 +20590,7 @@ function HomeSections({
       height: 16,
       padding: '0 4px',
       borderRadius: 999,
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       fontSize: 10,
       fontWeight: 700,
@@ -20665,8 +20665,8 @@ function HomeSections({
       padding: '12px 22px',
       borderRadius: 999,
       border: 'none',
-      background: notifyState === 'confirmed' ? TINT : PINK,
-      color: notifyState === 'confirmed' ? TEXT : '#fff',
+      background: notifyState === 'confirmed' ? TINT_APP : PINK_APP,
+      color: notifyState === 'confirmed' ? TEXT_APP : '#fff',
       fontSize: 14,
       fontWeight: 700,
       fontFamily: 'inherit',
@@ -20674,14 +20674,14 @@ function HomeSections({
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      boxShadow: notifyState === 'confirmed' ? 'none' : `0 4px 14px ${PINK}40`
+      boxShadow: notifyState === 'confirmed' ? 'none' : `0 4px 14px ${PINK_APP}40`
     }
   }, notifyState === 'confirmed' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
     width: "15",
     height: "15",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: TEXT,
+    stroke: TEXT_APP,
     strokeWidth: "3",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -20772,7 +20772,7 @@ function HomeSections({
     style: {
       width: '100%',
       maxHeight: '76%',
-      background: SURF,
+      background: SURF_APP,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: '18px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
@@ -20785,7 +20785,7 @@ function HomeSections({
       width: 44,
       height: 4,
       borderRadius: 2,
-      background: TINT,
+      background: TINT_APP,
       margin: '0 auto 14px',
       flexShrink: 0
     }
@@ -20793,13 +20793,13 @@ function HomeSections({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_APP,
       letterSpacing: -0.3
     }
   }, "Cambia citt\xE0"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_APP,
       marginTop: 4,
       marginBottom: 14,
       lineHeight: 1.45
@@ -20825,11 +20825,11 @@ function HomeSections({
         borderRadius: 14,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        border: `1.5px solid ${on ? PINK : TINT}`,
-        background: SURF,
+        border: `1.5px solid ${on ? PINK_APP : TINT_APP}`,
+        background: SURF_APP,
         fontSize: 16,
         fontWeight: on ? 800 : 600,
-        color: on ? PINK : TEXT,
+        color: on ? PINK_APP : TEXT_APP,
         display: 'flex',
         alignItems: 'center',
         gap: 8
@@ -20856,7 +20856,7 @@ function HomeSections({
   }, /*#__PURE__*/React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: SURF,
+      background: SURF_APP,
       borderRadius: 22,
       padding: '26px 22px 18px',
       width: '100%',
@@ -20871,7 +20871,7 @@ function HomeSections({
       height: 56,
       borderRadius: 999,
       margin: '0 auto 14px',
-      background: __BYUP_DARK ? 'rgba(20,130,64,.20)' : '#e8f5ec',
+      background: __BYUP_DARK_APP ? 'rgba(20,130,64,.20)' : '#e8f5ec',
       color: '#1a7a3a',
       display: 'flex',
       alignItems: 'center',
@@ -20892,14 +20892,14 @@ function HomeSections({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_APP,
       letterSpacing: -0.3,
       marginBottom: 6
     }
   }, "Avviso attivato"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_APP,
       lineHeight: 1.5,
       marginBottom: 20
     }
@@ -20910,7 +20910,7 @@ function HomeSections({
       height: 48,
       borderRadius: 999,
       border: 'none',
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       fontSize: 14,
       fontWeight: 700,
@@ -21060,15 +21060,15 @@ function RecoveryOrderModal({
   onClose,
   onSubmit
 }) {
-  const [code, setCode] = useState('');
-  const [errore, setErrore] = useState(false);
-  const [attesa, setAttesa] = useState(() => byupClaim.attesa());
-  const [bloccato, setBloccato] = useState(() => byupClaim.bloccato());
+  const [code, setCode] = useStateApp('');
+  const [errore, setErrore] = useStateApp(false);
+  const [attesa, setAttesa] = useStateApp(() => byupClaim.attesa());
+  const [bloccato, setBloccato] = useStateApp(() => byupClaim.bloccato());
   const clean = v => v.replace(/\D/g, '').slice(0, RECUPERO.CIFRE);
   const pieno = code.length === RECUPERO.CIFRE;
   const valid = pieno && attesa === 0 && !bloccato;
   // Il conto alla rovescia: un tick al secondo finché l'attesa non scade.
-  useEffect(() => {
+  useEffectApp(() => {
     if (attesa <= 0) return;
     const t = setTimeout(() => setAttesa(byupClaim.attesa()), 1000);
     return () => clearTimeout(t);
@@ -21124,7 +21124,7 @@ function RecoveryOrderModal({
     style: {
       width: '100%',
       maxWidth: 320,
-      background: SURF,
+      background: SURF_APP,
       borderRadius: 22,
       padding: '22px 20px 20px',
       boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
@@ -21135,11 +21135,11 @@ function RecoveryOrderModal({
       height: 46,
       borderRadius: 13,
       margin: '0 auto 12px',
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+      background: `linear-gradient(135deg, ${PINK_APP} 0%, ${PINK_DARK_APP} 100%)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      boxShadow: `0 6px 16px ${PINK}40`
+      boxShadow: `0 6px 16px ${PINK_APP}40`
     }
   }, /*#__PURE__*/React.createElement("svg", {
     width: "22",
@@ -21158,14 +21158,14 @@ function RecoveryOrderModal({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_APP,
       textAlign: 'center',
       letterSpacing: -0.3
     }
   }, "Recupera il tuo ordine"), bloccato ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: TEXT,
+      color: TEXT_APP,
       textAlign: 'center',
       marginTop: 10,
       lineHeight: 1.45
@@ -21178,7 +21178,7 @@ function RecoveryOrderModal({
       padding: '14px',
       borderRadius: 12,
       border: 'none',
-      background: PINK,
+      background: PINK_APP,
       color: '#fff',
       fontSize: 15.5,
       fontWeight: 700,
@@ -21188,7 +21188,7 @@ function RecoveryOrderModal({
   }, "Ho capito")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_APP,
       textAlign: 'center',
       marginTop: 6,
       lineHeight: 1.4
@@ -21207,11 +21207,11 @@ function RecoveryOrderModal({
       marginTop: 18,
       padding: '14px',
       borderRadius: 12,
-      border: `1.5px solid ${errore ? '#D64545' : BORDER}`,
+      border: `1.5px solid ${errore ? '#D64545' : BORDER_APP}`,
       fontSize: 18,
       fontWeight: 700,
       letterSpacing: 4,
-      color: TEXT,
+      color: TEXT_APP,
       fontFamily: 'inherit',
       outline: 'none',
       textAlign: 'center',
@@ -21220,7 +21220,7 @@ function RecoveryOrderModal({
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: errore ? '#D64545' : MUTED,
+      color: errore ? '#D64545' : MUTED_APP,
       textAlign: 'center',
       marginTop: 8,
       fontWeight: errore ? 700 : 400
@@ -21234,8 +21234,8 @@ function RecoveryOrderModal({
       padding: '14px',
       borderRadius: 12,
       border: 'none',
-      background: valid ? PINK : '#EDE7E9',
-      color: valid ? '#fff' : MUTED,
+      background: valid ? PINK_APP : '#EDE7E9',
+      color: valid ? '#fff' : MUTED_APP,
       fontSize: 15.5,
       fontWeight: 700,
       cursor: valid ? 'pointer' : 'default',
@@ -21250,7 +21250,7 @@ function RecoveryOrderModal({
       borderRadius: 12,
       border: 'none',
       background: 'transparent',
-      color: MUTED,
+      color: MUTED_APP,
       fontSize: 14,
       fontWeight: 600,
       cursor: 'pointer',
@@ -21286,7 +21286,7 @@ function RecoveryLoadingOverlay() {
     style: {
       fontFamily: BK.TYPE.display,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_APP,
       fontSize: 17
     }
   }, "Cerco il tuo ordine\u2026"));
@@ -21303,14 +21303,14 @@ function RecoveryOrderBanner({
     style: {
       margin: '0 0 12px',
       cursor: 'pointer',
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 100%)`,
+      background: `linear-gradient(135deg, ${PINK_APP} 0%, ${PINK_DARK_APP} 100%)`,
       color: '#fff',
       borderRadius: 16,
       padding: '12px 12px 12px 14px',
       display: 'flex',
       alignItems: 'center',
       gap: 12,
-      boxShadow: `0 6px 18px ${PINK}40`
+      boxShadow: `0 6px 18px ${PINK_APP}40`
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -21391,19 +21391,19 @@ function App({
 }) {
   // app_open (P-38): l'apertura dell'app, una volta per montaggio, solo con
   // l'interruttore di P-26 acceso — ByupUso non scrive altrimenti.
-  useEffect(() => {
+  useEffectApp(() => {
     if (window.ByupUso) window.ByupUso.emetti('app_open');
   }, []);
   const [T] = BK.useByupTheme();
-  const [activeCat, setActiveCat] = useState(null);
-  const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
-  const [activeTab, setActiveTab] = useState('home');
-  const [search, setSearch] = useState('');
-  const [searchFocus, setSearchFocus] = useState(false);
+  const [activeCat, setActiveCat] = useStateApp(null);
+  const [catSel, setCatSel] = useStateApp(null); // categoria aperta a schermo intero
+  const [activeTab, setActiveTab] = useStateApp('home');
+  const [search, setSearch] = useStateApp('');
+  const [searchFocus, setSearchFocus] = useStateApp(false);
   // Navigation stack: every setPage pushes; goBack pops. The top-left back
   // arrow on every screen calls goBack() and always returns to the previous
   // page, regardless of how the user got there.
-  const [navStack, setNavStack] = useState(() => {
+  const [navStack, setNavStack] = useStateApp(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
       if (p === 'venue' || p === 'profile' || p === 'map' || p === 'posta' || p === 'search') return ['home', p];
@@ -21422,7 +21422,7 @@ function App({
   const resetToHome = () => setNavStack(['home']);
   // Router globale: le BottomTabBar renderizzate da altri file (profile, map)
   // navigano via setPage senza reload. Riassegnato a ogni render.
-  useEffect(() => {
+  useEffectApp(() => {
     window.__byupQR = () => setQrOpen(true);
     window.__byupNav = {
       go: setPage,
@@ -21439,9 +21439,9 @@ function App({
       }
     };
   });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [detail, setDetail] = useState(null);
-  const [activeVenue, setActiveVenue] = useState(() => {
+  const [searchQuery, setSearchQuery] = useStateApp('');
+  const [detail, setDetail] = useStateApp(null);
+  const [activeVenue, setActiveVenue] = useStateApp(() => {
     try {
       if (new URLSearchParams(window.location.search).get('page') === 'venue') {
         return {
@@ -21454,14 +21454,14 @@ function App({
     } catch {}
     return null;
   });
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [, setMenuTick] = useState(0); // retry render quando menu.jsx arriva
+  const [bookingOpen, setBookingOpen] = useStateApp(false);
+  const [qrOpen, setQrOpen] = useStateApp(false);
+  const [, setMenuTick] = useStateApp(0); // retry render quando menu.jsx arriva
   // booking della sessione corrente: NON sopravvive al refresh.
   // Parte sempre da null e ripulisce eventuali residui in localStorage.
-  const [savedBooking, setSavedBooking] = useState(null);
-  const [bookingEdit, setBookingEdit] = useState(null); // prenotazione in modifica (apre BookingSheet precompilato)
-  useEffect(() => {
+  const [savedBooking, setSavedBooking] = useStateApp(null);
+  const [bookingEdit, setBookingEdit] = useStateApp(null); // prenotazione in modifica (apre BookingSheet precompilato)
+  useEffectApp(() => {
     try {
       localStorage.removeItem('byup_booking');
     } catch {}
@@ -21480,26 +21480,26 @@ function App({
     } catch {}
     setSavedBooking(null);
   };
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useStateApp(false);
   // Recupero ordine: armato da Root al primo accesso post-registrazione (dopo i
   // popup permessi). `recoveryBannerOpen` = banner in alto (auto-rimosso a 5s);
   // `recoveryActive` = la notifica resta in Posta → Novità.
-  const [recoveryActive, setRecoveryActive] = useState(false);
+  const [recoveryActive, setRecoveryActive] = useStateApp(false);
   // P-88: la comunicazione sulla sospensione compare in Posta → Novità una
   // volta sola. Si legge all'avvio e si segna come comunicata quando la
   // persona apre Posta: alla prossima apertura dell'app non torna.
-  const [sospensioneCard] = useState(() => {
+  const [sospensioneCard] = useStateApp(() => {
     const S = window.ByupSospensione;
     const r = S && S.leggi();
     return r && S.attiva() && !r.comunicataIl ? r : null;
   });
-  useEffect(() => {
+  useEffectApp(() => {
     if (page === 'posta' && sospensioneCard && window.ByupSospensione) window.ByupSospensione.segnaComunicata();
   }, [page, sospensioneCard]);
-  const [recoveryBannerOpen, setRecoveryBannerOpen] = useState(false);
-  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
-  const [recoveryLoading, setRecoveryLoading] = useState(false);
-  useEffect(() => {
+  const [recoveryBannerOpen, setRecoveryBannerOpen] = useStateApp(false);
+  const [recoveryModalOpen, setRecoveryModalOpen] = useStateApp(false);
+  const [recoveryLoading, setRecoveryLoading] = useStateApp(false);
+  useEffectApp(() => {
     if (!recoveryArmed) return;
     setRecoveryActive(true);
     setRecoveryBannerOpen(true);
@@ -21521,16 +21521,16 @@ function App({
     onClose: () => setRecoveryModalOpen(false),
     onSubmit: startRecovery
   }), recoveryLoading && /*#__PURE__*/React.createElement(RecoveryLoadingOverlay, null));
-  const [filters, setFilters] = useState({});
-  const [quickFilters, setQuickFilters] = useState({
+  const [filters, setFilters] = useStateApp({});
+  const [quickFilters, setQuickFilters] = useStateApp({
     openNow: false,
     near: false,
     promo: false,
     top: false
   });
-  const [scrolled, setScrolled] = useState(false);
-  const scrollRef = useRef(null);
-  useEffect(() => {
+  const [scrolled, setScrolled] = useStateApp(false);
+  const scrollRef = useRefApp(null);
+  useEffectApp(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => setScrolled(el.scrollTop > 12);
@@ -21538,8 +21538,8 @@ function App({
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
   const cats = null; // moved into <HomeSections>; kept here only as marker
-  const [moment, setMoment] = useState('ora'); // 'ora' | 'pranzo' | 'cena' | 'notte'
-  const [bookingSlot, setBookingSlot] = useState(null); // pre-fills time in BookingSheet
+  const [moment, setMoment] = useStateApp('ora'); // 'ora' | 'pranzo' | 'cena' | 'notte'
+  const [bookingSlot, setBookingSlot] = useStateApp(null); // pre-fills time in BookingSheet
 
   const openBookingForVenue = (venue, slotTime) => {
     setActiveVenue({
@@ -21675,7 +21675,7 @@ function App({
       style: {
         width: '100%',
         height: '100%',
-        background: SURF,
+        background: SURF_APP,
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -21987,12 +21987,12 @@ function QRScanOverlay({
   onDone,
   onClose
 }) {
-  const [phase, setPhase] = useState('scan');
+  const [phase, setPhase] = useStateApp('scan');
   // A locale chiuso (P-169) la scansione è inerte: la sessione del tavolo si
   // apre soltanto negli orari di apertura della sede. Il QR viene letto, ma
   // il tavolo non si apre e non si entra al menù dal tavolo.
   const chiuso = window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
-  useEffect(() => {
+  useEffectApp(() => {
     const t1 = setTimeout(() => {
       setPhase(chiuso ? 'chiuso' : 'found');
       chiuso ? BK.haptic.tap && BK.haptic.tap() : BK.haptic.success();
@@ -22087,10 +22087,10 @@ function QRScanOverlay({
       width: 30,
       height: 30,
       animation: 'qrCorner 1.6s ease-in-out infinite',
-      borderTop: !y ? `3.5px solid ${PINK}` : 'none',
-      borderBottom: y ? `3.5px solid ${PINK}` : 'none',
-      borderLeft: !x ? `3.5px solid ${PINK}` : 'none',
-      borderRight: x ? `3.5px solid ${PINK}` : 'none',
+      borderTop: !y ? `3.5px solid ${PINK_APP}` : 'none',
+      borderBottom: y ? `3.5px solid ${PINK_APP}` : 'none',
+      borderLeft: !x ? `3.5px solid ${PINK_APP}` : 'none',
+      borderRight: x ? `3.5px solid ${PINK_APP}` : 'none',
       borderRadius: !y && !x ? '14px 0 0 0' : y && !x ? '0 0 0 14px' : !y && x ? '0 14px 0 0' : '0 0 14px 0'
     }
   })), /*#__PURE__*/React.createElement("div", {
@@ -22100,8 +22100,8 @@ function QRScanOverlay({
       right: 22,
       height: 3,
       borderRadius: 999,
-      background: `linear-gradient(90deg, transparent, ${PINK}, transparent)`,
-      boxShadow: `0 0 16px ${PINK}, 0 0 40px rgba(227,36,89,.5)`,
+      background: `linear-gradient(90deg, transparent, ${PINK_APP}, transparent)`,
+      boxShadow: `0 0 16px ${PINK_APP}, 0 0 40px rgba(227,36,89,.5)`,
       animation: 'qrScan 2s cubic-bezier(.45,0,.55,1) infinite'
     }
   })) : phase === 'chiuso' ? /*#__PURE__*/React.createElement("div", {
@@ -22162,7 +22162,7 @@ function QRScanOverlay({
       position: 'absolute',
       inset: 0,
       borderRadius: 999,
-      border: `2.5px solid ${PINK}`,
+      border: `2.5px solid ${PINK_APP}`,
       animation: 'qrRing .9s ease-out .1s both'
     }
   }), /*#__PURE__*/React.createElement("span", {
@@ -22439,7 +22439,7 @@ function BottomTabBar({
       borderRadius: 999,
       border: 'none',
       zIndex: 3,
-      background: `linear-gradient(135deg, ${coral} 0%, ${PINK_DARK} 100%)`,
+      background: `linear-gradient(135deg, ${coral} 0%, ${PINK_DARK_APP} 100%)`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -22559,7 +22559,7 @@ function ShortcutsPanel() {
       top: 20,
       right: 20,
       zIndex: 100,
-      background: SURF,
+      background: SURF_APP,
       borderRadius: 14,
       padding: 8,
       boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
@@ -22603,7 +22603,7 @@ function ShortcutsPanel() {
         padding: '6px 4px',
         fontSize: 12,
         borderRadius: 8,
-        background: active ? '#E32459' : TINT,
+        background: active ? '#E32459' : TINT_APP,
         color: active ? '#fff' : '#1a1a1a',
         fontWeight: 700,
         textAlign: 'center',
@@ -22613,7 +22613,7 @@ function ShortcutsPanel() {
     }, v.label);
   })), menuItems.map(row));
 }
-function Root() {
+function RootApp() {
   // Auth gate — mostra il flusso di login/registrazione PRIMA della Home.
   // Bypass: ?auth=login|register forza l'auth; un deep-link ?page=… (venue,
   // mappa, profilo…) o l'aver già completato l'onboarding saltano l'auth.
@@ -22633,7 +22633,7 @@ function Root() {
       return false;
     }
   })();
-  const [authed, setAuthed] = useState(forceAuth ? false : stored || hasDeepLink);
+  const [authed, setAuthed] = useStateApp(forceAuth ? false : stored || hasDeepLink);
   const permsDecided = (() => {
     try {
       return localStorage.getItem('byup_perms') === '1';
@@ -22641,9 +22641,9 @@ function Root() {
       return false;
     }
   })();
-  const [permsPending, setPermsPending] = useState(false);
-  const fromRegisterRef = useRef(false);
-  const [recoveryArmed, setRecoveryArmed] = useState(false);
+  const [permsPending, setPermsPending] = useStateApp(false);
+  const fromRegisterRef = useRefApp(false);
+  const [recoveryArmed, setRecoveryArmed] = useStateApp(false);
   const completeAuth = (opts = {}) => {
     try {
       localStorage.setItem('byup_auth', '1');
@@ -22670,7 +22670,7 @@ function Root() {
     "data-screen-label": "byup Home",
     style: {
       minHeight: '100vh',
-      background: __BYUP_DARK ? '#0e0d0f' : '#ececec',
+      background: __BYUP_DARK_APP ? '#0e0d0f' : '#ececec',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -22691,17 +22691,17 @@ function Root() {
 Object.assign(window, {
   HomeSections,
   Icon,
-  PINK,
-  PINK_DARK,
-  TEXT,
-  MUTED,
-  BORDER,
-  BG_GRAY
+  PINK: PINK_APP,
+  PINK_DARK: PINK_DARK_APP,
+  TEXT: TEXT_APP,
+  MUTED: MUTED_APP,
+  BORDER: BORDER_APP,
+  BG_GRAY: BG_GRAY_APP
 });
 
 /* sync */
 const __byupRoot = document.getElementById('root');
-if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(/*#__PURE__*/React.createElement(Root, null));
+if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(/*#__PURE__*/React.createElement(RootApp, null));
 })();
 </script>
 <script>/* dish-art.jsx */
@@ -23370,14 +23370,14 @@ Object.assign(window, {
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // byup — Menu locale + Divisione + Home con ordine attivo
 const {
-  useState,
-  useRef,
-  useEffect
+  useState: useStateMenu,
+  useRef: useRefMenu,
+  useEffect: useEffectMenu
 } = React;
 
 // Tema letto al caricamento pagina (le pagine sono file separati: ogni pagina
 // legge byup.themeMode e sceglie la palette → dark coerente cross-page).
-const __BYUP_DARK = (() => {
+const __BYUP_DARK_MENU = (() => {
   try {
     const m = localStorage.getItem('byup.themeMode') || 'light';
     if (m === 'dark') return true;
@@ -23387,18 +23387,18 @@ const __BYUP_DARK = (() => {
     return false;
   }
 })();
-const PINK = '#E32459';
-const PINK_DARK = '#B81C47';
-const WINE = __BYUP_DARK ? '#ef6389' : '#8B1A3A'; // accento menu (più chiaro in dark per contrasto)
-const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
-const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
-const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
-const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
-const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
-const SURF = __BYUP_DARK ? '#211f22' : '#fff'; // superfici card (bianco→dark)
-const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea'; // superficie tenue (righe riepilogo, chip)
-const MUTESURF = __BYUP_DARK ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
-const BADGE = __BYUP_DARK ? '#7a2f4a' : '#7a1c3e'; // badge/avatar wine (più chiaro in dark)
+const PINK_MENU = '#E32459';
+const PINK_DARK_MENU = '#B81C47';
+const WINE = __BYUP_DARK_MENU ? '#ef6389' : '#8B1A3A'; // accento menu (più chiaro in dark per contrasto)
+const TEXT_MENU = __BYUP_DARK_MENU ? '#f6ece9' : '#1c0f15';
+const MUTED_MENU = __BYUP_DARK_MENU ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER_MENU = __BYUP_DARK_MENU ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY_MENU = __BYUP_DARK_MENU ? '#262229' : '#f7ece8';
+const BG_PAGE_MENU = __BYUP_DARK_MENU ? '#161514' : '#FBF4F1';
+const SURF_MENU = __BYUP_DARK_MENU ? '#211f22' : '#fff'; // superfici card (bianco→dark)
+const TINT_MENU = __BYUP_DARK_MENU ? '#2b272c' : '#f6f1ea'; // superficie tenue (righe riepilogo, chip)
+const MUTESURF = __BYUP_DARK_MENU ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
+const BADGE = __BYUP_DARK_MENU ? '#7a2f4a' : '#7a1c3e'; // badge/avatar wine (più chiaro in dark)
 
 // ─── Firma CTA byup — gradiente coral + glow + sheen, usato sui money-CTA
 //    di ordine e pagamento per legarli all'identità della Home. ───
@@ -23613,7 +23613,7 @@ const I = {
   })),
   Minus: ({
     size = 16,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23630,7 +23630,7 @@ const I = {
   })),
   Trash: ({
     size = 20,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23672,7 +23672,7 @@ const I = {
   })),
   Cal: ({
     size = 16,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23706,7 +23706,7 @@ const I = {
   })),
   Clock: ({
     size = 16,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23725,7 +23725,7 @@ const I = {
   })),
   People: ({
     size = 16,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23780,7 +23780,7 @@ const I = {
   })),
   Back: ({
     size = 22,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23810,7 +23810,7 @@ const I = {
   })),
   Home: ({
     size = 24,
-    color = TEXT,
+    color = TEXT_MENU,
     fill = 'none'
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
@@ -23826,7 +23826,7 @@ const I = {
   })),
   User: ({
     size = 24,
-    color = TEXT
+    color = TEXT_MENU
   }) => /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
@@ -23890,7 +23890,7 @@ function AllergenDots({
   max,
   decongelato
 }) {
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useStateMenu(null);
   const voci = (ids || []).map(id => ({
     key: id,
     ...ALLERGENS[id]
@@ -23933,7 +23933,7 @@ function AllergenDots({
         width: 22,
         height: 22,
         borderRadius: 999,
-        background: TINT,
+        background: TINT_MENU,
         border: '1px solid #e8e0d8',
         cursor: 'pointer',
         fontSize: 11,
@@ -23975,11 +23975,11 @@ function AllergenDots({
       minWidth: 22,
       padding: '0 6px',
       borderRadius: 999,
-      background: TINT,
+      background: TINT_MENU,
       border: '1px solid #e8e0d8',
       fontSize: 10.5,
       fontWeight: 700,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1,
       flexShrink: 0
     }
@@ -25079,7 +25079,7 @@ function ModeSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       padding: '14px 22px 30px',
@@ -25097,13 +25097,13 @@ function ModeSheet({
     style: {
       fontSize: 22,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.4
     }
   }, "Come vuoi gestire l'ordine?"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 6,
       marginBottom: 18
     }
@@ -25111,8 +25111,8 @@ function ModeSheet({
     onClick: onScanQR,
     style: {
       width: '100%',
-      background: SURF,
-      border: `1.5px solid ${BORDER}`,
+      background: SURF_MENU,
+      border: `1.5px solid ${BORDER_MENU}`,
       borderRadius: 18,
       padding: '16px 16px',
       display: 'flex',
@@ -25146,13 +25146,13 @@ function ModeSheet({
     style: {
       fontSize: 15.5,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 2
     }
   }, "Sono al ristorante"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.35
     }
   }, "Inquadra il QR del tavolo per inviare l'ordine")), /*#__PURE__*/React.createElement("svg", {
@@ -25160,7 +25160,7 @@ function ModeSheet({
     height: "20",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: MUTED,
+    stroke: MUTED_MENU,
     strokeWidth: "2.2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -25170,8 +25170,8 @@ function ModeSheet({
     onClick: onTakeaway,
     style: {
       width: '100%',
-      background: SURF,
-      border: `1.5px solid ${BORDER}`,
+      background: SURF_MENU,
+      border: `1.5px solid ${BORDER_MENU}`,
       borderRadius: 18,
       padding: '16px 16px',
       display: 'flex',
@@ -25219,13 +25219,13 @@ function ModeSheet({
     style: {
       fontSize: 15.5,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 2
     }
   }, "Take Away"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.35
     }
   }, "Paga ora e scegli l'orario per ritirare al locale")), /*#__PURE__*/React.createElement("svg", {
@@ -25233,7 +25233,7 @@ function ModeSheet({
     height: "20",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: MUTED,
+    stroke: MUTED_MENU,
     strokeWidth: "2.2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -25242,7 +25242,7 @@ function ModeSheet({
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center',
       marginTop: 18,
       lineHeight: 1.4
@@ -25268,9 +25268,9 @@ function CatBand({
   index = 0,
   total = 5
 }) {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
+  const ref = useRefMenu(null);
+  const [inView, setInView] = useStateMenu(false);
+  useEffectMenu(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') {
       setInView(true);
@@ -25296,7 +25296,7 @@ function CatBand({
       padding: '24px 18px 20px',
       position: 'relative',
       overflow: 'hidden',
-      background: __BYUP_DARK ? 'linear-gradient(115deg, rgba(246,236,233,.08) 0%, rgba(246,236,233,0) 82%)' : `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`
+      background: __BYUP_DARK_MENU ? 'linear-gradient(115deg, rgba(246,236,233,.08) 0%, rgba(246,236,233,0) 82%)' : `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
@@ -25308,7 +25308,7 @@ function CatBand({
       fontSize: 104,
       fontWeight: 600,
       lineHeight: 1,
-      color: PINK,
+      color: PINK_MENU,
       letterSpacing: -5,
       opacity: inView ? 0.09 : 0,
       transform: inView ? 'none' : 'translateY(12px)',
@@ -25347,13 +25347,13 @@ function CatBand({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      color: PINK,
+      color: PINK_MENU,
       letterSpacing: 1.2,
       textTransform: 'uppercase'
     }
   }, "Sezione ", index + 1, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 700
     }
   }, "/", total)), /*#__PURE__*/React.createElement("div", {
@@ -25370,7 +25370,7 @@ function CatBand({
       width: i === index ? 16 : 5,
       height: 5,
       borderRadius: 999,
-      background: i === index ? PINK : i < index ? '#e79fb4' : '#e6d2d9',
+      background: i === index ? PINK_MENU : i < index ? '#e79fb4' : '#e6d2d9',
       transition: 'width 420ms ease, background 420ms ease'
     }
   })))), /*#__PURE__*/React.createElement("div", {
@@ -25379,7 +25379,7 @@ function CatBand({
       fontFamily: "'Fredoka', sans-serif",
       fontSize: 27,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       lineHeight: 1.05,
       transform: inView ? 'none' : 'translateY(18px)',
       opacity: inView ? 1 : 0,
@@ -25389,7 +25389,7 @@ function CatBand({
     style: {
       position: 'relative',
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 700,
       textTransform: 'uppercase',
       letterSpacing: .6,
@@ -25404,7 +25404,7 @@ function CatBand({
       width: 48,
       borderRadius: 999,
       marginTop: 11,
-      background: `linear-gradient(90deg, ${PINK}, ${PINK_DARK})`,
+      background: `linear-gradient(90deg, ${PINK_MENU}, ${PINK_DARK_MENU})`,
       transformOrigin: 'left',
       transform: inView ? 'scaleX(1)' : 'scaleX(0)',
       transition: 'transform 560ms 120ms cubic-bezier(.22,.9,.35,1)'
@@ -25425,7 +25425,7 @@ function MenuScreen({
   // menu_view (P-38): il menù visto, una volta per apertura, solo con
   // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
   // menu_view porta l'identificativo della sede, non il nome (P-161 · D-115).
-  useEffect(() => {
+  useEffectMenu(() => {
     if (window.ByupUso) window.ByupUso.emetti('menu_view', state && state.venue && (state.venue.id || null) || 'v_settembrini');
   }, []);
   const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
@@ -25440,13 +25440,13 @@ function MenuScreen({
     'Dolci': '🍰',
     'Bevande': '🍷'
   };
-  const [tab, setTab] = useState('Byup');
-  const scrollRef = useRef(null);
-  const sectionRefs = useRef({});
-  const tabBarRef = useRef(null);
+  const [tab, setTab] = useStateMenu('Byup');
+  const scrollRef = useRefMenu(null);
+  const sectionRefs = useRefMenu({});
+  const tabBarRef = useRefMenu(null);
 
   // IntersectionObserver: aggiorna la tab attiva mentre si scorre
-  useEffect(() => {
+  useEffectMenu(() => {
     const root = scrollRef.current;
     if (!root) return;
     const observer = new IntersectionObserver(entries => {
@@ -25485,8 +25485,8 @@ function MenuScreen({
   // destra → precedente. La landing resta unica (stesso scroll verticale):
   // il passaggio è animato con lo scroll morbido + una scivolata del
   // contenuto nel verso dello swipe.
-  const swipeStart = useRef(null);
-  const [swipeFx, setSwipeFx] = useState(null); // 'next' | 'prev'
+  const swipeStart = useRefMenu(null);
+  const [swipeFx, setSwipeFx] = useStateMenu(null); // 'next' | 'prev'
   const onSwipeBegin = (x, y) => {
     swipeStart.current = {
       x,
@@ -25510,7 +25510,7 @@ function MenuScreen({
 
   // Deep-link dai "I più ordinati" della vetrina: apre il menu già
   // posizionato sul piatto, con un flash del bordo per orientare l'occhio.
-  useEffect(() => {
+  useEffectMenu(() => {
     let name = null;
     try {
       name = sessionStorage.getItem('byup_menu_dish');
@@ -25536,7 +25536,7 @@ function MenuScreen({
   }, []);
 
   // Scroll la tab bar per tenere la tab attiva visibile
-  useEffect(() => {
+  useEffectMenu(() => {
     const bar = tabBarRef.current;
     if (!bar) return;
     const activeEl = bar.querySelector(`[data-tab="${tab}"]`);
@@ -25572,24 +25572,24 @@ function MenuScreen({
     } catch {}
     return false;
   })();
-  const [searchQ, setSearchQ] = useState('');
-  const [dietFilter, setDietFilter] = useState(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
+  const [searchQ, setSearchQ] = useStateMenu('');
+  const [dietFilter, setDietFilter] = useStateMenu(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
   // {glutine: true, ...} = NASCONDI i piatti che li contengono. Si parte da
   // cio che la persona ha dichiarato nel profilo: la dichiarazione esisteva e
   // il menu non la guardava, quindi il filtro che doveva proteggerla nasceva
   // vuoto a ogni apertura. Resta modificabile qui, perche chi ordina per un
   // altro deve poterlo cambiare senza toccare il proprio profilo.
-  const [allergenFilters, setAllergenFilters] = useState(function () {
+  const [allergenFilters, setAllergenFilters] = useStateMenu(function () {
     return window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati() || {};
   });
-  const [allergenSheetOpen, setAllergenSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
-  const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
-  const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
-  const [confirm, setConfirm] = useState(false);
-  const [modeSheetOpen, setModeSheetOpen] = useState(false);
+  const [allergenSheetOpen, setAllergenSheetOpen] = useStateMenu(false);
+  const [sheetMode, setSheetMode] = useStateMenu('collapsed'); // 'collapsed' | 'expanded'
+  const [sheetTab, setSheetTab] = useStateMenu('piatti'); // 'piatti' | 'divisione'
+  const [splitPickItem, setSplitPickItem] = useStateMenu(null); // piatto per il popup "con chi dividi?" (swipe ←)
+  const [confirm, setConfirm] = useStateMenu(false);
+  const [modeSheetOpen, setModeSheetOpen] = useStateMenu(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
 
   // Quello che si sfoglia: senza alcolici sotto i diciotto anni (P-187).
   const dishes = catalogoVisibile();
@@ -25828,7 +25828,7 @@ function MenuScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -25859,7 +25859,7 @@ function MenuScreen({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: __BYUP_DARK ? 'rgba(43,39,44,0.95)' : 'rgba(255,255,255,0.95)',
+      background: __BYUP_DARK_MENU ? 'rgba(43,39,44,0.95)' : 'rgba(255,255,255,0.95)',
       border: 'none',
       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       cursor: 'pointer',
@@ -25873,7 +25873,7 @@ function MenuScreen({
     height: "16",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: TEXT,
+    stroke: TEXT_MENU,
     strokeWidth: "2.5",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -25881,7 +25881,7 @@ function MenuScreen({
     points: "15 18 9 12 15 6"
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       zIndex: 5
     }
@@ -25897,7 +25897,7 @@ function MenuScreen({
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      background: SURF,
+      background: SURF_MENU,
       borderRadius: 999,
       padding: '9px 14px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
@@ -25907,7 +25907,7 @@ function MenuScreen({
     height: "16",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: MUTED,
+    stroke: MUTED_MENU,
     strokeWidth: "2",
     strokeLinecap: "round"
   }, /*#__PURE__*/React.createElement("circle", {
@@ -25929,7 +25929,7 @@ function MenuScreen({
       flex: 1,
       fontSize: 13.5,
       fontFamily: 'inherit',
-      color: TEXT,
+      color: TEXT_MENU,
       background: 'transparent'
     }
   }), searchQ && /*#__PURE__*/React.createElement("button", {
@@ -25938,7 +25938,7 @@ function MenuScreen({
       border: 'none',
       background: 'none',
       cursor: 'pointer',
-      color: MUTED,
+      color: MUTED_MENU,
       fontSize: 14
     }
   }, "\u2715")), (() => {
@@ -25951,7 +25951,7 @@ function MenuScreen({
         height: 38,
         borderRadius: 999,
         flexShrink: 0,
-        background: count > 0 ? WINE : SURF,
+        background: count > 0 ? WINE : SURF_MENU,
         border: 'none',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         cursor: 'pointer',
@@ -25964,7 +25964,7 @@ function MenuScreen({
       height: "17",
       viewBox: "0 0 24 24",
       fill: "none",
-      stroke: count > 0 ? '#fff' : TEXT,
+      stroke: count > 0 ? '#fff' : TEXT_MENU,
       strokeWidth: "2",
       strokeLinecap: "round",
       strokeLinejoin: "round"
@@ -26035,7 +26035,7 @@ function MenuScreen({
         borderBottom: `2.5px solid ${active ? WINE : 'transparent'}`,
         fontSize: 16,
         fontWeight: active ? 700 : 500,
-        color: active ? WINE : MUTED,
+        color: active ? WINE : MUTED_MENU,
         fontFamily: 'inherit',
         cursor: 'pointer',
         letterSpacing: -0.1,
@@ -26049,7 +26049,7 @@ function MenuScreen({
       gap: 6,
       padding: '10px 16px 4px',
       alignItems: 'center',
-      borderTop: `1px solid ${BORDER}`
+      borderTop: `1px solid ${BORDER_MENU}`
     }
   }, (() => {
     const n = Object.values(allergenFilters).filter(Boolean).length + (dietFilter ? 1 : 0);
@@ -26084,7 +26084,7 @@ function MenuScreen({
     style: {
       background: 'transparent',
       border: 'none',
-      color: MUTED,
+      color: MUTED_MENU,
       fontSize: 12,
       fontWeight: 600,
       cursor: 'pointer',
@@ -26094,7 +26094,7 @@ function MenuScreen({
   }, "Togli tutti")), Object.values(allergenFilters).some(Boolean) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.45,
       padding: '4px 16px 8px'
     }
@@ -26343,13 +26343,13 @@ function MenuScreen({
       style: {
         fontSize: 22,
         fontWeight: 800,
-        color: TEXT,
+        color: TEXT_MENU,
         letterSpacing: -0.4
       }
     }, "I pi\xF9 ordinati"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 2
       }
     }, "I piatti pi\xF9 amati di oggi")), /*#__PURE__*/React.createElement("div", {
@@ -26371,7 +26371,7 @@ function MenuScreen({
         style: {
           flex: '0 0 auto',
           width: 180,
-          background: SURF,
+          background: SURF_MENU,
           borderRadius: 16,
           overflow: 'hidden',
           cursor: 'pointer',
@@ -26412,7 +26412,7 @@ function MenuScreen({
         style: {
           fontSize: 14,
           fontWeight: 700,
-          color: TEXT,
+          color: TEXT_MENU,
           lineHeight: 1.2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -26429,7 +26429,7 @@ function MenuScreen({
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 13.5,
-          color: TEXT,
+          color: TEXT_MENU,
           fontWeight: 700,
           whiteSpace: 'nowrap'
         }
@@ -26470,13 +26470,13 @@ function MenuScreen({
       style: {
         fontSize: 22,
         fontWeight: 800,
-        color: TEXT,
+        color: TEXT_MENU,
         letterSpacing: -0.4
       }
     }, "Una selezione"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 2
       }
     }, "Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo \u2192 I miei dati \u2192 Privacy e consensi.")), /*#__PURE__*/React.createElement("div", {
@@ -26496,7 +26496,7 @@ function MenuScreen({
       style: {
         flex: '0 0 auto',
         width: 180,
-        background: SURF,
+        background: SURF_MENU,
         borderRadius: 16,
         overflow: 'hidden',
         cursor: 'pointer',
@@ -26524,7 +26524,7 @@ function MenuScreen({
       style: {
         fontSize: 14,
         fontWeight: 700,
-        color: TEXT,
+        color: TEXT_MENU,
         lineHeight: 1.2,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -26533,7 +26533,7 @@ function MenuScreen({
     }, d.name), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13.5,
-        color: TEXT,
+        color: TEXT_MENU,
         fontWeight: 700,
         marginTop: 6
       }
@@ -26562,13 +26562,13 @@ function MenuScreen({
       style: {
         fontSize: 22,
         fontWeight: 800,
-        color: TEXT,
+        color: TEXT_MENU,
         letterSpacing: -0.4
       }
     }, "In base ai tuoi gusti"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 2
       }
     }, subtitle)), /*#__PURE__*/React.createElement("div", {
@@ -26591,7 +26591,7 @@ function MenuScreen({
         style: {
           flex: '0 0 auto',
           width: 180,
-          background: SURF,
+          background: SURF_MENU,
           borderRadius: 16,
           overflow: 'hidden',
           cursor: 'pointer',
@@ -26632,7 +26632,7 @@ function MenuScreen({
         style: {
           fontSize: 14,
           fontWeight: 700,
-          color: TEXT,
+          color: TEXT_MENU,
           lineHeight: 1.2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -26649,7 +26649,7 @@ function MenuScreen({
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 13.5,
-          color: TEXT,
+          color: TEXT_MENU,
           fontWeight: 700,
           whiteSpace: 'nowrap'
         }
@@ -26730,19 +26730,19 @@ function MenuScreen({
         style: {
           flex: 1,
           height: 1,
-          background: TINT
+          background: TINT_MENU
         }
       }), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
-          color: MUTED,
+          color: MUTED_MENU,
           fontWeight: 600
         }
       }, "Altri piatti"), /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           height: 1,
-          background: TINT
+          background: TINT_MENU
         }
       })), /*#__PURE__*/React.createElement("div", {
         onClick: () => goTo('dish', {
@@ -26751,7 +26751,7 @@ function MenuScreen({
         }),
         "data-dish": d.name,
         style: {
-          background: SURF,
+          background: SURF_MENU,
           borderRadius: 18,
           padding: 14,
           height: 166,
@@ -26845,7 +26845,7 @@ function MenuScreen({
         style: {
           fontSize: 16,
           fontWeight: 700,
-          color: TEXT,
+          color: TEXT_MENU,
           lineHeight: 1.25,
           letterSpacing: -0.2,
           marginBottom: 5,
@@ -26869,7 +26869,7 @@ function MenuScreen({
       }, "versione ", d.versione.toLowerCase()), /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 13,
-          color: MUTED,
+          color: MUTED_MENU,
           lineHeight: 1.45,
           flex: 1,
           display: '-webkit-box',
@@ -26896,7 +26896,7 @@ function MenuScreen({
         style: {
           fontSize: 16,
           fontWeight: 800,
-          color: TEXT,
+          color: TEXT_MENU,
           flexShrink: 0
         }
       }, d.price, "\u20AC"), /*#__PURE__*/React.createElement("div", {
@@ -27049,7 +27049,7 @@ function MenuScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: SURF,
+      background: SURF_MENU,
       borderRadius: 24,
       padding: '28px 32px',
       display: 'flex',
@@ -27063,7 +27063,7 @@ function MenuScreen({
       width: 64,
       height: 64,
       borderRadius: 999,
-      background: PINK,
+      background: PINK_MENU,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
@@ -27076,13 +27076,13 @@ function MenuScreen({
       fontFamily: "'Fredoka', sans-serif",
       fontSize: 19,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       marginTop: 4
     }
   }, "Ordine inviato!"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center',
       maxWidth: 200
     }
@@ -27128,7 +27128,7 @@ function MenuScreen({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       padding: '12px 22px 24px',
@@ -27155,7 +27155,7 @@ function MenuScreen({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.2,
       whiteSpace: 'nowrap'
     }
@@ -27164,7 +27164,7 @@ function MenuScreen({
     style: {
       background: 'none',
       border: 'none',
-      color: PINK,
+      color: PINK_MENU,
       fontSize: 13,
       fontWeight: 600,
       cursor: 'pointer',
@@ -27174,14 +27174,14 @@ function MenuScreen({
   }, "Reset")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 6,
       lineHeight: 1.5
     }
   }, "Filtra il menu in base alle tue preferenze e a ci\xF2 che vuoi evitare."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 16,
       lineHeight: 1.5
     }
@@ -27189,7 +27189,7 @@ function MenuScreen({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      color: MUTED,
+      color: MUTED_MENU,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       marginBottom: 8
@@ -27217,9 +27217,9 @@ function MenuScreen({
     key: f.id || 'all',
     onClick: () => setDietFilter(f.id),
     style: {
-      background: dietFilter === f.id ? WINE : SURF,
-      color: dietFilter === f.id ? '#fff' : TEXT,
-      border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER}`,
+      background: dietFilter === f.id ? WINE : SURF_MENU,
+      color: dietFilter === f.id ? '#fff' : TEXT_MENU,
+      border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER_MENU}`,
       padding: '7px 13px',
       borderRadius: 999,
       fontSize: 12.5,
@@ -27232,7 +27232,7 @@ function MenuScreen({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      color: MUTED,
+      color: MUTED_MENU,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       marginBottom: 8
@@ -27260,8 +27260,8 @@ function MenuScreen({
         gap: 10,
         padding: '12px 12px',
         borderRadius: 12,
-        border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-        background: on ? TINT : SURF,
+        border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER_MENU}`,
+        background: on ? TINT_MENU : SURF_MENU,
         cursor: 'pointer',
         fontFamily: 'inherit',
         textAlign: 'left'
@@ -27281,7 +27281,7 @@ function MenuScreen({
         flex: 1,
         fontSize: 13.5,
         fontWeight: 600,
-        color: TEXT
+        color: TEXT_MENU
       }
     }, a.label), on && /*#__PURE__*/React.createElement("svg", {
       width: "16",
@@ -27321,8 +27321,8 @@ function MenuScreen({
 // giù invece che dopo averlo alzato.
 const SOGLIA_TRASCINA = 28;
 function useTrascinaFoglio(mode, setMode) {
-  const rif = useRef(null);
-  const trascinato = useRef(false);
+  const rif = useRefMenu(null);
+  const trascinato = useRefMenu(false);
   const inizio = e => {
     if (e.button != null && e.button !== 0) return;
     // Premuto su un bottone (cestino, invio ordine): quello non è un
@@ -27395,13 +27395,13 @@ function SwipeDishRow({
   onOpenDish,
   setQty
 }) {
-  const [dx, setDx] = useState(0);
-  const [drag, setDrag] = useState(false);
-  const [flash, setFlash] = useState(null); // 'table' | 'pick'
-  const [askUndo, setAskUndo] = useState(false); // conferma: togliere la divisione fra persone
-  const start = useRef(0);
-  const active = useRef(false);
-  const moved = useRef(false);
+  const [dx, setDx] = useStateMenu(0);
+  const [drag, setDrag] = useStateMenu(false);
+  const [flash, setFlash] = useStateMenu(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useStateMenu(false); // conferma: togliere la divisione fra persone
+  const start = useRefMenu(0);
+  const active = useRefMenu(false);
+  const moved = useRefMenu(false);
   const TH = 78;
   const onDown = e => {
     active.current = true;
@@ -27472,7 +27472,7 @@ function SwipeDishRow({
       zIndex: 4,
       background: 'rgba(255,255,255,0.97)',
       borderRadius: 12,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${BORDER_MENU}`,
       display: 'flex',
       alignItems: 'center',
       gap: 8,
@@ -27483,7 +27483,7 @@ function SwipeDishRow({
       flex: 1,
       fontSize: 12.5,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       lineHeight: 1.3
     }
   }, "Togliere la divisione?"), /*#__PURE__*/React.createElement("button", {
@@ -27507,9 +27507,9 @@ function SwipeDishRow({
     style: {
       padding: '6px 10px',
       borderRadius: 999,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${BORDER_MENU}`,
       background: '#fff',
-      color: MUTED,
+      color: MUTED_MENU,
       fontSize: 12.5,
       fontWeight: 700,
       fontFamily: 'inherit',
@@ -27606,7 +27606,7 @@ function SwipeDishRow({
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: 12,
-      background: flash === 'table' ? '#eaf7cf' : BG_GRAY,
+      background: flash === 'table' ? '#eaf7cf' : BG_GRAY_MENU,
       borderRadius: 12,
       padding: '10px 12px',
       transform: `translateX(${dx}px)`,
@@ -27633,7 +27633,7 @@ function SwipeDishRow({
     style: {
       fontSize: 14,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
@@ -27669,7 +27669,7 @@ function SwipeDishRow({
       fontSize: 11,
       fontWeight: 600,
       color: WINE,
-      background: TINT,
+      background: TINT_MENU,
       padding: '2px 7px',
       borderRadius: 999
     }
@@ -27684,9 +27684,9 @@ function SwipeDishRow({
     style: {
       fontSize: 13,
       fontWeight: 800,
-      color: MUTED,
+      color: MUTED_MENU,
       flexShrink: 0,
-      background: SURF,
+      background: SURF_MENU,
       borderRadius: 999,
       padding: '5px 11px'
     }
@@ -27695,7 +27695,7 @@ function SwipeDishRow({
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      background: SURF,
+      background: SURF_MENU,
       borderRadius: 999,
       padding: '3px 6px'
     }
@@ -27710,14 +27710,14 @@ function SwipeDishRow({
       fontWeight: 700,
       minWidth: 14,
       textAlign: 'center',
-      color: TEXT
+      color: TEXT_MENU
     }
   }, it.qty), /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(it.lineId, it.qty + 1),
     style: qtyBtn
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 13,
-    color: TEXT
+    color: TEXT_MENU
   })))));
 }
 
@@ -27736,7 +27736,7 @@ function SplitPickSheet({
   onConfirm,
   onClose
 }) {
-  const [sel, setSel] = useState({});
+  const [sel, setSel] = useStateMenu({});
   const people = participants.filter(pp => !pp.isMe && !pp.isGuest);
   const n = Object.values(sel).filter(Boolean).length;
   const per = item.unitPrice / (n + 1);
@@ -27755,7 +27755,7 @@ function SplitPickSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       padding: '14px 22px calc(24px + env(safe-area-inset-bottom, 0px))',
@@ -27773,12 +27773,12 @@ function SplitPickSheet({
     style: {
       fontSize: 17,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Con chi dividi?"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 3
     }
   }, item.name, " \xB7 ", item.unitPrice.toFixed(2), "\u20AC \u2014 a testa ", per.toFixed(2), "\u20AC"), /*#__PURE__*/React.createElement("div", {
@@ -27833,7 +27833,7 @@ function SplitPickSheet({
         height: 18,
         borderRadius: 999,
         background: '#7fb800',
-        border: '2px solid ' + SURF,
+        border: '2px solid ' + SURF_MENU,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -27853,7 +27853,7 @@ function SplitPickSheet({
       style: {
         fontSize: 11.5,
         fontWeight: 700,
-        color: on ? TEXT : MUTED
+        color: on ? TEXT_MENU : MUTED_MENU
       }
     }, pp.name.split(' ')[0]));
   })), /*#__PURE__*/React.createElement("button", {
@@ -27982,7 +27982,7 @@ function OrderSheet({
       right: 0,
       bottom: 0,
       zIndex: 30,
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       boxShadow: '0 -6px 24px rgba(0,0,0,0.1)',
@@ -28031,7 +28031,7 @@ function OrderSheet({
     style: {
       fontSize: 15,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, cartCount === 0 ? 'Nessun piatto selezionato' : `${cartCount} ${cartCount === 1 ? 'piatto selezionato' : 'piatti selezionati'}`), cartCount > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: clearCart,
@@ -28039,7 +28039,7 @@ function OrderSheet({
       width: 36,
       height: 36,
       borderRadius: 10,
-      background: BG_GRAY,
+      background: BG_GRAY_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -28048,7 +28048,7 @@ function OrderSheet({
     }
   }, /*#__PURE__*/React.createElement(I.Trash, {
     size: 18,
-    color: TEXT
+    color: TEXT_MENU
   }))), state.rifiuto && /*#__PURE__*/React.createElement("div", {
     "data-rifiuto-invio": true,
     role: "alert",
@@ -28097,12 +28097,12 @@ function OrderSheet({
     style: {
       fontSize: 15,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, cartCount === 1 ? '1 piatto' : `${cartCount} piatti`), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginLeft: 6
     }
   }, "nel carrello")), cartCount > 0 && /*#__PURE__*/React.createElement("button", {
@@ -28111,7 +28111,7 @@ function OrderSheet({
       width: 30,
       height: 30,
       borderRadius: 999,
-      background: BG_GRAY,
+      background: BG_GRAY_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -28120,7 +28120,7 @@ function OrderSheet({
     }
   }, /*#__PURE__*/React.createElement(I.Trash, {
     size: 14,
-    color: MUTED
+    color: MUTED_MENU
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -28155,7 +28155,7 @@ function OrderSheet({
     style: {
       marginTop: 12,
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 600,
       display: 'flex',
       alignItems: 'center',
@@ -28182,12 +28182,12 @@ function OrderSheet({
         gap: 10,
         padding: '9px 2px 12px',
         fontSize: 13,
-        color: MUTED
+        color: MUTED_MENU
       }
     }, /*#__PURE__*/React.createElement("span", null, r.etichetta), /*#__PURE__*/React.createElement("span", {
       style: {
         fontWeight: 700,
-        color: TEXT,
+        color: TEXT_MENU,
         fontVariantNumeric: 'tabular-nums'
       }
     }, r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`)) : null;
@@ -28229,7 +28229,7 @@ const qtyBtn = {
   height: 28,
   borderRadius: 999,
   border: 'none',
-  background: SURF,
+  background: SURF_MENU,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -28243,7 +28243,7 @@ function EmptyHint({
     style: {
       padding: '40px 20px',
       textAlign: 'center',
-      color: MUTED,
+      color: MUTED_MENU,
       fontSize: 13.5
     }
   }, text);
@@ -28257,14 +28257,14 @@ function HomeScreen({
 }) {
   const order = state.activeOrder;
   const takeaway = state.takeawayOrder;
-  const [orderExpanded, setOrderExpanded] = useState(false);
-  const [taExpanded, setTaExpanded] = useState(false);
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [orderExpanded, setOrderExpanded] = useStateMenu(false);
+  const [taExpanded, setTaExpanded] = useStateMenu(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
   const covers = order?.covers || order?.guests?.length || 1;
   const loggedIn = (order?.guests || []).filter(g => g.isApp || g.isWebApp).length;
   const HS = window.HomeSections;
-  const [activeCat, setActiveCat] = useState(null);
-  const [quickFilters, setQuickFilters] = useState({
+  const [activeCat, setActiveCat] = useStateMenu(null);
+  const [quickFilters, setQuickFilters] = useStateMenu({
     openNow: false,
     near: false,
     promo: false,
@@ -28292,7 +28292,7 @@ function HomeScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: SURF,
+      background: SURF_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -28321,7 +28321,7 @@ function HomeScreen({
     style: {
       padding: '40px 22px',
       textAlign: 'center',
-      color: MUTED
+      color: MUTED_MENU
     }
   }, "Caricamento Home\u2026"))), (() => {
     const B = window.BottomTabBar;
@@ -28383,7 +28383,7 @@ function ActiveOrderCard({
       style: {
         borderRadius: 22,
         overflow: 'hidden',
-        background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 80%)`,
+        background: `linear-gradient(135deg, ${PINK_MENU} 0%, ${PINK_DARK_MENU} 80%)`,
         color: '#fff',
         position: 'relative',
         boxShadow: '0 8px 24px rgba(194,24,91,0.35)',
@@ -28650,7 +28650,7 @@ function ActiveOrderCard({
         borderRadius: 999,
         border: 'none',
         background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-        color: allSettled ? '#fff' : PINK_DARK,
+        color: allSettled ? '#fff' : PINK_DARK_MENU,
         fontSize: 14,
         fontWeight: 700,
         fontFamily: 'inherit',
@@ -28688,7 +28688,7 @@ function ActiveOrderCard({
         borderRadius: 999,
         border: 'none',
         background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-        color: allSettled ? '#fff' : PINK_DARK,
+        color: allSettled ? '#fff' : PINK_DARK_MENU,
         fontSize: 13.5,
         fontWeight: 700,
         fontFamily: 'inherit',
@@ -28886,7 +28886,7 @@ function TakeawayCard({
       height: 42,
       borderRadius: 999,
       border: 'none',
-      background: SURF,
+      background: SURF_MENU,
       color: BADGE,
       fontSize: 14,
       fontWeight: 700,
@@ -28939,10 +28939,10 @@ function ParticipantsSheet({
 }) {
   const initial = Math.max(1, (order?.guests || []).length);
   const minN = Math.max(1, (order?.guests || []).filter(g => !g.isGuest).length);
-  const [n, setN] = useState(initial);
+  const [n, setN] = useStateMenu(initial);
   const dirty = n !== initial;
   const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
-  const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
+  const [shareState, setShareState] = useStateMenu('idle'); // 'idle' | 'copied'
   const handleShare = async () => {
     const fullUrl = 'https://' + inviteUrl;
     try {
@@ -28976,8 +28976,8 @@ function ParticipantsSheet({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: SURF,
-      color: TEXT,
+      background: SURF_MENU,
+      color: TEXT_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       padding: '14px 22px 28px',
@@ -29006,7 +29006,7 @@ function ParticipantsSheet({
   }, "Partecipanti al tavolo"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 3
     }
   }, order.table, " \xB7 ", order.venue)), /*#__PURE__*/React.createElement("button", {
@@ -29015,10 +29015,10 @@ function ParticipantsSheet({
       width: 34,
       height: 34,
       borderRadius: 999,
-      background: TINT,
+      background: TINT_MENU,
       border: 'none',
       fontSize: 15,
-      color: TEXT,
+      color: TEXT_MENU,
       cursor: 'pointer',
       flexShrink: 0,
       display: 'flex',
@@ -29028,7 +29028,7 @@ function ParticipantsSheet({
   }, "\u2715")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
-      border: `1.5px solid ${BORDER}`,
+      border: `1.5px solid ${BORDER_MENU}`,
       borderRadius: 18,
       padding: '16px 14px',
       display: 'flex',
@@ -29040,7 +29040,7 @@ function ParticipantsSheet({
       width: 44,
       height: 44,
       borderRadius: 12,
-      background: TINT,
+      background: TINT_MENU,
       color: WINE,
       display: 'flex',
       alignItems: 'center',
@@ -29079,7 +29079,7 @@ function ParticipantsSheet({
   }, "Totale partecipanti"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 1
     }
   }, "include te e gli altri commensali")), /*#__PURE__*/React.createElement("div", {
@@ -29096,8 +29096,8 @@ function ParticipantsSheet({
       width: 42,
       height: 42,
       borderRadius: 12,
-      background: SURF,
-      border: `1.5px solid ${BORDER}`,
+      background: SURF_MENU,
+      border: `1.5px solid ${BORDER_MENU}`,
       color: WINE,
       fontSize: 20,
       fontWeight: 700,
@@ -29120,8 +29120,8 @@ function ParticipantsSheet({
       width: 42,
       height: 42,
       borderRadius: 12,
-      background: SURF,
-      border: `1.5px solid ${BORDER}`,
+      background: SURF_MENU,
+      border: `1.5px solid ${BORDER_MENU}`,
       color: WINE,
       fontSize: 20,
       fontWeight: 700,
@@ -29179,7 +29179,7 @@ function ParticipantsSheet({
     style: {
       marginTop: 12,
       padding: 14,
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -29194,7 +29194,7 @@ function ParticipantsSheet({
     height: "14",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: TEXT,
+    stroke: TEXT_MENU,
     strokeWidth: "2.2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -29206,13 +29206,13 @@ function ParticipantsSheet({
     style: {
       fontSize: 13.5,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.1
     }
   }, "Invita al tavolo")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.45,
       marginBottom: 10
     }
@@ -29221,16 +29221,16 @@ function ParticipantsSheet({
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      background: SURF,
+      background: SURF_MENU,
       padding: '6px 6px 6px 12px',
       borderRadius: 999,
-      border: `1px solid ${BORDER}`
+      border: `1px solid ${BORDER_MENU}`
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
       fontSize: 12.5,
-      color: TEXT,
+      color: TEXT_MENU,
       fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -29239,7 +29239,7 @@ function ParticipantsSheet({
   }, inviteUrl), /*#__PURE__*/React.createElement("button", {
     onClick: handleShare,
     style: {
-      background: shareState === 'copied' ? '#1c8c5b' : PINK,
+      background: shareState === 'copied' ? '#1c8c5b' : PINK_MENU,
       color: '#fff',
       border: 'none',
       padding: '7px 14px',
@@ -29251,7 +29251,7 @@ function ParticipantsSheet({
       display: 'flex',
       alignItems: 'center',
       gap: 5,
-      boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK}40`,
+      boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK_MENU}40`,
       transition: 'background 0.2s'
     }
   }, shareState === 'copied' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
@@ -29278,10 +29278,10 @@ function ParticipantsSheet({
       padding: 14,
       borderRadius: 14,
       background: 'transparent',
-      border: `1.5px solid ${BORDER}`,
+      border: `1.5px solid ${BORDER_MENU}`,
       fontSize: 14.5,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       cursor: 'pointer',
       fontFamily: 'inherit'
     }
@@ -29318,22 +29318,22 @@ function DishDetailScreen({
   const versione = editLine && editLine.versione || ctx?.versione || null;
   const dish = dishConVersione(findDish(ctx?.dishId), versione);
   const isEdit = !!editLine;
-  const [expanded, setExpanded] = useState(false);
-  const [extras, setExtras] = useState(editLine?.extras || {});
-  const [removed, setRemoved] = useState(editLine?.removed || {}); // ingredient -> true
-  const [variants, setVariants] = useState(editLine?.variants || {});
-  const [nutriOpen, setNutriOpen] = useState(true);
-  const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
-  const [descInfo, setDescInfo] = useState(false); // popover "i" della descrizione generata
+  const [expanded, setExpanded] = useStateMenu(false);
+  const [extras, setExtras] = useStateMenu(editLine?.extras || {});
+  const [removed, setRemoved] = useStateMenu(editLine?.removed || {}); // ingredient -> true
+  const [variants, setVariants] = useStateMenu(editLine?.variants || {});
+  const [nutriOpen, setNutriOpen] = useStateMenu(true);
+  const [nutriInfo, setNutriInfo] = useStateMenu(false); // popover "i" del badge IA
+  const [descInfo, setDescInfo] = useStateMenu(false); // popover "i" della descrizione generata
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useStateMenu(1);
   if (!dish) {
     return /*#__PURE__*/React.createElement("div", {
       style: {
         padding: 80,
         textAlign: 'center',
-        color: MUTED
+        color: MUTED_MENU
       }
     }, "Piatto non trovato.");
   }
@@ -29490,7 +29490,7 @@ function DishDetailScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -29509,7 +29509,7 @@ function DishDetailScreen({
       width: 42,
       height: 42,
       borderRadius: 999,
-      background: SURF,
+      background: SURF_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -29604,7 +29604,7 @@ function DishDetailScreen({
     style: {
       fontSize: 24,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       lineHeight: 1.1,
       letterSpacing: -0.5
     }
@@ -29640,7 +29640,7 @@ function DishDetailScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: PINK,
+      background: PINK_MENU,
       color: '#fff',
       fontSize: 10,
       fontWeight: 800,
@@ -29663,9 +29663,9 @@ function DishDetailScreen({
       height: 20,
       borderRadius: 999,
       flexShrink: 0,
-      background: SURF,
-      border: `1.5px solid ${PINK}`,
-      color: PINK,
+      background: SURF_MENU,
+      border: `1.5px solid ${PINK_MENU}`,
+      color: PINK_MENU,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -29716,21 +29716,21 @@ function DishDetailScreen({
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.55,
       marginTop: dish.descAi && !expanded ? 6 : 10
     }
   }, expanded ? dish.longDesc : /*#__PURE__*/React.createElement(React.Fragment, null, dish.desc.slice(0, 75), dish.desc.length > 75 ? '...' : '', ' ', /*#__PURE__*/React.createElement("span", {
     onClick: () => setExpanded(true),
     style: {
-      color: PINK,
+      color: PINK_MENU,
       fontWeight: 600,
       cursor: 'pointer'
     }
   }, "altro")), expanded && /*#__PURE__*/React.createElement("span", {
     onClick: () => setExpanded(false),
     style: {
-      color: PINK,
+      color: PINK_MENU,
       fontWeight: 600,
       cursor: 'pointer',
       marginLeft: 4
@@ -29745,7 +29745,7 @@ function DishDetailScreen({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 600,
       textTransform: 'uppercase',
       letterSpacing: 0.6
@@ -29761,14 +29761,14 @@ function DishDetailScreen({
     style: {
       fontSize: 16,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 4,
       letterSpacing: -0.2
     }
   }, "Personalizza"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 14
     }
   }, "Tocca un ingrediente per toglierlo"), /*#__PURE__*/React.createElement("div", {
@@ -29786,8 +29786,8 @@ function DishDetailScreen({
         padding: '8px 14px',
         borderRadius: 999,
         border: out ? `1.5px solid #d0d0d0` : `1.5px solid ${WINE}`,
-        background: out ? TINT : SURF,
-        color: out ? '#999' : TEXT,
+        background: out ? TINT_MENU : SURF_MENU,
+        color: out ? '#999' : TEXT_MENU,
         fontSize: 13,
         fontWeight: 600,
         fontFamily: 'inherit',
@@ -29818,7 +29818,7 @@ function DishDetailScreen({
     style: {
       fontSize: 16,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 14,
       letterSpacing: -0.2
     }
@@ -29838,7 +29838,7 @@ function DishDetailScreen({
         alignItems: 'center',
         gap: 12,
         padding: '12px 0',
-        borderBottom: `1px solid ${BORDER}`
+        borderBottom: `1px solid ${BORDER_MENU}`
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -29849,12 +29849,12 @@ function DishDetailScreen({
       style: {
         fontSize: 14.5,
         fontWeight: 600,
-        color: TEXT
+        color: TEXT_MENU
       }
     }, ex.name), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12.5,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 2
       }
     }, ex.price === 0 ? 'gratis' : `+${ex.price}€`), (ex.addsAllergens || []).length > 0 && (() => {
@@ -29868,7 +29868,7 @@ function DishDetailScreen({
           fontSize: 12,
           marginTop: 3,
           fontWeight: scontro ? 700 : 500,
-          color: scontro ? '#b3261e' : MUTED
+          color: scontro ? '#b3261e' : MUTED_MENU
         }
       }, scontro ? `⚠ aggiunge ${nomi}` : `aggiunge ${nomi}`);
     })()), q === 0 ? /*#__PURE__*/React.createElement("button", {
@@ -29877,8 +29877,8 @@ function DishDetailScreen({
         width: 32,
         height: 32,
         borderRadius: 999,
-        border: `1.5px solid ${BORDER}`,
-        background: SURF,
+        border: `1.5px solid ${BORDER_MENU}`,
+        background: SURF_MENU,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -29886,7 +29886,7 @@ function DishDetailScreen({
       }
     }, /*#__PURE__*/React.createElement(I.Plus, {
       size: 14,
-      color: TEXT
+      color: TEXT_MENU
     })) : /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -29946,7 +29946,7 @@ function DishDetailScreen({
     style: {
       fontSize: 16,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 14,
       letterSpacing: -0.2
     }
@@ -29967,9 +29967,9 @@ function DishDetailScreen({
       style: {
         padding: '10px 16px',
         borderRadius: 999,
-        border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-        background: sel ? WINE : SURF,
-        color: sel ? '#fff' : TEXT,
+        border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER_MENU}`,
+        background: sel ? WINE : SURF_MENU,
+        color: sel ? '#fff' : TEXT_MENU,
         fontSize: 13,
         fontWeight: 600,
         fontFamily: 'inherit',
@@ -29983,9 +29983,9 @@ function DishDetailScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       borderRadius: 18,
-      background: SURF,
+      background: SURF_MENU,
       padding: 16,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${BORDER_MENU}`,
       position: 'relative',
       boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
     }
@@ -30000,7 +30000,7 @@ function DishDetailScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: PINK,
+      background: PINK_MENU,
       color: '#fff',
       fontSize: 10,
       fontWeight: 800,
@@ -30023,9 +30023,9 @@ function DishDetailScreen({
       height: 20,
       borderRadius: 999,
       flexShrink: 0,
-      background: SURF,
-      border: `1.5px solid ${PINK}`,
-      color: PINK,
+      background: SURF_MENU,
+      border: `1.5px solid ${PINK_MENU}`,
+      color: PINK_MENU,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -30112,12 +30112,12 @@ function DishDetailScreen({
     style: {
       fontSize: 15,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Valori nutrizionali"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 1
     }
   }, dish.cal, " Kcal a porzione")), /*#__PURE__*/React.createElement("div", {
@@ -30126,7 +30126,7 @@ function DishDetailScreen({
       transition: 'transform 0.2s'
     }
   }, /*#__PURE__*/React.createElement(I.ChevDown, {
-    color: TEXT,
+    color: TEXT_MENU,
     size: 18
   }))), nutriOpen && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -30146,18 +30146,18 @@ function DishDetailScreen({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: TEXT,
+      color: TEXT_MENU,
       fontWeight: 500
     }
   }, m.label), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: TEXT,
+      color: TEXT_MENU,
       fontWeight: 700
     }
   }, m.val, "g")), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 6,
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 999,
       overflow: 'hidden'
     }
@@ -30187,13 +30187,13 @@ function DishDetailScreen({
       style: {
         fontSize: 16,
         fontWeight: 800,
-        color: TEXT,
+        color: TEXT_MENU,
         letterSpacing: -0.2
       }
     }, "Spesso ordinato con"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12.5,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 2
       }
     }, "Gli altri clienti hanno aggiunto anche")), /*#__PURE__*/React.createElement("div", {
@@ -30214,7 +30214,7 @@ function DishDetailScreen({
         height: 28,
         borderRadius: 999,
         border: 'none',
-        background: TINT,
+        background: TINT_MENU,
         color: WINE,
         fontSize: 18,
         fontWeight: 700,
@@ -30238,7 +30238,7 @@ function DishDetailScreen({
           position: 'relative',
           boxShadow: inCart ? `0 2px 10px rgba(90,26,46,0.22)` : '0 1px 4px rgba(0,0,0,0.05)',
           border: inCart ? `2px solid ${WINE}` : '2px solid transparent',
-          background: inCart ? TINT : SURF,
+          background: inCart ? TINT_MENU : SURF_MENU,
           transition: 'all 0.18s'
         }
       }, /*#__PURE__*/React.createElement("div", {
@@ -30290,7 +30290,7 @@ function DishDetailScreen({
         style: {
           fontSize: 12,
           fontWeight: 700,
-          color: inCart ? WINE : TEXT,
+          color: inCart ? WINE : TEXT_MENU,
           lineHeight: 1.2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -30326,7 +30326,7 @@ function DishDetailScreen({
       }, "+")) : /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 11,
-          color: MUTED,
+          color: MUTED_MENU,
           fontWeight: 400,
           marginTop: 3
         }
@@ -30339,8 +30339,8 @@ function DishDetailScreen({
       right: 0,
       bottom: 0,
       padding: '14px 22px 22px',
-      background: SURF,
-      borderTop: `1px solid ${BORDER}`,
+      background: SURF_MENU,
+      borderTop: `1px solid ${BORDER_MENU}`,
       boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
       display: 'flex',
       flexDirection: 'column',
@@ -30350,7 +30350,7 @@ function DishDetailScreen({
     style: {
       fontSize: 13,
       fontWeight: 700,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center'
     }
   }, "A quante porzioni applicare le modifiche?"), /*#__PURE__*/React.createElement("div", {
@@ -30367,9 +30367,9 @@ function DishDetailScreen({
       height: 56,
       flex: '0 0 auto',
       borderRadius: 999,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${BORDER_MENU}`,
       padding: '0 6px',
-      background: SURF
+      background: SURF_MENU
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(q => Math.max(1, q - 1)),
@@ -30379,8 +30379,8 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: TINT,
-      color: TEXT,
+      background: TINT_MENU,
+      color: TEXT_MENU,
       fontSize: 22,
       fontWeight: 700,
       lineHeight: 1,
@@ -30397,7 +30397,7 @@ function DishDetailScreen({
       textAlign: 'center',
       fontSize: 16,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, qty), /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(q => q + 1),
@@ -30406,8 +30406,8 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: TINT,
-      color: TEXT,
+      background: TINT_MENU,
+      color: TEXT_MENU,
       fontSize: 22,
       fontWeight: 700,
       lineHeight: 1,
@@ -30425,9 +30425,9 @@ function DishDetailScreen({
       height: 56,
       flex: '0 0 auto',
       borderRadius: 999,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${BORDER_MENU}`,
       padding: '0 8px',
-      background: SURF
+      background: SURF_MENU
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setQty(q => Math.max(1, q - 1)),
@@ -30437,8 +30437,8 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: TINT,
-      color: TEXT,
+      background: TINT_MENU,
+      color: TEXT_MENU,
       fontSize: 22,
       fontWeight: 700,
       lineHeight: 1,
@@ -30455,7 +30455,7 @@ function DishDetailScreen({
       textAlign: 'center',
       fontSize: 15,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       whiteSpace: 'nowrap'
     }
   }, qty, " di ", editLine.qty), /*#__PURE__*/React.createElement("button", {
@@ -30466,8 +30466,8 @@ function DishDetailScreen({
       height: 38,
       borderRadius: 999,
       border: 'none',
-      background: TINT,
-      color: TEXT,
+      background: TINT_MENU,
+      color: TEXT_MENU,
       fontSize: 22,
       fontWeight: 700,
       lineHeight: 1,
@@ -30662,13 +30662,13 @@ function SlideToPay({
   onCycle,
   onPay
 }) {
-  const trackRef = useRef(null);
-  const [x, setX] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const [phase, setPhase] = useState('idle'); // 'idle' | 'success'
-  const [pulse, setPulse] = useState(0);
-  const startX = useRef(0);
-  const moved = useRef(false);
+  const trackRef = useRefMenu(null);
+  const [x, setX] = useStateMenu(0);
+  const [dragging, setDragging] = useStateMenu(false);
+  const [phase, setPhase] = useStateMenu('idle'); // 'idle' | 'success'
+  const [pulse, setPulse] = useStateMenu(0);
+  const startX = useRefMenu(0);
+  const moved = useRefMenu(false);
   const KNOB = 46;
   const themes = {
     mine: {
@@ -30785,8 +30785,8 @@ function SlideToPay({
       position: 'relative',
       height: 58,
       borderRadius: 999,
-      background: TINT,
-      border: `1.5px solid ${BORDER}`,
+      background: TINT_MENU,
+      border: `1.5px solid ${BORDER_MENU}`,
       overflow: 'hidden',
       userSelect: 'none',
       touchAction: 'none',
@@ -30851,13 +30851,13 @@ function SlideToPay({
     style: {
       fontSize: 13,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, label), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 15,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       fontVariantNumeric: 'tabular-nums'
     }
   }, amount.toFixed(2), "\u20AC"), /*#__PURE__*/React.createElement("span", {
@@ -30876,7 +30876,7 @@ function SlideToPay({
   }, /*#__PURE__*/React.createElement("path", {
     d: "M1.5 1.5 6 6l-4.5 4.5",
     fill: "none",
-    stroke: MUTED,
+    stroke: MUTED_MENU,
     strokeWidth: "2",
     strokeLinecap: "round"
   })))))), /*#__PURE__*/React.createElement("div", {
@@ -31049,7 +31049,7 @@ function PaymentScreen({
     style: {
       padding: 80,
       textAlign: 'center',
-      color: MUTED
+      color: MUTED_MENU
     }
   }, "Nessun ordine attivo.");
 
@@ -31071,25 +31071,25 @@ function PaymentScreen({
     }, 0);
     return mio <= 0.001 && tableRemaining(order, settled) > 0.001 ? 'all' : 'mine';
   };
-  const [mode, setMode] = useState(modoIniziale);
+  const [mode, setMode] = useStateMenu(modoIniziale);
   // selectedExtras: lineId -> true (piatti di altri che voglio pagare io)
-  const [selectedExtras, setSelectedExtras] = useState(state.payingExtras || {});
+  const [selectedExtras, setSelectedExtras] = useStateMenu(state.payingExtras || {});
   // open accordion per owner
-  const [openOwners, setOpenOwners] = useState({});
+  const [openOwners, setOpenOwners] = useStateMenu({});
   // mancia: percentuale (0 | 0.05 | 0.1) oppure arrotondamento all'euro
   // successivo (tipRound). Mutuamente esclusivi.
-  const [tipPct, setTipPct] = useState(0); // 0, 0.05, 0.10
-  const [tipRound, setTipRound] = useState(false);
+  const [tipPct, setTipPct] = useStateMenu(0); // 0, 0.05, 0.10
+  const [tipRound, setTipRound] = useStateMenu(false);
   // overlay di caricamento durante il pagamento
-  const [paying, setPaying] = useState(false);
-  const [splitInfo, setSplitInfo] = useState(null);
-  const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
+  const [paying, setPaying] = useStateMenu(false);
+  const [splitInfo, setSplitInfo] = useStateMenu(null);
+  const [confirmRejectSplit, setConfirmRejectSplit] = useStateMenu(null);
   // Sheet "Al tavolo": apre la lista commensali con badge ✓ ha l'app / ospite
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
 
   // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
-  const [ctaMode, setCtaMode] = useState(modoIniziale); // 'mine' | 'all'
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [ctaMode, setCtaMode] = useStateMenu(modoIniziale); // 'mine' | 'all'
+  const [detailsOpen, setDetailsOpen] = useStateMenu(false);
   const cycleCtaMode = () => setCtaMode(m => {
     const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
     setMode(next === 'all' ? 'all' : 'mine');
@@ -31151,7 +31151,7 @@ function PaymentScreen({
     borderRadius: 999,
     flexShrink: 0,
     border: `1.5px solid ${WINE}`,
-    background: SURF,
+    background: SURF_MENU,
     color: WINE,
     fontSize: 20,
     fontWeight: 500,
@@ -31247,7 +31247,7 @@ function PaymentScreen({
     return /*#__PURE__*/React.createElement("div", {
       key: id,
       style: {
-        background: SURF,
+        background: SURF_MENU,
         borderRadius: 14,
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
@@ -31286,13 +31286,13 @@ function PaymentScreen({
       style: {
         fontSize: 16,
         fontWeight: 700,
-        color: TEXT
+        color: TEXT_MENU
       }
     }, title), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
         marginTop: 1,
-        color: allPaid ? '#1c8c5b' : MUTED,
+        color: allPaid ? '#1c8c5b' : MUTED_MENU,
         fontWeight: allPaid ? 700 : 500
       }
     }, allPaid ? 'Tutto già pagato' : available.length === 0 ? 'In pagamento…' : picked.length > 0 ? `${picked.length}/${available.length} sul tuo conto · ${pickedTotal.toFixed(2)}€` : `${available.length} ${available.length === 1 ? 'piatto' : 'piatti'} · ${availableTotal.toFixed(2)}€`)), !frozen && /*#__PURE__*/React.createElement("div", {
@@ -31301,7 +31301,7 @@ function PaymentScreen({
         transition: 'transform 0.2s'
       }
     }, /*#__PURE__*/React.createElement(I.ChevDown, {
-      color: MUTED,
+      color: MUTED_MENU,
       size: 16
     }))), open && !frozen && /*#__PURE__*/React.createElement("div", {
       style: {
@@ -31315,7 +31315,7 @@ function PaymentScreen({
         padding: '8px 12px',
         borderRadius: 999,
         background: allPicked ? '#ebe3d6' : WINE,
-        color: allPicked ? MUTED : '#fff',
+        color: allPicked ? MUTED_MENU : '#fff',
         border: 'none',
         fontSize: 12.5,
         fontWeight: 700,
@@ -31341,7 +31341,7 @@ function PaymentScreen({
           alignItems: 'center',
           gap: 10,
           padding: '11px 0',
-          borderTop: `1px solid ${BORDER}`,
+          borderTop: `1px solid ${BORDER_MENU}`,
           opacity: off ? 0.45 : 1
         }
       }, /*#__PURE__*/React.createElement("div", {
@@ -31350,7 +31350,7 @@ function PaymentScreen({
           minWidth: 0,
           fontSize: 15,
           fontWeight: 600,
-          color: TEXT,
+          color: TEXT_MENU,
           textDecoration: paid ? 'line-through' : 'none',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -31360,7 +31360,7 @@ function PaymentScreen({
         style: {
           fontSize: 14.5,
           fontWeight: 700,
-          color: TEXT,
+          color: TEXT_MENU,
           flexShrink: 0,
           fontVariantNumeric: 'tabular-nums'
         }
@@ -31376,7 +31376,7 @@ function PaymentScreen({
         height: "15",
         viewBox: "0 0 24 24",
         fill: "none",
-        stroke: MUTED,
+        stroke: MUTED_MENU,
         strokeWidth: "2.2",
         strokeLinecap: "round",
         strokeLinejoin: "round"
@@ -31492,15 +31492,15 @@ function PaymentScreen({
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
   // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
   // quota: la slide da sola non basta come conferma.
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmAll, setConfirmAll] = useStateMenu(false);
   // La finestra notturna (P-148): dentro, il pagamento aspetta mezzanotte
   // italiana come in cassa; il conto alla rovescia si aggiorna ogni secondo.
   const notte = window.byupNotteInfo ? window.byupNotteInfo() : {
     dentro: false,
     mancano: 0
   };
-  const [, setNotteTick] = useState(0);
-  useEffect(() => {
+  const [, setNotteTick] = useStateMenu(0);
+  useEffectMenu(() => {
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
@@ -31529,7 +31529,7 @@ function PaymentScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -31539,7 +31539,7 @@ function PaymentScreen({
     style: {
       flexShrink: 0,
       paddingTop: 60,
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       zIndex: 5,
       boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
@@ -31557,7 +31557,7 @@ function PaymentScreen({
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: SURF,
+      background: SURF_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -31572,14 +31572,14 @@ function PaymentScreen({
     style: {
       fontSize: 22,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.4,
       lineHeight: 1.1
     }
   }, "Il tuo conto"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 2
     }
   }, order.table)))), /*#__PURE__*/React.createElement("div", {
@@ -31594,7 +31594,7 @@ function PaymentScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: SURF,
+      background: SURF_MENU,
       borderRadius: 18,
       padding: '14px 16px 4px',
       border: `1.5px solid ${WINE}2e`,
@@ -31625,7 +31625,7 @@ function PaymentScreen({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       flex: 1,
       letterSpacing: -0.3
     }
@@ -31633,7 +31633,7 @@ function PaymentScreen({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       fontVariantNumeric: 'tabular-nums'
     }
   }, (subtotal + cover).toFixed(2), "\u20AC")), (mode === 'all' ? order.items : myItems).map(it => {
@@ -31653,7 +31653,7 @@ function PaymentScreen({
         alignItems: 'center',
         gap: 8,
         padding: '11px 0',
-        borderTop: `1px solid ${BORDER}`
+        borderTop: `1px solid ${BORDER_MENU}`
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -31667,13 +31667,13 @@ function PaymentScreen({
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14.5,
-        color: paid ? MUTED : TEXT,
+        color: paid ? MUTED_MENU : TEXT_MENU,
         textDecoration: paid ? 'line-through' : 'none'
       }
     }, it.name), it.qty > 1 && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12,
-        color: MUTED
+        color: MUTED_MENU
       }
     }, "\xD7", it.qty), isShared && !paid && mode === 'mine' && /*#__PURE__*/React.createElement("span", {
       onClick: e => {
@@ -31689,7 +31689,7 @@ function PaymentScreen({
         display: 'inline-flex',
         alignItems: 'center',
         gap: 4,
-        background: TINT,
+        background: TINT_MENU,
         color: WINE,
         padding: '2.5px 9px',
         borderRadius: 999,
@@ -31706,7 +31706,7 @@ function PaymentScreen({
     }, "\u2713 pagato")), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14.5,
-        color: paid ? MUTED : TEXT,
+        color: paid ? MUTED_MENU : TEXT_MENU,
         fontVariantNumeric: 'tabular-nums',
         flexShrink: 0
       }
@@ -31726,7 +31726,7 @@ function PaymentScreen({
         alignItems: 'center',
         gap: 8,
         padding: '11px 0',
-        borderTop: `1px solid ${BORDER}`
+        borderTop: `1px solid ${BORDER_MENU}`
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -31740,11 +31740,11 @@ function PaymentScreen({
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14.5,
-        color: TEXT
+        color: TEXT_MENU
       }
     }, it.name), /*#__PURE__*/React.createElement("span", {
       style: {
-        background: TINT,
+        background: TINT_MENU,
         color: WINE,
         padding: '2.5px 9px',
         borderRadius: 999,
@@ -31754,7 +31754,7 @@ function PaymentScreen({
     }, isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14.5,
-        color: TEXT,
+        color: TEXT_MENU,
         fontVariantNumeric: 'tabular-nums',
         flexShrink: 0
       }
@@ -31766,7 +31766,7 @@ function PaymentScreen({
         height: 22,
         borderRadius: 999,
         border: 'none',
-        background: TINT,
+        background: TINT_MENU,
         color: WINE,
         fontSize: 14,
         lineHeight: 1,
@@ -31784,25 +31784,25 @@ function PaymentScreen({
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '11px 0',
-      borderTop: `1px solid ${BORDER}`
+      borderTop: `1px solid ${BORDER_MENU}`
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14.5,
-      color: MUTED
+      color: MUTED_MENU
     }
   }, copertoNome, copertoFisso ? mode === 'all' ? ` × ${covers}` : '' : ` ${copertoCfg.aliquota}%`), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14.5,
-      color: MUTED,
+      color: MUTED_MENU,
       fontVariantNumeric: 'tabular-nums'
     }
   }, cover.toFixed(2), "\u20AC")), myItems.length === 0 && extraItems.length === 0 && mode === 'mine' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 0',
-      borderTop: `1px solid ${BORDER}`,
+      borderTop: `1px solid ${BORDER_MENU}`,
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center'
     }
   }, "\u2713 Non hai piatti tuoi sul conto."))), mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && /*#__PURE__*/React.createElement("div", {
@@ -31820,7 +31820,7 @@ function PaymentScreen({
     style: {
       fontSize: 22,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.4
     }
   }, "Il tavolo"), /*#__PURE__*/React.createElement("button", {
@@ -31835,19 +31835,19 @@ function PaymentScreen({
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 13,
-      color: MUTED
+      color: MUTED_MENU
     }
   }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, order.guests?.length || 0), " partecipanti"), /*#__PURE__*/React.createElement("svg", {
     width: "11",
     height: "11",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: MUTED,
+    stroke: MUTED_MENU,
     strokeWidth: "2.4",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -31856,7 +31856,7 @@ function PaymentScreen({
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.45,
       marginBottom: 14
     }
@@ -31889,7 +31889,7 @@ function PaymentScreen({
   })), altroItems.length > 0 && renderTableCard({
     id: 'altro',
     title: 'Altro',
-    avatarBg: TINT,
+    avatarBg: TINT_MENU,
     avatarColor: WINE,
     avatar: /*#__PURE__*/React.createElement("svg", {
       width: "16",
@@ -31910,8 +31910,8 @@ function PaymentScreen({
       left: 0,
       right: 0,
       bottom: 0,
-      background: SURF,
-      borderTop: `1px solid ${BORDER}`,
+      background: SURF_MENU,
+      borderTop: `1px solid ${BORDER_MENU}`,
       boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       padding: '12px 16px calc(26px + env(safe-area-inset-bottom, 0px))'
     }
@@ -31933,7 +31933,7 @@ function PaymentScreen({
       padding: '8px 0',
       background: 'none',
       border: 'none',
-      color: MUTED,
+      color: MUTED_MENU,
       fontSize: 12.5,
       fontWeight: 700,
       cursor: 'pointer',
@@ -31953,7 +31953,7 @@ function PaymentScreen({
     onClick: e => e.stopPropagation(),
     style: {
       width: '100%',
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       padding: '10px 0 calc(18px + env(safe-area-inset-bottom, 0px))'
@@ -31975,20 +31975,20 @@ function PaymentScreen({
     style: {
       fontSize: 17,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 12
     }
   }, "Dettagli pagamento"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'space-between',
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("span", null, mode === 'all' ? 'Tutto il tavolo' : extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti'), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, (subtotal + cover).toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32000,7 +32000,7 @@ function PaymentScreen({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: MUTED,
+      color: MUTED_MENU,
       flexShrink: 0
     }
   }, "Mancia"), /*#__PURE__*/React.createElement("div", {
@@ -32041,8 +32041,8 @@ function PaymentScreen({
         height: 28,
         padding: '0 10px',
         borderRadius: 999,
-        background: active ? WINE : TINT,
-        color: active ? '#fff' : TEXT,
+        background: active ? WINE : TINT_MENU,
+        color: active ? '#fff' : TEXT_MENU,
         border: 'none',
         fontSize: 12,
         fontWeight: 700,
@@ -32054,7 +32054,7 @@ function PaymentScreen({
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 600,
-      color: tipAmount > 0 ? TEXT : MUTED,
+      color: tipAmount > 0 ? TEXT_MENU : MUTED_MENU,
       minWidth: 50,
       textAlign: 'right'
     }
@@ -32066,7 +32066,7 @@ function PaymentScreen({
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 12,
       cursor: 'pointer'
     }
@@ -32079,8 +32079,8 @@ function PaymentScreen({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: payMethod === 'apple' ? '#000' : payMethod === 'klarna' ? '#ffb3c7' : SURF,
-      border: payMethod === 'apple' || payMethod === 'klarna' ? 'none' : `1px solid ${BORDER}`,
+      background: payMethod === 'apple' ? '#000' : payMethod === 'klarna' ? '#ffb3c7' : SURF_MENU,
+      border: payMethod === 'apple' || payMethod === 'klarna' ? 'none' : `1px solid ${BORDER_MENU}`,
       gap: 2
     }
   }, payMethod === 'apple' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
@@ -32111,14 +32111,14 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 500,
       lineHeight: 1
     }
   }, "Paghi con"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: TEXT,
+      color: TEXT_MENU,
       fontWeight: 700,
       marginTop: 2
     }
@@ -32139,13 +32139,13 @@ function PaymentScreen({
     style: {
       fontSize: 14,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Totale"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 19,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, ctaTotal.toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32157,9 +32157,9 @@ function PaymentScreen({
       width: '100%',
       height: 48,
       borderRadius: 999,
-      border: `1.5px solid ${BORDER}`,
+      border: `1.5px solid ${BORDER_MENU}`,
       background: 'transparent',
-      color: TEXT,
+      color: TEXT_MENU,
       fontSize: 14,
       fontWeight: 800,
       fontFamily: 'inherit',
@@ -32186,7 +32186,7 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       width: '100%',
@@ -32205,14 +32205,14 @@ function PaymentScreen({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.3,
       marginBottom: 4
     }
   }, splitInfo.item.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 16
     }
   }, "Diviso tra ", splitInfo.splitN, " persone"), /*#__PURE__*/React.createElement("div", {
@@ -32233,7 +32233,7 @@ function PaymentScreen({
       alignItems: 'center',
       gap: 12,
       padding: '10px 12px',
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -32241,8 +32241,8 @@ function PaymentScreen({
       width: 34,
       height: 34,
       borderRadius: 999,
-      background: p.isMe ? PINK_DARK : p.isGuest ? '#ebe3d6' : BADGE,
-      color: p.isMe ? '#fff' : p.isGuest ? MUTED : '#fff',
+      background: p.isMe ? PINK_DARK_MENU : p.isGuest ? '#ebe3d6' : BADGE,
+      color: p.isMe ? '#fff' : p.isGuest ? MUTED_MENU : '#fff',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -32254,13 +32254,13 @@ function PaymentScreen({
       flex: 1,
       fontSize: 14,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, p.name, p.isMe ? ' (tu)' : ''), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, splitInfo.myShare.toFixed(2), "\u20AC")))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32268,20 +32268,20 @@ function PaymentScreen({
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '12px 12px',
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 12,
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12.5,
-      color: MUTED
+      color: MUTED_MENU
     }
   }, "Totale piatto"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 15,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, (splitInfo.item.price * splitInfo.item.qty).toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setConfirmRejectSplit(splitInfo.item),
@@ -32334,7 +32334,7 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 22,
       borderTopRightRadius: 22,
       width: '100%',
@@ -32354,14 +32354,14 @@ function PaymentScreen({
     style: {
       fontSize: 18,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.3,
       marginBottom: 8
     }
   }, "Rifiuti la divisione?"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.5,
       marginBottom: 22
     }
@@ -32392,12 +32392,12 @@ function PaymentScreen({
       padding: '14px',
       borderRadius: 14,
       border: '1.5px solid #E0DADC',
-      background: SURF,
+      background: SURF_MENU,
       cursor: 'pointer',
       fontFamily: 'inherit',
       fontSize: 15,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Annulla")))), paying && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32467,7 +32467,7 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: '100%',
-      background: SURF,
+      background: SURF_MENU,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       padding: '10px 22px 26px',
@@ -32485,14 +32485,14 @@ function PaymentScreen({
     style: {
       fontSize: 20,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.3,
       marginBottom: 6
     }
   }, "Paghi per tutto il tavolo?"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
-      color: MUTED,
+      color: MUTED_MENU,
       lineHeight: 1.5,
       marginBottom: 18
     }
@@ -32509,14 +32509,14 @@ function PaymentScreen({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 600
     }
   }, "Totale"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 22,
       fontWeight: 800,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "\u20AC ", ctaTotal.toFixed(2))), /*#__PURE__*/React.createElement("button", {
     onClick: payConfirmed,
@@ -32542,7 +32542,7 @@ function PaymentScreen({
       border: 'none',
       fontFamily: 'inherit',
       fontSize: 14.5,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 600,
       cursor: 'pointer'
     }
@@ -32559,7 +32559,7 @@ function PayMethodScreen({
 }) {
   const isTakeaway = ctx?.mode === 'takeaway';
   const total = isTakeaway ? state.pendingTakeaway?.total || 0 : state.payTotal || 0;
-  const [method, setMethod] = useState(isTakeaway ? 'apple' : state.payMethod || 'apple');
+  const [method, setMethod] = useStateMenu(isTakeaway ? 'apple' : state.payMethod || 'apple');
 
   // Dine-in: questa schermata NON paga, conferma solo il metodo e torna al conto.
   const confirmMethod = () => {
@@ -32636,7 +32636,7 @@ function PayMethodScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -32659,7 +32659,7 @@ function PayMethodScreen({
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: SURF,
+      background: SURF_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -32677,7 +32677,7 @@ function PayMethodScreen({
     style: {
       fontSize: 22,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.4,
       marginBottom: 18
     }
@@ -32698,10 +32698,10 @@ function PayMethodScreen({
       key: m.id,
       onClick: onPick,
       style: {
-        background: sel ? TINT : SURF,
+        background: sel ? TINT_MENU : SURF_MENU,
         borderRadius: 14,
         padding: '14px 16px',
-        border: sel ? `2px solid ${PINK}` : `1.5px solid ${BORDER}`,
+        border: sel ? `2px solid ${PINK_MENU}` : `1.5px solid ${BORDER_MENU}`,
         boxShadow: sel ? '0 10px 24px -14px rgba(227,36,89,.5)' : 'none',
         transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
         display: 'flex',
@@ -32719,7 +32719,7 @@ function PayMethodScreen({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: m.id === 'klarna' ? '#ffb3c7' : __BYUP_DARK ? '#f6f1ea' : TINT,
+        background: m.id === 'klarna' ? '#ffb3c7' : __BYUP_DARK_MENU ? '#f6f1ea' : TINT_MENU,
         border: 'none'
       }
     }, m.icon), /*#__PURE__*/React.createElement("div", {
@@ -32730,7 +32730,7 @@ function PayMethodScreen({
       style: {
         fontSize: 14.5,
         fontWeight: 700,
-        color: TEXT
+        color: TEXT_MENU
       }
     }, m.name), m.sub && /*#__PURE__*/React.createElement("div", {
       style: {
@@ -32744,8 +32744,8 @@ function PayMethodScreen({
         width: 22,
         height: 22,
         borderRadius: 999,
-        border: sel ? `6px solid ${PINK}` : `1.5px solid ${__BYUP_DARK ? 'rgba(246,236,233,.4)' : BORDER}`,
-        background: sel ? SURF : 'transparent',
+        border: sel ? `6px solid ${PINK_MENU}` : `1.5px solid ${__BYUP_DARK_MENU ? 'rgba(246,236,233,.4)' : BORDER_MENU}`,
+        background: sel ? SURF_MENU : 'transparent',
         boxSizing: 'border-box',
         transition: 'border-color 160ms ease'
       }
@@ -32757,8 +32757,8 @@ function PayMethodScreen({
       right: 0,
       bottom: 0,
       padding: '14px 22px 22px',
-      background: SURF,
-      borderTop: `1px solid ${BORDER}`
+      background: SURF_MENU,
+      borderTop: `1px solid ${BORDER_MENU}`
     }
   }, isTakeaway ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -32771,7 +32771,7 @@ function PayMethodScreen({
     style: {
       fontSize: 14,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Totale"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -32806,14 +32806,14 @@ function PayMethodScreen({
   }), " Pay"), method === 'paypal' && /*#__PURE__*/React.createElement(React.Fragment, null, "Paga con PayPal"), method === 'klarna' && /*#__PURE__*/React.createElement(React.Fragment, null, "Continua con Klarna"), method === 'card' && /*#__PURE__*/React.createElement(React.Fragment, null, "Paga con carta"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center',
       marginBottom: 12
     }
   }, "Pagherai con ", /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, payMethodName(method)), " \xB7 il pagamento avviene dal conto"), /*#__PURE__*/React.createElement("button", {
     onClick: confirmMethod,
@@ -32850,11 +32850,11 @@ function SuccessScreen({
   ctx
 }) {
   const isTakeaway = ctx?.mode === 'takeaway';
-  const [rating, setRating] = useState(0);
-  const [hoverStar, setHoverStar] = useState(0);
-  const [aspects, setAspects] = useState([]); // ids selezionati
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [rating, setRating] = useStateMenu(0);
+  const [hoverStar, setHoverStar] = useStateMenu(0);
+  const [aspects, setAspects] = useStateMenu([]); // ids selezionati
+  const [comment, setComment] = useStateMenu('');
+  const [submitted, setSubmitted] = useStateMenu(false);
   const venue = isTakeaway ? state.takeawayOrder?.venue || 'Ristorante Maria Grazia' : state.activeOrder?.venue || 'Ristorante Maria Grazia';
   const pickupTime = state.takeawayOrder?.pickupTime;
 
@@ -32975,7 +32975,7 @@ function SuccessScreen({
       style: {
         width: '100%',
         height: '100%',
-        background: BG_PAGE,
+        background: BG_PAGE_MENU,
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -33021,7 +33021,7 @@ function SuccessScreen({
       style: {
         fontSize: 24,
         fontWeight: 800,
-        color: TEXT,
+        color: TEXT_MENU,
         lineHeight: 1.2,
         letterSpacing: -0.5,
         marginBottom: 6
@@ -33029,14 +33029,14 @@ function SuccessScreen({
     }, "Ordine confermato!"), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13.5,
-        color: MUTED,
+        color: MUTED_MENU,
         marginTop: 4,
         lineHeight: 1.45,
         maxWidth: 290
       }
     }, "Ritira il tuo ordine alle ", /*#__PURE__*/React.createElement("b", {
       style: {
-        color: TEXT
+        color: TEXT_MENU
       }
     }, pickupTime), " da ", venue))), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -33097,7 +33097,7 @@ function SuccessScreen({
     style: {
       width: '100%',
       height: '100%',
-      background: BG_PAGE,
+      background: BG_PAGE_MENU,
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -33139,24 +33139,24 @@ function SuccessScreen({
       fontFamily: "'Fredoka', sans-serif",
       fontSize: 30,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       lineHeight: 1.15
     }
   }, "Fatto. Goditi la serata."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 10,
       lineHeight: 1.45,
       maxWidth: 290
     }
   }, "Hai pagato ", /*#__PURE__*/React.createElement("b", {
     style: {
-      color: TEXT
+      color: TEXT_MENU
     }
   }, paidAmount.toFixed(2), "\u20AC"), " a ", /*#__PURE__*/React.createElement("b", {
     style: {
-      color: TEXT
+      color: TEXT_MENU
     }
   }, venue)), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
@@ -33195,7 +33195,7 @@ function SuccessScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 700,
       textTransform: 'uppercase',
       letterSpacing: 0.7
@@ -33217,7 +33217,7 @@ function SuccessScreen({
       padding: '6px 12px 6px 6px',
       borderRadius: 999,
       background: 'rgba(255,255,255,0.7)',
-      border: `1px solid ${BORDER}`
+      border: `1px solid ${BORDER_MENU}`
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -33237,13 +33237,13 @@ function SuccessScreen({
     style: {
       fontSize: 13.5,
       fontWeight: 600,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, g.name || 'Ospite'), g.amount != null && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
       fontWeight: 700,
-      color: MUTED
+      color: MUTED_MENU
     }
   }, "\u20AC ", Number(g.amount).toFixed(2)))), daPagare.length > 4 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -33254,20 +33254,20 @@ function SuccessScreen({
       background: MUTESURF,
       fontSize: 13,
       fontWeight: 700,
-      color: MUTED
+      color: MUTED_MENU
     }
   }, "+", daPagare.length - 4)))), !submitted && sospensione && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 40,
       padding: '14px 16px',
       borderRadius: 14,
-      background: TINT,
-      border: `1px solid ${BORDER}`
+      background: TINT_MENU,
+      border: `1px solid ${BORDER_MENU}`
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: MUTED,
+      color: MUTED_MENU,
       textTransform: 'uppercase',
       letterSpacing: 0.7,
       fontWeight: 700,
@@ -33277,12 +33277,12 @@ function SuccessScreen({
     style: {
       fontSize: 13.5,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, "Fino al ", sospensioneFine, " non puoi lasciare recensioni."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 4,
       lineHeight: 1.45
     }
@@ -33293,7 +33293,7 @@ function SuccessScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: MUTED,
+      color: MUTED_MENU,
       textAlign: 'center',
       marginBottom: 12,
       textTransform: 'uppercase',
@@ -33326,7 +33326,7 @@ function SuccessScreen({
         width: 38,
         height: 38,
         borderRadius: 9,
-        background: filled ? PINK : TINT,
+        background: filled ? PINK_MENU : TINT_MENU,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -33348,7 +33348,7 @@ function SuccessScreen({
       textAlign: 'center',
       fontSize: 13,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       minHeight: 18,
       marginTop: 8
     }
@@ -33360,7 +33360,7 @@ function SuccessScreen({
     style: {
       fontSize: 13,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 10,
       textAlign: 'center'
     }
@@ -33383,9 +33383,9 @@ function SuccessScreen({
         gap: 6,
         padding: '8px 12px',
         borderRadius: 999,
-        border: sel ? `1.5px solid ${accent}` : `1.5px solid ${BORDER}`,
-        background: sel ? `${accent}10` : SURF,
-        color: sel ? accent : TEXT,
+        border: sel ? `1.5px solid ${accent}` : `1.5px solid ${BORDER_MENU}`,
+        background: sel ? `${accent}10` : SURF_MENU,
+        color: sel ? accent : TEXT_MENU,
         fontSize: 12.5,
         fontWeight: 600,
         fontFamily: 'inherit',
@@ -33409,11 +33409,11 @@ function SuccessScreen({
       marginTop: 14,
       padding: '12px 14px',
       borderRadius: 14,
-      border: `1.5px solid ${BORDER}`,
-      background: SURF,
+      border: `1.5px solid ${BORDER_MENU}`,
+      background: SURF_MENU,
       fontSize: 13.5,
       fontFamily: 'inherit',
-      color: TEXT,
+      color: TEXT_MENU,
       outline: 'none',
       boxSizing: 'border-box',
       lineHeight: 1.4
@@ -33463,7 +33463,7 @@ function SuccessScreen({
     style: {
       fontSize: 15,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.2
     }
   }, "Grazie per la recensione!"))), /*#__PURE__*/React.createElement("div", {
@@ -33473,7 +33473,7 @@ function SuccessScreen({
       right: 0,
       bottom: 0,
       padding: '22px 22px 26px',
-      background: __BYUP_DARK ? 'linear-gradient(to top, #161514 60%, rgba(22,21,20,0))' : 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
+      background: __BYUP_DARK_MENU ? 'linear-gradient(to top, #161514 60%, rgba(22,21,20,0))' : 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -33616,7 +33616,7 @@ function TakeawayScreen({
     const mm = String(t.getMinutes()).padStart(2, '0');
     slots.push(`${hh}:${mm}`);
   }
-  const [pickupTime, setPickupTime] = useState(slots[1]);
+  const [pickupTime, setPickupTime] = useStateMenu(slots[1]);
   const onContinue = () => {
     // Salva ctx takeaway in state e vai al pagamento
     setState(s => ({
@@ -33641,7 +33641,7 @@ function TakeawayScreen({
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      background: SURF,
+      background: SURF_MENU,
       minHeight: '100%',
       display: 'flex',
       flexDirection: 'column'
@@ -33663,7 +33663,7 @@ function TakeawayScreen({
       width: 38,
       height: 38,
       borderRadius: 999,
-      background: BG_GRAY,
+      background: BG_GRAY_MENU,
       border: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -33673,7 +33673,7 @@ function TakeawayScreen({
     }
   }, /*#__PURE__*/React.createElement(I.Back, {
     size: 20,
-    color: TEXT
+    color: TEXT_MENU
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -33681,7 +33681,7 @@ function TakeawayScreen({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: MUTED,
+      color: MUTED_MENU,
       fontWeight: 600,
       letterSpacing: 0.4,
       textTransform: 'uppercase'
@@ -33690,7 +33690,7 @@ function TakeawayScreen({
     style: {
       fontSize: 19,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.3
     }
   }, "Quando vieni a ritirare?"))), /*#__PURE__*/React.createElement("div", {
@@ -33701,7 +33701,7 @@ function TakeawayScreen({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: TINT,
+      background: TINT_MENU,
       borderRadius: 18,
       padding: 14,
       display: 'flex',
@@ -33742,20 +33742,20 @@ function TakeawayScreen({
     style: {
       fontSize: 14.5,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.2
     }
   }, "Ristorante Maria Grazia"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: MUTED,
+      color: MUTED_MENU,
       marginTop: 2
     }
   }, "Via del Corso 47 \xB7 Roma"))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 12,
       letterSpacing: -0.2
     }
@@ -33772,9 +33772,9 @@ function TakeawayScreen({
     style: {
       padding: '12px 4px',
       borderRadius: 14,
-      border: `1.5px solid ${pickupTime === t ? WINE : BORDER}`,
-      background: pickupTime === t ? WINE : SURF,
-      color: pickupTime === t ? '#fff' : TEXT,
+      border: `1.5px solid ${pickupTime === t ? WINE : BORDER_MENU}`,
+      background: pickupTime === t ? WINE : SURF_MENU,
+      color: pickupTime === t ? '#fff' : TEXT_MENU,
       fontSize: 14,
       fontWeight: 700,
       fontFamily: 'inherit',
@@ -33785,13 +33785,13 @@ function TakeawayScreen({
     style: {
       fontSize: 14,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       marginBottom: 10,
       letterSpacing: -0.2
     }
   }, "Il tuo ordine"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: BG_GRAY,
+      background: BG_GRAY_MENU,
       borderRadius: 18,
       padding: 14,
       marginBottom: 18
@@ -33809,10 +33809,10 @@ function TakeawayScreen({
       minWidth: 26,
       height: 26,
       borderRadius: 8,
-      background: SURF,
+      background: SURF_MENU,
       fontSize: 13,
       fontWeight: 700,
-      color: TEXT,
+      color: TEXT_MENU,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -33824,7 +33824,7 @@ function TakeawayScreen({
       minWidth: 0,
       fontSize: 14,
       fontWeight: 600,
-      color: TEXT,
+      color: TEXT_MENU,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
@@ -33833,7 +33833,7 @@ function TakeawayScreen({
     style: {
       fontSize: 14,
       fontWeight: 700,
-      color: TEXT
+      color: TEXT_MENU
     }
   }, it.price * it.qty, "\u20AC"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -33846,7 +33846,7 @@ function TakeawayScreen({
       display: 'flex',
       justifyContent: 'space-between',
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 4
     }
   }, /*#__PURE__*/React.createElement("span", null, "Subtotale"), /*#__PURE__*/React.createElement("span", null, subtotal, "\u20AC")), /*#__PURE__*/React.createElement("div", {
@@ -33854,7 +33854,7 @@ function TakeawayScreen({
       display: 'flex',
       justifyContent: 'space-between',
       fontSize: 13,
-      color: MUTED,
+      color: MUTED_MENU,
       marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("span", null, "Costo servizio"), /*#__PURE__*/React.createElement("span", null, serviceFee === 0 ? 'Gratis' : `${serviceFee}€`)), /*#__PURE__*/React.createElement("div", {
@@ -33863,14 +33863,14 @@ function TakeawayScreen({
       justifyContent: 'space-between',
       fontSize: 16,
       fontWeight: 800,
-      color: TEXT,
+      color: TEXT_MENU,
       letterSpacing: -0.2
     }
   }, /*#__PURE__*/React.createElement("span", null, "Totale"), /*#__PURE__*/React.createElement("span", null, total, "\u20AC")))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 22px 18px',
-      borderTop: `1px solid ${BORDER}`,
-      background: SURF
+      borderTop: `1px solid ${BORDER_MENU}`,
+      background: SURF_MENU
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onContinue,
@@ -33938,7 +33938,7 @@ function MenuApp({
     status: 'preparing',
     pickupCode: '4729'
   } : null;
-  const [state, setState] = useState(() => ({
+  const [state, setState] = useStateMenu(() => ({
     cart: [],
     splits: {},
     coperti: loadCoperti() || undefined,
@@ -34146,7 +34146,7 @@ function MenuApp({
   }));
   // Riprendi i pagamenti già fatti in questa sessione (la SPA smonta MenuApp
   // quando torni in home: senza hydrate il conto tornerebbe tutto da pagare).
-  useEffect(() => {
+  useEffectMenu(() => {
     try {
       const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null');
       if (t && t.settled) setState(s => s.activeOrder ? {
@@ -34165,7 +34165,7 @@ function MenuApp({
       } : s);
     } catch {}
   }, []);
-  const [route, setRoute] = useState(() => {
+  const [route, setRoute] = useStateMenu(() => {
     const valid = ['menu', 'home', 'pay', 'paymethod', 'success', 'takeaway'];
     if (initial && valid.includes(initial)) return {
       name: initial,
@@ -34245,7 +34245,7 @@ function MenuApp({
   }
   return screen;
 }
-function Root() {
+function RootMenu() {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -34267,7 +34267,7 @@ window.MenuApp = MenuApp;
 /* Mount solo nella pagina menu (byup Menu.html). Dentro la SPA Home,
    MenuApp è renderizzato da app.jsx come pagina 'menu' — prototipo unico. */
 const __menuRoot = document.getElementById('menu-root');
-if (__menuRoot) ReactDOM.createRoot(__menuRoot).render(/*#__PURE__*/React.createElement(Root, null));
+if (__menuRoot) ReactDOM.createRoot(__menuRoot).render(/*#__PURE__*/React.createElement(RootMenu, null));
 })();
 </script>
 </body>

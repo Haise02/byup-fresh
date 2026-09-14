@@ -1,6 +1,6 @@
 /* global React, ReactDOM */
 // extras.jsx — Profile, Venue, Booking sheet, fancy food icons
-const { useState, useEffect, useRef } = React;
+const { useState: useStateE, useEffect: useEffectE, useRef: useRefE } = React;
 
 // ─── Chiusure straordinarie del locale (P-46 · D-34) ───────────────────────
 // venue_closures: starts_on/ends_on con l'ultimo giorno compreso, reason breve
@@ -123,7 +123,7 @@ function AllergensView({ onBack, onOpenPrivacy, prefs, setPrefs }) {
   // granted, spegnerlo revoked; a interruttore spento il motore del menù non
   // legge dieta né allergeni. Il filtro del menù (P-65, P-74) non c'entra: è
   // la persona che filtra, non il motore che suggerisce.
-  const [dietSugg, setDietSugg] = useState(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
+  const [dietSugg, setDietSugg] = useStateE(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
   const cambiaDietSugg = (v) => { ByupConsensi.set('dietary_suggestions', !!v); setDietSugg(!!v); };
   // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
   // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
@@ -135,10 +135,10 @@ function AllergensView({ onBack, onOpenPrivacy, prefs, setPrefs }) {
   // (Il flusso era stato travolto dal rewrite «Beta v2» del 2026-08-12:
   // ripristinato il 2026-08-17 — i toggle scrivevano un dato art. 9 senza
   // chiedere niente.)
-  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('dietary_preferences'); return !!(st && st.ok); });
-  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
-  const [chkA3, setChkA3] = useState(false);
-  const [chkA18, setChkA18] = useState(false);
+  const [consensoOk, setConsensoOk] = useStateE(() => { const st = ByupConsensi.stato('dietary_preferences'); return !!(st && st.ok); });
+  const [pending, setPending] = useStateE(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useStateE(false);
+  const [chkA18, setChkA18] = useStateE(false);
 
   const applica = (group, id) => setPrefs(p => ({
     ...p,
@@ -396,7 +396,7 @@ function OrdersView({ onBack, initialOpenId }) {
   const resolvedOpen = initialOpenId === 'recent'
     ? (PROFILE_ORDERS[0]?.id || null)
     : (PROFILE_ORDERS.some(o => o.id === initialOpenId) ? initialOpenId : null);
-  const [openId, setOpenId] = useState(resolvedOpen);
+  const [openId, setOpenId] = useStateE(resolvedOpen);
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
       <button onClick={onBack} style={{
@@ -492,12 +492,12 @@ function PagamentiView({ onBack, startAdd = false }) {
     { id: 'c2', type: 'mastercard', label: 'Mastercard',  last4: '8888', expiry: '03/25', preferred: false },
     { id: 'c3', type: 'applepay',   label: 'Apple Pay',   last4: null,   expiry: null,    preferred: false },
   ];
-  const [cards, setCards] = useState(INITIAL);
-  const [addOpen, setAddOpen] = useState(startAdd);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [newNum, setNewNum] = useState('');
-  const [newExp, setNewExp] = useState('');
-  const [newCvv, setNewCvv] = useState('');
+  const [cards, setCards] = useStateE(INITIAL);
+  const [addOpen, setAddOpen] = useStateE(startAdd);
+  const [confirmDelete, setConfirmDelete] = useStateE(null);
+  const [newNum, setNewNum] = useStateE('');
+  const [newExp, setNewExp] = useStateE('');
+  const [newCvv, setNewCvv] = useStateE('');
 
   const preferred = cards.find(c => c.preferred);
   const others = cards.filter(c => !c.preferred);
@@ -720,10 +720,10 @@ function byupStelle(media) {
 }
 
 function PreferitivView({ onBack, onOpenVenue, items: itemsProp, onItems }) {
-  const [itemsSelf, setItemsSelf] = useState(PROFILE_PREFERITI);
+  const [itemsSelf, setItemsSelf] = useStateE(PROFILE_PREFERITI);
   const items = itemsProp || itemsSelf;
   const setItems = onItems || setItemsSelf;
-  const [gusti, setGusti] = useState(() => (window.ByupGusti ? window.ByupGusti.leggi() : []));
+  const [gusti, setGusti] = useStateE(() => (window.ByupGusti ? window.ByupGusti.leggi() : []));
   const commuta = (id) => setGusti(window.ByupGusti.commuta(id));
 
   function remove(id) {
@@ -806,10 +806,10 @@ function PreferitivView({ onBack, onOpenVenue, items: itemsProp, onItems }) {
 }
 
 function SegnalaView({ onBack }) {
-  const [stars, setStars] = useState(0);
-  const [hovered, setHovered] = useState(0);
-  const [testo, setTesto] = useState('');
-  const [sent, setSent] = useState(false);
+  const [stars, setStars] = useStateE(0);
+  const [hovered, setHovered] = useStateE(0);
+  const [testo, setTesto] = useStateE('');
+  const [sent, setSent] = useStateE(false);
 
   function invia() {
     if (!stars && !testo.trim()) return;
@@ -964,15 +964,15 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
   // confronto è quella nuova senza altro stato.
   const pro = byupProfiloLeggi();
   const salvato = { nome: pro.nome || 'Mario', cognome: pro.cognome || 'Rossi', genere: pro.genere || null, nascita: pro.nascita || '1990-04-15' };
-  const [nome, setNome] = useState(salvato.nome);
-  const [cognome, setCognome] = useState(salvato.cognome);
+  const [nome, setNome] = useStateE(salvato.nome);
+  const [cognome, setCognome] = useStateE(salvato.cognome);
   // Il genere NON è preselezionato (P-84): un valore già scelto in un campo
   // facoltativo è un consenso presunto. Parte vuoto; «Preferisco non
   // specificare» resta, e svuota.
-  const [genere, setGenere] = useState(salvato.genere);
-  const [nascita, setNascita] = useState(salvato.nascita);
-  const [saved, setSaved] = useState(false);
-  const [conferma, setConferma] = useState(false);
+  const [genere, setGenere] = useStateE(salvato.genere);
+  const [nascita, setNascita] = useStateE(salvato.nascita);
+  const [saved, setSaved] = useStateE(false);
+  const [conferma, setConferma] = useStateE(false);
 
   // Il rifiuto sotto i quattordici anni, con la frase della registrazione:
   // la data non si salva e il pulsante resta spento.
@@ -1166,8 +1166,8 @@ const CONSENSI_DEF = [
 // P-122 vive dentro il cassetto «Privacy e consensi» (inCassetto), in una
 // sezione propria; la resa a card resta per chi la usasse altrove.
 function SuggerimentiCard({ inCassetto }) {
-  const [, forza] = useState(0);
-  const [conferma, setConferma] = useState(false);
+  const [, forza] = useStateE(0);
+  const [conferma, setConferma] = useStateE(false);
   const attivo = ByupUso.suggerimenti();
   const eventi = ByupUso.eventi();
   const ultimo = eventi.length ? new Date(eventi[eventi.length - 1].quando) : null;
@@ -1217,8 +1217,8 @@ function SuggerimentiCard({ inCassetto }) {
 function ConsensiPanel({ onOpenPrivacy }) {
   // Chiuso di default: i consensi sono un cassetto, non la prima cosa da
   // leggere ogni volta. La testata riassume (quanti attivi) e apre.
-  const [aperto, setAperto] = useState(false);
-  const [, forza] = useState(0);
+  const [aperto, setAperto] = useStateE(false);
+  const [, forza] = useStateE(0);
   const sep = { borderBottom: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` };
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
@@ -1341,8 +1341,8 @@ function ConsensiPanel({ onOpenPrivacy }) {
 }
 
 function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onBack }) {
-  const [values, setValues] = useState(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
-  const [done, setDone] = useState(false);
+  const [values, setValues] = useStateE(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
+  const [done, setDone] = useStateE(false);
 
   function submit() {
     const filled = fields.every((f, i) => f.readOnly || values[i]?.trim());
@@ -1469,10 +1469,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   const initialAddCard = params.get('add') === '1';
   // I locali preferiti, vivi (P-143): il conteggio in alto e quello sulla
   // tessera leggono da qui, non dalla costante di partenza.
-  const [preferiti, setPreferiti] = useState(PROFILE_PREFERITI);
-  const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
-  const [avatarSheet, setAvatarSheet] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
+  const [preferiti, setPreferiti] = useStateE(PROFILE_PREFERITI);
+  const [view, setView] = useStateE(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
+  const [avatarSheet, setAvatarSheet] = useStateE(false);
+  const [avatarUrl, setAvatarUrl] = useStateE(PROFILE_AVATARS[0]);
   const nextAvatar = () => {
     const i = PROFILE_AVATARS.indexOf(avatarUrl);
     setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
@@ -1480,7 +1480,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   };
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
-  useEffect(() => {
+  useEffectE(() => {
     if (params.get('view') || params.get('order') || params.get('add')) {
       try {
         const p = new URLSearchParams(window.location.search);
@@ -1490,13 +1490,13 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       } catch {}
     }
   }, []);
-  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useStateE(false);
+  const [confirmLogout, setConfirmLogout] = useStateE(false);
   const logout = () => {
     try { localStorage.removeItem('byup_auth'); } catch {}
     window.location.href = 'byup Home.html?auth=login';
   };
-  const [lang, setLang] = useState('it');
+  const [lang, setLang] = useStateE('it');
   const themeMode = (() => { try { return localStorage.getItem('byup.themeMode') || 'light'; } catch { return 'light'; } })();
   const cycleTheme = () => {
     const order = ['light', 'dark', 'auto'];
@@ -1517,7 +1517,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     { code: 'de', flag: '🇩🇪', label: 'Deutsch' },
   ];
   const currentLang = LANGS.find(l => l.code === lang) || LANGS[0];
-  const [allergenPrefs, setAllergenPrefs] = useState(() => {
+  const [allergenPrefs, setAllergenPrefs] = useStateE(() => {
     // Senza consenso A3 niente dato: se il registro non ha un sì, le spunte
     // salvate si azzerano al caricamento — comprese quelle nate nel periodo
     // in cui la Beta v2 aveva perso il flusso consensi e i toggle scrivevano
@@ -1530,7 +1530,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     try { const raw = localStorage.getItem('byup_allergens'); return raw ? JSON.parse(raw) : { allergens: {}, diets: {} }; }
     catch { return { allergens: {}, diets: {} }; }
   });
-  useEffect(() => {
+  useEffectE(() => {
     try { localStorage.setItem('byup_allergens', JSON.stringify(allergenPrefs)); } catch {}
   }, [allergenPrefs]);
 
@@ -2053,23 +2053,23 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   // Redesign UX: una sola schermata, tre scelte visive (quando · ora · quanti),
   // dati personali già compilati e ripiegati, riepilogo sempre visibile nel footer.
   const isEdit = !!editBooking;
-  const [step, setStep] = useState(0); // 0 form, 1 success
-  const [date, setDate] = useState('Oggi');
-  const [time, setTime] = useState(defaultTime || '20:30');
-  const [people, setPeople] = useState(2);
-  const [name, setName] = useState('Mario Rossi');
-  const [phone, setPhone] = useState('+39 333 1234567');
-  const [note, setNote] = useState('');
+  const [step, setStep] = useStateE(0); // 0 form, 1 success
+  const [date, setDate] = useStateE('Oggi');
+  const [time, setTime] = useStateE(defaultTime || '20:30');
+  const [people, setPeople] = useStateE(2);
+  const [name, setName] = useStateE('Mario Rossi');
+  const [phone, setPhone] = useStateE('+39 333 1234567');
+  const [note, setNote] = useStateE('');
   // Gli allergeni del tavolo sono un DATO, non una frase in fondo a una nota
   // (P-188 · reservation_allergens): quattordici chip, gli stessi del
   // gestionale, e chi ha già dichiarato le sue allergie nel profilo se li
   // trova scelti — con la libertà di toglierli, perché stasera si prenota
   // magari per qualcun altro. Viaggiano coi CODICI del modello, non con le
   // etichette che si leggono a schermo.
-  const [allergeni, setAllergeni] = useState([]);
-  const [occasioni, setOccasioni] = useState([]);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [prefilled, setPrefilled] = useState(false);
+  const [allergeni, setAllergeni] = useStateE([]);
+  const [occasioni, setOccasioni] = useStateE([]);
+  const [detailsOpen, setDetailsOpen] = useStateE(false);
+  const [prefilled, setPrefilled] = useStateE(false);
   const ALLERG_APP = (window.ByupKit && window.ByupKit.ALLERGENI) || [];
   // Le occasioni sono quelle che il gestionale già conosce: se ne aggiungo
   // una qui, la sala non saprebbe che cosa farsene.
@@ -2082,7 +2082,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   ];
   const togglaIn = (set, id) => set(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
 
-  useEffect(() => {
+  useEffectE(() => {
     if (open) {
       setStep(0);
       setDetailsOpen(false);
@@ -2111,7 +2111,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
   // si passa al primo aperto (P-46).
   const giorni = appGiorniPrenotabili();
-  useEffect(() => {
+  useEffectE(() => {
     if (!open) return;
     const g = giorni.find(x => x.label === date);
     if (g && g.chiusura) { const primo = giorni.find(x => !x.chiusura); if (primo) setDate(primo.label); }
@@ -2391,8 +2391,8 @@ function VenueScreen(props) {
 }
 
 function VenueMapThumbnail({ lat, lng }) {
-  const divRef = useRef(null);
-  useEffect(() => {
+  const divRef = useRefE(null);
+  useEffectE(() => {
     if (!window.L || !divRef.current) return;
     const map = window.L.map(divRef.current, {
       center: [lat, lng], zoom: 15,
@@ -2415,12 +2415,12 @@ function VenueMapThumbnail({ lat, lng }) {
 // Stack 9:16 stile "Da scoprire": auto ogni 1.5s finché non si clicca, poi manuale.
 function ReelStack({ items }) {
   const n = items.length;
-  const [cur, setCur] = useState(0);
-  const [dx, setDx] = useState(0);
-  const stoppedRef = useRef(false);
-  const dragRef = useRef(null);
-  const movedRef = useRef(false);
-  useEffect(() => {
+  const [cur, setCur] = useStateE(0);
+  const [dx, setDx] = useStateE(0);
+  const stoppedRef = useRefE(false);
+  const dragRef = useRefE(null);
+  const movedRef = useRefE(false);
+  useEffectE(() => {
     const t = setInterval(() => {
       if (stoppedRef.current || dragRef.current) return;
       setCur(c => (c + 1) % n);
@@ -2487,33 +2487,33 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
     'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&q=70&auto=format&fit=crop',
   ];
-  const [faqOpen, setFaqOpen] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [moreClosing, setMoreClosing] = useState(false);
+  const [faqOpen, setFaqOpen] = useStateE(0);
+  const [moreOpen, setMoreOpen] = useStateE(false);
+  const [moreClosing, setMoreClosing] = useStateE(false);
   function closeMore() { setMoreClosing(true); }
   function onMoreAnimEnd() { if (moreClosing) { setMoreOpen(false); setMoreClosing(false); } }
-  const [saved, setSaved] = useState(false);
-  const [bioExpanded, setBioExpanded] = useState(false);
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [heroExpanded, setHeroExpanded] = useState(false);
+  const [saved, setSaved] = useStateE(false);
+  const [bioExpanded, setBioExpanded] = useStateE(false);
+  const [photoIdx, setPhotoIdx] = useStateE(0);
+  const [heroExpanded, setHeroExpanded] = useStateE(false);
   const HERO_SHORT = 220;
   const HERO_TALL  = 370;
-  const dragStart = useRef(null);
-  const autoTimer = useRef(null);
-  const scrollRef = useRef(null);
-  const lastScrollY = useRef(0);
+  const dragStart = useRefE(null);
+  const autoTimer = useRefE(null);
+  const scrollRef = useRefE(null);
+  const lastScrollY = useRefE(0);
 
   const resetAutoTimer = () => {
     if (autoTimer.current) clearInterval(autoTimer.current);
     autoTimer.current = setInterval(() => setPhotoIdx(i => (i + 1) % photos.length), 8000);
   };
 
-  useEffect(() => {
+  useEffectE(() => {
     resetAutoTimer();
     return () => { if (autoTimer.current) clearInterval(autoTimer.current); };
   }, []);
 
-  useEffect(() => {
+  useEffectE(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
@@ -2549,10 +2549,10 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
       resetAutoTimer();
     }
   };
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reviewsOpen, setReviewsOpen] = useState(false);
-  const [reportReason, setReportReason] = useState(null);
-  const [reportSent, setReportSent] = useState(false);
+  const [reportOpen, setReportOpen] = useStateE(false);
+  const [reviewsOpen, setReviewsOpen] = useStateE(false);
+  const [reportReason, setReportReason] = useStateE(null);
+  const [reportSent, setReportSent] = useStateE(false);
   const faqs = [
     { q: 'Siete aperti il sabato?', a: 'Sì, dalle 12:00 alle 23:00 con orario continuato.' },
     { q: 'Avete opzioni vegane?', a: 'Certo, almeno 5 piatti vegani sono sempre disponibili.' },
@@ -3140,7 +3140,7 @@ function Section({ title, children }) {
   );
 }
 function PromoTag({ children, info }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useStateE(false);
   return (
     <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
       <span onClick={() => setOpen(o => !o)} style={{

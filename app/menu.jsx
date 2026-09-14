@@ -1,9 +1,9 @@
 // byup — Menu locale + Divisione + Home con ordine attivo
-const { useState, useRef, useEffect } = React;
+const { useState: useStateMenu, useRef: useRefMenu, useEffect: useEffectMenu } = React;
 
 // Tema letto al caricamento pagina (le pagine sono file separati: ogni pagina
 // legge byup.themeMode e sceglie la palette → dark coerente cross-page).
-const __BYUP_DARK = (() => {
+const __BYUP_DARK_MENU = (() => {
   try {
     const m = localStorage.getItem('byup.themeMode') || 'light';
     if (m === 'dark') return true;
@@ -11,18 +11,18 @@ const __BYUP_DARK = (() => {
     return false;
   } catch { return false; }
 })();
-const PINK = '#E32459';
-const PINK_DARK = '#B81C47';
-const WINE = __BYUP_DARK ? '#ef6389' : '#8B1A3A';     // accento menu (più chiaro in dark per contrasto)
-const TEXT = __BYUP_DARK ? '#f6ece9' : '#1c0f15';
-const MUTED = __BYUP_DARK ? 'rgba(246,236,233,.58)' : '#6d5a61';
-const BORDER = __BYUP_DARK ? 'rgba(246,236,233,.13)' : '#eddfda';
-const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
-const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
-const SURF = __BYUP_DARK ? '#211f22' : '#fff';        // superfici card (bianco→dark)
-const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';     // superficie tenue (righe riepilogo, chip)
-const MUTESURF = __BYUP_DARK ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
-const BADGE = __BYUP_DARK ? '#7a2f4a' : '#7a1c3e';    // badge/avatar wine (più chiaro in dark)
+const PINK_MENU = '#E32459';
+const PINK_DARK_MENU = '#B81C47';
+const WINE = __BYUP_DARK_MENU ? '#ef6389' : '#8B1A3A';     // accento menu (più chiaro in dark per contrasto)
+const TEXT_MENU = __BYUP_DARK_MENU ? '#f6ece9' : '#1c0f15';
+const MUTED_MENU = __BYUP_DARK_MENU ? 'rgba(246,236,233,.58)' : '#6d5a61';
+const BORDER_MENU = __BYUP_DARK_MENU ? 'rgba(246,236,233,.13)' : '#eddfda';
+const BG_GRAY_MENU = __BYUP_DARK_MENU ? '#262229' : '#f7ece8';
+const BG_PAGE_MENU = __BYUP_DARK_MENU ? '#161514' : '#FBF4F1';
+const SURF_MENU = __BYUP_DARK_MENU ? '#211f22' : '#fff';        // superfici card (bianco→dark)
+const TINT_MENU = __BYUP_DARK_MENU ? '#2b272c' : '#f6f1ea';     // superficie tenue (righe riepilogo, chip)
+const MUTESURF = __BYUP_DARK_MENU ? '#39333b' : '#e7e1d8'; // superficie muta (avatar/disabled)
+const BADGE = __BYUP_DARK_MENU ? '#7a2f4a' : '#7a1c3e';    // badge/avatar wine (più chiaro in dark)
 
 // ─── Firma CTA byup — gradiente coral + glow + sheen, usato sui money-CTA
 //    di ordine e pagamento per legarli all'identità della Home. ───
@@ -121,10 +121,10 @@ const I = {
   Plus: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   ),
-  Minus: ({ size = 16, color = TEXT }) => (
+  Minus: ({ size = 16, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
   ),
-  Trash: ({ size = 20, color = TEXT }) => (
+  Trash: ({ size = 20, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
     </svg>
@@ -132,13 +132,13 @@ const I = {
   Pin: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-7-7-12a7 7 0 0114 0c0 5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
   ),
-  Cal: ({ size = 16, color = TEXT }) => (
+  Cal: ({ size = 16, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
   ),
-  Clock: ({ size = 16, color = TEXT }) => (
+  Clock: ({ size = 16, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
   ),
-  People: ({ size = 16, color = TEXT }) => (
+  People: ({ size = 16, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.8"/><path d="M14 20c0-2.5 2-4 4-4s3 1 3 3"/></svg>
   ),
   ChevDown: ({ size = 16, color = '#fff' }) => (
@@ -147,16 +147,16 @@ const I = {
   ChevUp: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
   ),
-  Back: ({ size = 22, color = TEXT }) => (
+  Back: ({ size = 22, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   ),
   Check: ({ size = 16, color = '#fff' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
   ),
-  Home: ({ size = 24, color = TEXT, fill = 'none' }) => (
+  Home: ({ size = 24, color = TEXT_MENU, fill = 'none' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11 L12 4 L20 11 L20 20 L14 20 L14 14 L10 14 L10 20 L4 20 Z"/></svg>
   ),
-  User: ({ size = 24, color = TEXT }) => (
+  User: ({ size = 24, color = TEXT_MENU }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21 C4 16.5 7.5 14 12 14 C16.5 14 20 16.5 20 21"/></svg>
   ),
   Refresh: ({ size = 18, color = '#fff' }) => (
@@ -181,7 +181,7 @@ const ALLERGENS = (window.ByupKit.ALLERGENI || []).reduce(function (m, a) {
 const DECONGELATO_DOT = { label: 'Decongelato', icon: '❄️' };
 
 function AllergenDots({ ids, onTap, max, decongelato }) {
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useStateMenu(null);
   const voci = (ids || []).map(id => ({ key: id, ...ALLERGENS[id] })).filter(v => v.label)
     .concat(decongelato ? [{ key: '__decongelato', ...DECONGELATO_DOT }] : []);
   const shown = max ? voci.slice(0, max) : voci;
@@ -197,7 +197,7 @@ function AllergenDots({ ids, onTap, max, decongelato }) {
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 22, height: 22, borderRadius: 999,
-                background: TINT, border: '1px solid #e8e0d8',
+                background: TINT_MENU, border: '1px solid #e8e0d8',
                 cursor: 'pointer', fontSize: 11, lineHeight: 1,
               }}>{a.icon}</span>
             {isOpen && (
@@ -221,8 +221,8 @@ function AllergenDots({ ids, onTap, max, decongelato }) {
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           height: 22, minWidth: 22, padding: '0 6px', borderRadius: 999,
-          background: TINT, border: '1px solid #e8e0d8',
-          fontSize: 10.5, fontWeight: 700, color: MUTED, lineHeight: 1, flexShrink: 0,
+          background: TINT_MENU, border: '1px solid #e8e0d8',
+          fontSize: 10.5, fontWeight: 700, color: MUTED_MENU, lineHeight: 1, flexShrink: 0,
         }}>+{extra}</span>
       )}
     </div>
@@ -656,23 +656,23 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
       animation: 'fade 0.2s ease',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', background: SURF,
+        width: '100%', background: SURF_MENU,
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: '14px 22px 30px',
         animation: 'slideUp 0.28s cubic-bezier(.2,.9,.3,1.1)',
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e0e0e0', margin: '0 auto 14px' }}/>
-        <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4 }}>
           Come vuoi gestire l'ordine?
         </div>
-        <div style={{ fontSize: 13.5, color: MUTED, marginTop: 6, marginBottom: 18 }}>
+        <div style={{ fontSize: 13.5, color: MUTED_MENU, marginTop: 6, marginBottom: 18 }}>
           {cartCount} {cartCount === 1 ? 'piatto' : 'piatti'} · {cartTotal}€
         </div>
 
         {/* Option: Scansiona QR (al tavolo) */}
         <button onClick={onScanQR} style={{
-          width: '100%', background: SURF,
-          border: `1.5px solid ${BORDER}`, borderRadius: 18,
+          width: '100%', background: SURF_MENU,
+          border: `1.5px solid ${BORDER_MENU}`, borderRadius: 18,
           padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
           marginBottom: 12,
@@ -684,20 +684,20 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
             <I.QR size={26} color="#fff"/>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: TEXT, marginBottom: 2 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: TEXT_MENU, marginBottom: 2 }}>
               Sono al ristorante
             </div>
-            <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.35 }}>
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, lineHeight: 1.35 }}>
               Inquadra il QR del tavolo per inviare l'ordine
             </div>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED_MENU} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
         </button>
 
         {/* Option: Take Away */}
         <button onClick={onTakeaway} style={{
-          width: '100%', background: SURF,
-          border: `1.5px solid ${BORDER}`, borderRadius: 18,
+          width: '100%', background: SURF_MENU,
+          border: `1.5px solid ${BORDER_MENU}`, borderRadius: 18,
           padding: '16px 16px', display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
         }}>
@@ -713,17 +713,17 @@ function ModeSheet({ onClose, onScanQR, onTakeaway, cartCount, cartTotal }) {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: TEXT, marginBottom: 2 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: TEXT_MENU, marginBottom: 2 }}>
               Take Away
             </div>
-            <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.35 }}>
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, lineHeight: 1.35 }}>
               Paga ora e scegli l'orario per ritirare al locale
             </div>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED_MENU} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
         </button>
 
-        <div style={{ fontSize: 12, color: MUTED, textAlign: 'center', marginTop: 18, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 12, color: MUTED_MENU, textAlign: 'center', marginTop: 18, lineHeight: 1.4 }}>
           Per ordinare al tavolo serve il QR code esposto nel locale
         </div>
       </div>
@@ -744,9 +744,9 @@ const CAT_ART = {
 // icona kawaii che entra in spring, sottolineatura brand che si "disegna".
 // L'insieme dà un senso di progressione → invoglia a scorrere fino in fondo.
 function CatBand({ name, count, index = 0, total = 5 }) {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
+  const ref = useRefMenu(null);
+  const [inView, setInView] = useStateMenu(false);
+  useEffectMenu(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
     const io = new IntersectionObserver((es) => {
@@ -760,14 +760,14 @@ function CatBand({ name, count, index = 0, total = 5 }) {
   return (
     <div ref={ref} style={{
       margin: '32px -18px 18px', padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
-      background: __BYUP_DARK
+      background: __BYUP_DARK_MENU
         ? 'linear-gradient(115deg, rgba(246,236,233,.08) 0%, rgba(246,236,233,0) 82%)'
         : `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
     }}>
       {/* numero-capitolo fantasma */}
       <div aria-hidden style={{
         position: 'absolute', left: 8, top: -20, fontFamily: "'Fredoka', sans-serif",
-        fontSize: 104, fontWeight: 600, lineHeight: 1, color: PINK, letterSpacing: -5,
+        fontSize: 104, fontWeight: 600, lineHeight: 1, color: PINK_MENU, letterSpacing: -5,
         opacity: inView ? 0.09 : 0, transform: inView ? 'none' : 'translateY(12px)',
         transition: 'opacity 640ms ease, transform 640ms ease', pointerEvents: 'none',
       }}>{num}</div>
@@ -789,14 +789,14 @@ function CatBand({ name, count, index = 0, total = 5 }) {
         opacity: inView ? 1 : 0, transform: inView ? 'none' : 'translateY(8px)',
         transition: 'opacity 500ms ease, transform 500ms ease',
       }}>
-        <span style={{ fontSize: 10.5, fontWeight: 800, color: PINK, letterSpacing: 1.2, textTransform: 'uppercase' }}>
-          Sezione {index + 1}<span style={{ color: MUTED, fontWeight: 700 }}>/{total}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: PINK_MENU, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          Sezione {index + 1}<span style={{ color: MUTED_MENU, fontWeight: 700 }}>/{total}</span>
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {Array.from({ length: total }).map((_, i) => (
             <div key={i} style={{
               width: i === index ? 16 : 5, height: 5, borderRadius: 999,
-              background: i === index ? PINK : (i < index ? '#e79fb4' : '#e6d2d9'),
+              background: i === index ? PINK_MENU : (i < index ? '#e79fb4' : '#e6d2d9'),
               transition: 'width 420ms ease, background 420ms ease',
             }}/>
           ))}
@@ -805,21 +805,21 @@ function CatBand({ name, count, index = 0, total = 5 }) {
 
       {/* titolo Fredoka */}
       <div style={{
-        position: 'relative', fontFamily: "'Fredoka', sans-serif", fontSize: 27, fontWeight: 600, color: TEXT, lineHeight: 1.05,
+        position: 'relative', fontFamily: "'Fredoka', sans-serif", fontSize: 27, fontWeight: 600, color: TEXT_MENU, lineHeight: 1.05,
         transform: inView ? 'none' : 'translateY(18px)', opacity: inView ? 1 : 0,
         transition: 'transform 540ms cubic-bezier(.22,.9,.35,1), opacity 440ms ease',
       }}>{name}</div>
 
       {/* count */}
       <div style={{
-        position: 'relative', fontSize: 11.5, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, marginTop: 5,
+        position: 'relative', fontSize: 11.5, color: MUTED_MENU, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, marginTop: 5,
         opacity: inView ? 1 : 0, transition: 'opacity 520ms 200ms ease',
       }}>{count} {count === 1 ? 'piatto' : 'piatti'} · scorri e gusta</div>
 
       {/* sottolineatura brand che si disegna */}
       <div aria-hidden style={{
         height: 3, width: 48, borderRadius: 999, marginTop: 11,
-        background: `linear-gradient(90deg, ${PINK}, ${PINK_DARK})`,
+        background: `linear-gradient(90deg, ${PINK_MENU}, ${PINK_DARK_MENU})`,
         transformOrigin: 'left', transform: inView ? 'scaleX(1)' : 'scaleX(0)',
         transition: 'transform 560ms 120ms cubic-bezier(.22,.9,.35,1)',
       }}/>
@@ -838,20 +838,20 @@ function MenuScreen({ state, setState, goTo }) {
   // menu_view (P-38): il menù visto, una volta per apertura, solo con
   // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
   // menu_view porta l'identificativo della sede, non il nome (P-161 · D-115).
-  useEffect(() => { if (window.ByupUso) window.ByupUso.emetti('menu_view', (state && state.venue && (state.venue.id || null)) || 'v_settembrini'); }, []);
+  useEffectMenu(() => { if (window.ByupUso) window.ByupUso.emetti('menu_view', (state && state.venue && (state.venue.id || null)) || 'v_settembrini'); }, []);
   const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
   // che punta alla sezione "I più ordinati" in cima alla lista.
   const navTabs = ['Byup', ...tabs];
   const CAT_ICONS = { 'Antipasti': '🥖', 'Primi piatti': '🍝', 'Secondi piatti': '🥩', 'Dolci': '🍰', 'Bevande': '🍷' };
-  const [tab, setTab] = useState('Byup');
-  const scrollRef = useRef(null);
-  const sectionRefs = useRef({});
-  const tabBarRef = useRef(null);
+  const [tab, setTab] = useStateMenu('Byup');
+  const scrollRef = useRefMenu(null);
+  const sectionRefs = useRefMenu({});
+  const tabBarRef = useRefMenu(null);
 
   // IntersectionObserver: aggiorna la tab attiva mentre si scorre
-  useEffect(() => {
+  useEffectMenu(() => {
     const root = scrollRef.current;
     if (!root) return;
     const observer = new IntersectionObserver(entries => {
@@ -880,8 +880,8 @@ function MenuScreen({ state, setState, goTo }) {
   // destra → precedente. La landing resta unica (stesso scroll verticale):
   // il passaggio è animato con lo scroll morbido + una scivolata del
   // contenuto nel verso dello swipe.
-  const swipeStart = useRef(null);
-  const [swipeFx, setSwipeFx] = useState(null); // 'next' | 'prev'
+  const swipeStart = useRefMenu(null);
+  const [swipeFx, setSwipeFx] = useStateMenu(null); // 'next' | 'prev'
   const onSwipeBegin = (x, y) => { swipeStart.current = { x, y }; };
   const onSwipeFinish = (x, y) => {
     const s = swipeStart.current;
@@ -899,7 +899,7 @@ function MenuScreen({ state, setState, goTo }) {
 
   // Deep-link dai "I più ordinati" della vetrina: apre il menu già
   // posizionato sul piatto, con un flash del bordo per orientare l'occhio.
-  useEffect(() => {
+  useEffectMenu(() => {
     let name = null;
     try {
       name = sessionStorage.getItem('byup_menu_dish');
@@ -920,7 +920,7 @@ function MenuScreen({ state, setState, goTo }) {
   }, []);
 
   // Scroll la tab bar per tenere la tab attiva visibile
-  useEffect(() => {
+  useEffectMenu(() => {
     const bar = tabBarRef.current;
     if (!bar) return;
     const activeEl = bar.querySelector(`[data-tab="${tab}"]`);
@@ -953,24 +953,24 @@ function MenuScreen({ state, setState, goTo }) {
     } catch {}
     return false;
   })();
-  const [searchQ, setSearchQ] = useState('');
-  const [dietFilter, setDietFilter] = useState(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
+  const [searchQ, setSearchQ] = useStateMenu('');
+  const [dietFilter, setDietFilter] = useStateMenu(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
   // {glutine: true, ...} = NASCONDI i piatti che li contengono. Si parte da
   // cio che la persona ha dichiarato nel profilo: la dichiarazione esisteva e
   // il menu non la guardava, quindi il filtro che doveva proteggerla nasceva
   // vuoto a ogni apertura. Resta modificabile qui, perche chi ordina per un
   // altro deve poterlo cambiare senza toccare il proprio profilo.
-  const [allergenFilters, setAllergenFilters] = useState(function () {
+  const [allergenFilters, setAllergenFilters] = useStateMenu(function () {
     return (window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati()) || {};
   });
-  const [allergenSheetOpen, setAllergenSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
-  const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
-  const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
-  const [confirm, setConfirm] = useState(false);
-  const [modeSheetOpen, setModeSheetOpen] = useState(false);
+  const [allergenSheetOpen, setAllergenSheetOpen] = useStateMenu(false);
+  const [sheetMode, setSheetMode] = useStateMenu('collapsed'); // 'collapsed' | 'expanded'
+  const [sheetTab, setSheetTab] = useStateMenu('piatti'); // 'piatti' | 'divisione'
+  const [splitPickItem, setSplitPickItem] = useStateMenu(null); // piatto per il popup "con chi dividi?" (swipe ←)
+  const [confirm, setConfirm] = useStateMenu(false);
+  const [modeSheetOpen, setModeSheetOpen] = useStateMenu(false);
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
 
   // Quello che si sfoglia: senza alcolici sotto i diciotto anni (P-187).
   const dishes = catalogoVisibile();
@@ -1133,7 +1133,7 @@ function MenuScreen({ state, setState, goTo }) {
 
   return (
     <div data-screen-label="Menu locale" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="chef" pageKey="menu" message="Fame? Inizia da qui 👨‍🍳" bottom={128} size={122}/> : null; })()}
@@ -1145,30 +1145,30 @@ function MenuScreen({ state, setState, goTo }) {
       }} style={{
         position: 'absolute', top: 56, left: 16, zIndex: 20,
         width: 38, height: 38, borderRadius: 999,
-        background: __BYUP_DARK ? 'rgba(43,39,44,0.95)' : 'rgba(255,255,255,0.95)', border: 'none',
+        background: __BYUP_DARK_MENU ? 'rgba(43,39,44,0.95)' : 'rgba(255,255,255,0.95)', border: 'none',
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backdropFilter: 'blur(8px)',
       }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_MENU} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
 
       {/* Top: sticky header (search + tabs + filtri attivi) */}
-      <div style={{ background: BG_PAGE, position: 'relative', zIndex: 5 }}>
+      <div style={{ background: BG_PAGE_MENU, position: 'relative', zIndex: 5 }}>
         {/* Search + filtri */}
         <div style={{ padding: '60px 16px 0 64px', display: 'flex', gap: 8 }}>
           <div style={{
             flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-            background: SURF, borderRadius: 999, padding: '9px 14px',
+            background: SURF_MENU, borderRadius: 999, padding: '9px 14px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED_MENU} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
             <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Cerca un piatto, un ingrediente…" style={{
-              border: 'none', outline: 'none', flex: 1, fontSize: 13.5, fontFamily: 'inherit', color: TEXT, background: 'transparent',
+              border: 'none', outline: 'none', flex: 1, fontSize: 13.5, fontFamily: 'inherit', color: TEXT_MENU, background: 'transparent',
             }}/>
             {searchQ && (
               <button onClick={() => setSearchQ('')} style={{
-                border: 'none', background: 'none', cursor: 'pointer', color: MUTED, fontSize: 14,
+                border: 'none', background: 'none', cursor: 'pointer', color: MUTED_MENU, fontSize: 14,
               }}>✕</button>
             )}
           </div>
@@ -1177,11 +1177,11 @@ function MenuScreen({ state, setState, goTo }) {
             return (
               <button onClick={() => setAllergenSheetOpen(true)} style={{
                 position: 'relative', width: 38, height: 38, borderRadius: 999, flexShrink: 0,
-                background: count > 0 ? WINE : SURF, border: 'none',
+                background: count > 0 ? WINE : SURF_MENU, border: 'none',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={count > 0 ? '#fff' : TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={count > 0 ? '#fff' : TEXT_MENU} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
                   <circle cx="18" cy="12" r="2.5" fill={count > 0 ? '#fff' : 'none'}/>
                   <circle cx="14" cy="18" r="2.5" fill={count > 0 ? '#fff' : 'none'}/>
@@ -1212,7 +1212,7 @@ function MenuScreen({ state, setState, goTo }) {
                 background: 'none', border: 'none', padding: '10px 16px 12px', flex: '0 0 auto',
                 borderBottom: `2.5px solid ${active ? WINE : 'transparent'}`,
                 fontSize: 16, fontWeight: active ? 700 : 500,
-                color: active ? WINE : MUTED,
+                color: active ? WINE : MUTED_MENU,
                 fontFamily: 'inherit', cursor: 'pointer',
                 letterSpacing: -0.1, whiteSpace: 'nowrap',
                 transition: 'color 0.18s',
@@ -1231,7 +1231,7 @@ function MenuScreen({ state, setState, goTo }) {
             sala (P-25). */}
         {(dietFilter || Object.values(allergenFilters).some(Boolean)) && (
           <>
-          <div style={{ display: 'flex', gap: 6, padding: '10px 16px 4px', alignItems: 'center', borderTop: `1px solid ${BORDER}` }}>
+          <div style={{ display: 'flex', gap: 6, padding: '10px 16px 4px', alignItems: 'center', borderTop: `1px solid ${BORDER_MENU}` }}>
             {(() => {
               const n = Object.values(allergenFilters).filter(Boolean).length + (dietFilter ? 1 : 0);
               return (
@@ -1244,14 +1244,14 @@ function MenuScreen({ state, setState, goTo }) {
               );
             })()}
             <button onClick={() => { setDietFilter(null); setAllergenFilters({}); }} style={{
-              background: 'transparent', border: 'none', color: MUTED, fontSize: 12, fontWeight: 600,
+              background: 'transparent', border: 'none', color: MUTED_MENU, fontSize: 12, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', padding: '5px 6px',
             }}>Togli tutti</button>
           </div>
           {/* Avvertenza fissa quando il filtro allergeni agisce sul menu —
               misura DPIA R1.5 */}
           {Object.values(allergenFilters).some(Boolean) && (
-            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, padding: '4px 16px 8px' }}>
+            <div style={{ fontSize: 11, color: MUTED_MENU, lineHeight: 1.45, padding: '4px 16px 8px' }}>
               Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
             </div>
           )}
@@ -1382,15 +1382,15 @@ function MenuScreen({ state, setState, goTo }) {
           return (
             <div ref={el => sectionRefs.current['Byup'] = el} data-cat="Byup" style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
               <div style={{ padding: '0 18px 14px' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>I più ordinati</div>
-                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>I piatti più amati di oggi</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4 }}>I più ordinati</div>
+                <div style={{ fontSize: 13, color: MUTED_MENU, marginTop: 2 }}>I piatti più amati di oggi</div>
               </div>
               <div className="hscroll" style={{ display: 'flex', gap: 12, padding: '4px 18px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {tops.map((d, i) => {
                   const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
                   return (
                     <div key={d.id} onClick={() => goTo('dish', { dishId: d.id })} style={{
-                      flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
+                      flex: '0 0 auto', width: 180, background: SURF_MENU, borderRadius: 16,
                       overflow: 'hidden', cursor: 'pointer', position: 'relative',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                     }}>
@@ -1408,10 +1408,10 @@ function MenuScreen({ state, setState, goTo }) {
                         }}>★ TOP</div>
                       </div>
                       <div style={{ padding: '10px 12px 12px' }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.2,
+                        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, lineHeight: 1.2,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 6 }}>
-                          <div style={{ fontSize: 13.5, color: TEXT, fontWeight: 700, whiteSpace: 'nowrap' }}>{d.price}€</div>
+                          <div style={{ fontSize: 13.5, color: TEXT_MENU, fontWeight: 700, whiteSpace: 'nowrap' }}>{d.price}€</div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{
                           marginTop: 8, width: '100%', height: 32, borderRadius: 8,
@@ -1438,21 +1438,21 @@ function MenuScreen({ state, setState, goTo }) {
           return (
             <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
               <div style={{ padding: '0 18px 14px' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>Una selezione</div>
-                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo → I miei dati → Privacy e consensi.</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4 }}>Una selezione</div>
+                <div style={{ fontSize: 13, color: MUTED_MENU, marginTop: 2 }}>Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo → I miei dati → Privacy e consensi.</div>
               </div>
               <div className="hscroll" style={{ display: 'flex', gap: 12, padding: '4px 18px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {picks.map((d) => (
                   <div key={d.id} onClick={() => goTo('dish', { dishId: d.id })} style={{
-                    flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
+                    flex: '0 0 auto', width: 180, background: SURF_MENU, borderRadius: 16,
                     overflow: 'hidden', cursor: 'pointer', position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                   }}>
                     <div style={{ height: 130, position: 'relative' }}>
                       {d.photo ? <PremFoodImg name={d.name} photo={d.photo}/> : <DishPhoto tone={d.tone} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>}
                     </div>
                     <div style={{ padding: '10px 12px 12px' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
-                      <div style={{ fontSize: 13.5, color: TEXT, fontWeight: 700, marginTop: 6 }}>{d.price}€</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
+                      <div style={{ fontSize: 13.5, color: TEXT_MENU, fontWeight: 700, marginTop: 6 }}>{d.price}€</div>
                     </div>
                   </div>
                 ))}
@@ -1473,15 +1473,15 @@ function MenuScreen({ state, setState, goTo }) {
           return (
             <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
               <div style={{ padding: '0 18px 14px' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>In base ai tuoi gusti</div>
-                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>{subtitle}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4 }}>In base ai tuoi gusti</div>
+                <div style={{ fontSize: 13, color: MUTED_MENU, marginTop: 2 }}>{subtitle}</div>
               </div>
               <div className="hscroll" style={{ display: 'flex', gap: 12, padding: '4px 18px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {picks.map((d) => {
                   const qty = cart.filter(i => i.dishId === d.id).reduce((s, i) => s + i.qty, 0);
                   return (
                     <div key={d.id} onClick={() => goTo('dish', { dishId: d.id, perTe: true })} style={{
-                      flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
+                      flex: '0 0 auto', width: 180, background: SURF_MENU, borderRadius: 16,
                       overflow: 'hidden', cursor: 'pointer', position: 'relative',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                     }}>
@@ -1499,10 +1499,10 @@ function MenuScreen({ state, setState, goTo }) {
                         }}>✨ PER TE</div>
                       </div>
                       <div style={{ padding: '10px 12px 12px' }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.2,
+                        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, lineHeight: 1.2,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, gap: 6 }}>
-                          <div style={{ fontSize: 13.5, color: TEXT, fontWeight: 700, whiteSpace: 'nowrap' }}>{d.price}€</div>
+                          <div style={{ fontSize: 13.5, color: TEXT_MENU, fontWeight: 700, whiteSpace: 'nowrap' }}>{d.price}€</div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} style={{
                           marginTop: 8, width: '100%', height: 32, borderRadius: 8,
@@ -1556,13 +1556,13 @@ function MenuScreen({ state, setState, goTo }) {
                     <React.Fragment key={d.id}>
                       {showDivider && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
-                          <div style={{ flex: 1, height: 1, background: TINT }}/>
-                          <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}>Altri piatti</span>
-                          <div style={{ flex: 1, height: 1, background: TINT }}/>
+                          <div style={{ flex: 1, height: 1, background: TINT_MENU }}/>
+                          <span style={{ fontSize: 11, color: MUTED_MENU, fontWeight: 600 }}>Altri piatti</span>
+                          <div style={{ flex: 1, height: 1, background: TINT_MENU }}/>
                         </div>
                       )}
                     <div onClick={() => goTo('dish', { dishId: d.id, versione: d.versione })} data-dish={d.name} style={{
-                      background: SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
+                      background: SURF_MENU, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
                       display: 'flex', gap: 14, cursor: 'pointer',
                       boxShadow: qty > 0 ? `0 4px 16px rgba(90,26,46,0.14)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: qty > 0 ? `1.5px solid ${WINE}` : '1.5px solid transparent',
@@ -1589,7 +1589,7 @@ function MenuScreen({ state, setState, goTo }) {
                       </div>
                       {/* Testo + pulsante a destra */}
                       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT, lineHeight: 1.25, letterSpacing: -0.2, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_MENU, lineHeight: 1.25, letterSpacing: -0.2, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
                         {/* La versione si legge sul piatto, non solo nel
                             filtro: è quella che arriverà in cucina. */}
                         {d.versione && (
@@ -1598,7 +1598,7 @@ function MenuScreen({ state, setState, goTo }) {
                             versione {d.versione.toLowerCase()}
                           </div>
                         )}
-                        <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10 }}>
+                        <div style={{ fontSize: 13, color: MUTED_MENU, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10 }}>
                           {d.desc}
                         </div>
                         {d.allergens.length > 0 && (
@@ -1607,7 +1607,7 @@ function MenuScreen({ state, setState, goTo }) {
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, flexShrink: 0 }}>{d.price}€</div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_MENU, flexShrink: 0 }}>{d.price}€</div>
                           <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
                             {qty === 0 ? (
                               <button onClick={(e) => { e.stopPropagation(); addDish(d.id, d.versione); }} style={{
@@ -1682,18 +1682,18 @@ function MenuScreen({ state, setState, goTo }) {
           animation: 'fade 0.2s ease',
         }}>
           <div style={{
-            background: SURF, borderRadius: 24, padding: '28px 32px',
+            background: SURF_MENU, borderRadius: 24, padding: '28px 32px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
             animation: 'pop 0.3s cubic-bezier(.2,.9,.3,1.3)',
           }}>
             <div style={{
-              width: 64, height: 64, borderRadius: 999, background: PINK,
+              width: 64, height: 64, borderRadius: 999, background: PINK_MENU,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <I.Check size={32} color="#fff"/>
             </div>
-            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT, marginTop: 4 }}>Ordine inviato!</div>
-            <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 200 }}>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT_MENU, marginTop: 4 }}>Ordine inviato!</div>
+            <div style={{ fontSize: 13, color: MUTED_MENU, textAlign: 'center', maxWidth: 200 }}>
               Lo trovi sulla home pronto per essere ritirato
             </div>
           </div>
@@ -1735,29 +1735,29 @@ function MenuScreen({ state, setState, goTo }) {
           display: 'flex', alignItems: 'flex-end',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            width: '100%', background: SURF_MENU, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             padding: '12px 22px 24px', maxHeight: '80%', overflowY: 'auto',
           }}>
             <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 14px' }}/>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>Filtra allergeni</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>Filtra allergeni</div>
               {Object.values(allergenFilters).some(Boolean) && (
                 <button onClick={() => setAllergenFilters({})} style={{
-                  background: 'none', border: 'none', color: PINK, fontSize: 13, fontWeight: 600,
+                  background: 'none', border: 'none', color: PINK_MENU, fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                 }}>Reset</button>
               )}
             </div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 6, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, marginBottom: 6, lineHeight: 1.5 }}>
               Filtra il menu in base alle tue preferenze e a ciò che vuoi evitare.
             </div>
             {/* Avvertenza fissa — misura DPIA R1.5 */}
-            <div style={{ fontSize: 12, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: MUTED_MENU, marginBottom: 16, lineHeight: 1.5 }}>
               Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
             </div>
 
             {/* Diet preferences */}
-            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>Preferenze alimentari</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_MENU, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>Preferenze alimentari</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
               {[
                 { id: null, label: 'Tutti' },
@@ -1766,9 +1766,9 @@ function MenuScreen({ state, setState, goTo }) {
                 { id: 'gf', label: '🌾 Senza glutine' },
               ].map(f => (
                 <button key={f.id || 'all'} onClick={() => setDietFilter(f.id)} style={{
-                  background: dietFilter === f.id ? WINE : SURF,
-                  color: dietFilter === f.id ? '#fff' : TEXT,
-                  border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER}`,
+                  background: dietFilter === f.id ? WINE : SURF_MENU,
+                  color: dietFilter === f.id ? '#fff' : TEXT_MENU,
+                  border: dietFilter === f.id ? `1px solid ${WINE}` : `1px solid ${BORDER_MENU}`,
                   padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
                 }}>{f.label}</button>
@@ -1776,7 +1776,7 @@ function MenuScreen({ state, setState, goTo }) {
             </div>
 
             {/* Allergens */}
-            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>Evita allergeni</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_MENU, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>Evita allergeni</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
               {Object.entries(ALLERGENS).map(([id, a]) => {
                 const on = !!allergenFilters[id];
@@ -1788,15 +1788,15 @@ function MenuScreen({ state, setState, goTo }) {
                   })} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '12px 12px', borderRadius: 12,
-                    border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-                    background: on ? TINT : SURF,
+                    border: on ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER_MENU}`,
+                    background: on ? TINT_MENU : SURF_MENU,
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   }}>
                     <span style={{
                       width: 22, height: 22, borderRadius: 999, background: a.color, flexShrink: 0,
                       border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.08)',
                     }}/>
-                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: TEXT }}>{a.label}</span>
+                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: TEXT_MENU }}>{a.label}</span>
                     {on && (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
@@ -1828,8 +1828,8 @@ function MenuScreen({ state, setState, goTo }) {
 // giù invece che dopo averlo alzato.
 const SOGLIA_TRASCINA = 28;
 function useTrascinaFoglio(mode, setMode) {
-  const rif = useRef(null);
-  const trascinato = useRef(false);
+  const rif = useRefMenu(null);
+  const trascinato = useRefMenu(false);
   const inizio = (e) => {
     if (e.button != null && e.button !== 0) return;
     // Premuto su un bottone (cestino, invio ordine): quello non è un
@@ -1868,13 +1868,13 @@ function useTrascinaFoglio(mode, setMode) {
 // ← sinistra: apre il popup "con chi dividi?"
 // La riga molleggia al rilascio; oltre soglia scatta l'azione con flash.
 function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDish, setQty }) {
-  const [dx, setDx] = useState(0);
-  const [drag, setDrag] = useState(false);
-  const [flash, setFlash] = useState(null); // 'table' | 'pick'
-  const [askUndo, setAskUndo] = useState(false);   // conferma: togliere la divisione fra persone
-  const start = useRef(0);
-  const active = useRef(false);
-  const moved = useRef(false);
+  const [dx, setDx] = useStateMenu(0);
+  const [drag, setDrag] = useStateMenu(false);
+  const [flash, setFlash] = useStateMenu(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useStateMenu(false);   // conferma: togliere la divisione fra persone
+  const start = useRefMenu(0);
+  const active = useRefMenu(false);
+  const moved = useRefMenu(false);
   const TH = 78;
   const onDown = (e) => {
     active.current = true; moved.current = false;
@@ -1925,10 +1925,10 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
         <div style={{
           position: 'absolute', inset: 0, zIndex: 4,
           background: 'rgba(255,255,255,0.97)', borderRadius: 12,
-          border: `1px solid ${BORDER}`,
+          border: `1px solid ${BORDER_MENU}`,
           display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px',
         }}>
-          <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: TEXT, lineHeight: 1.3 }}>
+          <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: TEXT_MENU, lineHeight: 1.3 }}>
             Togliere la divisione?
           </span>
           <button onClick={() => { setAskUndo(false); onUndoUno && onUndoUno(); }} style={{
@@ -1937,8 +1937,8 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
             fontFamily: 'inherit', cursor: 'pointer',
           }}>Togli</button>
           <button onClick={() => setAskUndo(false)} style={{
-            padding: '6px 10px', borderRadius: 999, border: `1px solid ${BORDER}`,
-            background: '#fff', color: MUTED, fontSize: 12.5, fontWeight: 700,
+            padding: '6px 10px', borderRadius: 999, border: `1px solid ${BORDER_MENU}`,
+            background: '#fff', color: MUTED_MENU, fontSize: 12.5, fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer',
           }}>Annulla</button>
         </div>
@@ -1977,14 +1977,14 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         style={{
           position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-          background: flash === 'table' ? '#eaf7cf' : BG_GRAY, borderRadius: 12, padding: '10px 12px',
+          background: flash === 'table' ? '#eaf7cf' : BG_GRAY_MENU, borderRadius: 12, padding: '10px 12px',
           transform: `translateX(${dx}px)`,
           transition: drag ? 'none' : 'transform .5s cubic-bezier(.2,1.5,.35,1), background .35s',
           cursor: 'grab',
         }}>
         <div onClick={() => { if (!moved.current) onOpenDish(); }} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
             {splitChip && (
               <button onClick={(e) => { e.stopPropagation(); onReset(); }} title="Torna a 'per me'" style={{
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
@@ -1999,7 +1999,7 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
               {it.summary.split(', ').map((tag, i) => (
                 <span key={i} style={{
                   fontSize: 11, fontWeight: 600, color: WINE,
-                  background: TINT, padding: '2px 7px', borderRadius: 999,
+                  background: TINT_MENU, padding: '2px 7px', borderRadius: 999,
                 }}>{tag}</span>
               ))}
             </div>
@@ -2008,17 +2008,17 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
         </div>
         {it.frazionata ? (
           <span style={{
-            fontSize: 13, fontWeight: 800, color: MUTED, flexShrink: 0,
-            background: SURF, borderRadius: 999, padding: '5px 11px',
+            fontSize: 13, fontWeight: 800, color: MUTED_MENU, flexShrink: 0,
+            background: SURF_MENU, borderRadius: 999, padding: '5px 11px',
           }}>×{it.qty}</span>
         ) : (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: SURF, borderRadius: 999, padding: '3px 6px',
+            background: SURF_MENU, borderRadius: 999, padding: '3px 6px',
           }}>
             <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
-            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
-            <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
+            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT_MENU }}>{it.qty}</span>
+            <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT_MENU}/></button>
           </div>
         )}
       </div>
@@ -2036,7 +2036,7 @@ function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDi
 // di un commensale nelle risposte destinate ad altri. Qui il prototipo mostra
 // tutti i partecipanti: la lista arriva cablata, senza allergeni.
 function SplitPickSheet({ item, participants, onConfirm, onClose }) {
-  const [sel, setSel] = useState({});
+  const [sel, setSel] = useStateMenu({});
   const people = participants.filter(pp => !pp.isMe && !pp.isGuest);
   const n = Object.values(sel).filter(Boolean).length;
   const per = item.unitPrice / (n + 1);
@@ -2046,13 +2046,13 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
       display: 'flex', alignItems: 'flex-end', animation: 'fadeIn .2s',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        width: '100%', background: SURF_MENU, borderTopLeftRadius: 22, borderTopRightRadius: 22,
         padding: '14px 22px calc(24px + env(safe-area-inset-bottom, 0px))',
         animation: 'slideUp .3s cubic-bezier(.2,1.1,.3,1)',
       }}>
         <div style={{ width: 40, height: 4, background: MUTESURF, borderRadius: 999, margin: '0 auto 14px' }}/>
-        <div style={{ fontSize: 17, fontWeight: 800, color: TEXT }}>Con chi dividi?</div>
-        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_MENU }}>Con chi dividi?</div>
+        <div style={{ fontSize: 12.5, color: MUTED_MENU, marginTop: 3 }}>
           {item.name} · {item.unitPrice.toFixed(2)}€ — a testa {per.toFixed(2)}€
         </div>
         <div style={{ display: 'flex', gap: 9, marginTop: 16, flexWrap: 'wrap' }}>
@@ -2074,12 +2074,12 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
                 }}>
                   {pp.initials || pp.name[0]}
                   {on && <span style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18,
-                    borderRadius: 999, background: '#7fb800', border: '2px solid ' + SURF,
+                    borderRadius: 999, background: '#7fb800', border: '2px solid ' + SURF_MENU,
                     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>}
                 </div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? TEXT : MUTED }}>{pp.name.split(' ')[0]}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? TEXT_MENU : MUTED_MENU }}>{pp.name.split(' ')[0]}</span>
               </button>
             );
           })}
@@ -2169,7 +2169,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30,
-      background: SURF, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      background: SURF_MENU, borderTopLeftRadius: 28, borderTopRightRadius: 28,
       boxShadow: '0 -6px 24px rgba(0,0,0,0.1)',
       maxHeight: expanded ? '78%' : 'auto',
       transition: 'max-height 0.3s ease',
@@ -2190,14 +2190,14 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
         // gesto verticale come uno scroll e se lo prende lui.
         <div {...trascina.presa} style={{ padding: '4px 22px 22px', cursor: 'grab', touchAction: 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: TEXT_MENU }}>
               {cartCount === 0 ? 'Nessun piatto selezionato' : `${cartCount} ${cartCount === 1 ? 'piatto selezionato' : 'piatti selezionati'}`}
             </div>
             {cartCount > 0 && (
               <button onClick={clearCart} style={{
-                width: 36, height: 36, borderRadius: 10, background: BG_GRAY,
+                width: 36, height: 36, borderRadius: 10, background: BG_GRAY_MENU,
                 border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              }}><I.Trash size={18} color={TEXT}/></button>
+              }}><I.Trash size={18} color={TEXT_MENU}/></button>
             )}
           </div>
           {state.rifiuto && (
@@ -2226,16 +2226,16 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               o scorrerla chiuderebbe il carrello. */}
           <div {...trascina.presa} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 22px 14px', cursor: 'grab', touchAction: 'none' }}>
             <div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: TEXT_MENU }}>
                 {cartCount === 1 ? '1 piatto' : `${cartCount} piatti`}
               </span>
-              <span style={{ fontSize: 13, color: MUTED, marginLeft: 6 }}>nel carrello</span>
+              <span style={{ fontSize: 13, color: MUTED_MENU, marginLeft: 6 }}>nel carrello</span>
             </div>
             {cartCount > 0 && (
               <button onClick={clearCart} style={{
-                width: 30, height: 30, borderRadius: 999, background: BG_GRAY,
+                width: 30, height: 30, borderRadius: 999, background: BG_GRAY_MENU,
                 border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              }}><I.Trash size={14} color={MUTED}/></button>
+              }}><I.Trash size={14} color={MUTED_MENU}/></button>
             )}
           </div>
 
@@ -2258,7 +2258,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               </div>
             )}
             {cartItems.length > 0 && (
-              <div style={{ marginTop: 12, fontSize: 11.5, color: MUTED, fontWeight: 600,
+              <div style={{ marginTop: 12, fontSize: 11.5, color: MUTED_MENU, fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
                 <span style={{ fontSize: 13 }}>⇄</span>
                 trascina un piatto: → tutto il tavolo · ← dividi con qualcuno
@@ -2276,9 +2276,9 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               const r = window.ByupCoperto && window.ByupCoperto.riga(cartTotal, 1);
               return r && r.attiva ? (
                 <div data-coperto style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
-                  padding: '9px 2px 12px', fontSize: 13, color: MUTED }}>
+                  padding: '9px 2px 12px', fontSize: 13, color: MUTED_MENU }}>
                   <span>{r.etichetta}</span>
-                  <span style={{ fontWeight: 700, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>{r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`}</span>
+                  <span style={{ fontWeight: 700, color: TEXT_MENU, fontVariantNumeric: 'tabular-nums' }}>{r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`}</span>
                 </div>
               ) : null;
             })()}
@@ -2304,7 +2304,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
 }
 
 const qtyBtn = {
-  width: 28, height: 28, borderRadius: 999, border: 'none', background: SURF,
+  width: 28, height: 28, borderRadius: 999, border: 'none', background: SURF_MENU,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
 };
@@ -2312,7 +2312,7 @@ const qtyBtn = {
 function EmptyHint({ text }) {
   return (
     <div style={{
-      padding: '40px 20px', textAlign: 'center', color: MUTED,
+      padding: '40px 20px', textAlign: 'center', color: MUTED_MENU,
       fontSize: 13.5,
     }}>{text}</div>
   );
@@ -2323,15 +2323,15 @@ function EmptyHint({ text }) {
 function HomeScreen({ state, setState, goTo }) {
   const order = state.activeOrder;
   const takeaway = state.takeawayOrder;
-  const [orderExpanded, setOrderExpanded] = useState(false);
-  const [taExpanded, setTaExpanded] = useState(false);
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [orderExpanded, setOrderExpanded] = useStateMenu(false);
+  const [taExpanded, setTaExpanded] = useStateMenu(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
   const covers = order?.covers || (order?.guests?.length || 1);
   const loggedIn = (order?.guests || []).filter(g => g.isApp || g.isWebApp).length;
 
   const HS = window.HomeSections;
-  const [activeCat, setActiveCat] = useState(null);
-  const [quickFilters, setQuickFilters] = useState({ openNow: false, near: false, promo: false, top: false });
+  const [activeCat, setActiveCat] = useStateMenu(null);
+  const [quickFilters, setQuickFilters] = useStateMenu({ openNow: false, near: false, promo: false, top: false });
 
   const topBar = (
     <div style={{ padding: '12px 12px 0' }}>
@@ -2351,7 +2351,7 @@ function HomeScreen({ state, setState, goTo }) {
 
   return (
     <div data-screen-label="Home con ordine attivo" style={{
-      width: '100%', height: '100%', background: SURF, position: 'relative',
+      width: '100%', height: '100%', background: SURF_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 60, paddingBottom: 110 }}>
@@ -2369,7 +2369,7 @@ function HomeScreen({ state, setState, goTo }) {
         ) : (
           <>
             {topBar}
-            <div style={{ padding: '40px 22px', textAlign: 'center', color: MUTED }}>
+            <div style={{ padding: '40px 22px', textAlign: 'center', color: MUTED_MENU }}>
               Caricamento Home…
             </div>
           </>
@@ -2422,7 +2422,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
     // non ne aggiunge una seconda quando le due schermate si sovrappongono.
     <div data-byup-table-card style={{
       borderRadius: 22, overflow: 'hidden',
-      background: `linear-gradient(135deg, ${PINK} 0%, ${PINK_DARK} 80%)`,
+      background: `linear-gradient(135deg, ${PINK_MENU} 0%, ${PINK_DARK_MENU} 80%)`,
       color: '#fff', position: 'relative',
       boxShadow: '0 8px 24px rgba(194,24,91,0.35)',
       transition: 'all 0.3s',
@@ -2539,7 +2539,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               <button onClick={() => goTo('pay')} disabled={allSettled} style={{
                 flex: 1.2, height: 42, borderRadius: 999, border: 'none',
                 background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-                color: allSettled ? '#fff' : PINK_DARK,
+                color: allSettled ? '#fff' : PINK_DARK_MENU,
                 fontSize: 14, fontWeight: 700,
                 fontFamily: 'inherit', cursor: allSettled ? 'default' : 'pointer',
                 opacity: allSettled ? 0.6 : 1,
@@ -2558,7 +2558,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
             <button onClick={() => goTo('pay')} disabled={allSettled} style={{
               flex: 1, height: 38, borderRadius: 999, border: 'none',
               background: allSettled ? 'rgba(255,255,255,0.15)' : '#fff',
-              color: allSettled ? '#fff' : PINK_DARK,
+              color: allSettled ? '#fff' : PINK_DARK_MENU,
               fontSize: 13.5, fontWeight: 700,
               fontFamily: 'inherit', cursor: allSettled ? 'default' : 'pointer',
               opacity: allSettled ? 0.6 : 1,
@@ -2675,7 +2675,7 @@ function TakeawayCard({ order, expanded, setExpanded, onReorder }) {
         <div style={{ marginTop: 12 }}>
           <button onClick={onReorder} style={{
             width: '100%', height: 42, borderRadius: 999, border: 'none',
-            background: SURF, color: BADGE,
+            background: SURF_MENU, color: BADGE,
             fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
           }}>Ordina ancora</button>
         </div>
@@ -2711,10 +2711,10 @@ const setParticipantsCount = (setState, n) => setState(s => {
 function ParticipantsSheet({ order, onClose, onSave, invite }) {
   const initial = Math.max(1, (order?.guests || []).length);
   const minN = Math.max(1, (order?.guests || []).filter(g => !g.isGuest).length);
-  const [n, setN] = useState(initial);
+  const [n, setN] = useStateMenu(initial);
   const dirty = n !== initial;
   const inviteUrl = `byup.app/t/${(order?.table || 'tavolo').toLowerCase().replace(/\s+/g, '')}-x9k7`;
-  const [shareState, setShareState] = useState('idle'); // 'idle' | 'copied'
+  const [shareState, setShareState] = useStateMenu('idle'); // 'idle' | 'copied'
   const handleShare = async () => {
     const fullUrl = 'https://' + inviteUrl;
     try {
@@ -2734,7 +2734,7 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
       animation: 'fadeIn 0.2s',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: '100%', background: SURF, color: TEXT,
+        width: '100%', background: SURF_MENU, color: TEXT_MENU,
         borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: '14px 22px 28px',
         animation: 'slideUp 0.25s cubic-bezier(.2,.9,.3,1)',
       }}>
@@ -2742,21 +2742,21 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.3 }}>Partecipanti al tavolo</div>
-            <div style={{ fontSize: 13, color: MUTED, marginTop: 3 }}>{order.table} · {order.venue}</div>
+            <div style={{ fontSize: 13, color: MUTED_MENU, marginTop: 3 }}>{order.table} · {order.venue}</div>
           </div>
           <button onClick={onClose} style={{
-            width: 34, height: 34, borderRadius: 999, background: TINT,
-            border: 'none', fontSize: 15, color: TEXT, cursor: 'pointer', flexShrink: 0,
+            width: 34, height: 34, borderRadius: 999, background: TINT_MENU,
+            border: 'none', fontSize: 15, color: TEXT_MENU, cursor: 'pointer', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>✕</button>
         </div>
 
         <div style={{
-          marginTop: 18, border: `1.5px solid ${BORDER}`, borderRadius: 18,
+          marginTop: 18, border: `1.5px solid ${BORDER_MENU}`, borderRadius: 18,
           padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 12, background: TINT, color: WINE,
+            width: 44, height: 44, borderRadius: 12, background: TINT_MENU, color: WINE,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2766,18 +2766,18 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 800 }}>Totale partecipanti</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>include te e gli altri commensali</div>
+            <div style={{ fontSize: 12, color: MUTED_MENU, marginTop: 1 }}>include te e gli altri commensali</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <button onClick={() => setN(v => Math.max(minN, v - 1))} disabled={n <= minN} style={{
-              width: 42, height: 42, borderRadius: 12, background: SURF,
-              border: `1.5px solid ${BORDER}`, color: WINE, fontSize: 20, fontWeight: 700,
+              width: 42, height: 42, borderRadius: 12, background: SURF_MENU,
+              border: `1.5px solid ${BORDER_MENU}`, color: WINE, fontSize: 20, fontWeight: 700,
               cursor: n <= minN ? 'default' : 'pointer', opacity: n <= minN ? 0.35 : 1, fontFamily: 'inherit',
             }}>−</button>
             <div style={{ minWidth: 28, textAlign: 'center', fontSize: 24, fontWeight: 800, color: WINE, fontVariantNumeric: 'tabular-nums' }}>{n}</div>
             <button onClick={() => setN(v => Math.min(30, v + 1))} style={{
-              width: 42, height: 42, borderRadius: 12, background: SURF,
-              border: `1.5px solid ${BORDER}`, color: WINE, fontSize: 20, fontWeight: 700,
+              width: 42, height: 42, borderRadius: 12, background: SURF_MENU,
+              border: `1.5px solid ${BORDER_MENU}`, color: WINE, fontSize: 20, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>+</button>
           </div>
@@ -2798,33 +2798,33 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
         </div>
 
         {invite && (
-          <div style={{ marginTop: 12, padding: 14, background: TINT, borderRadius: 16 }}>
+          <div style={{ marginTop: 12, padding: 14, background: TINT_MENU, borderRadius: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT_MENU} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
-              <div style={{ fontSize: 13.5, fontWeight: 800, color: TEXT, letterSpacing: -0.1 }}>Invita al tavolo</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.1 }}>Invita al tavolo</div>
             </div>
-            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.45, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: MUTED_MENU, lineHeight: 1.45, marginBottom: 10 }}>
               Condividi questo link con chi non ha scansionato il QR: si unisce al tavolo dal suo telefono.
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: SURF, padding: '6px 6px 6px 12px', borderRadius: 999,
-              border: `1px solid ${BORDER}`,
+              background: SURF_MENU, padding: '6px 6px 6px 12px', borderRadius: 999,
+              border: `1px solid ${BORDER_MENU}`,
             }}>
               <span style={{
-                flex: 1, fontSize: 12.5, color: TEXT,
+                flex: 1, fontSize: 12.5, color: TEXT_MENU,
                 fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{inviteUrl}</span>
               <button onClick={handleShare} style={{
-                background: shareState === 'copied' ? '#1c8c5b' : PINK, color: '#fff',
+                background: shareState === 'copied' ? '#1c8c5b' : PINK_MENU, color: '#fff',
                 border: 'none', padding: '7px 14px', borderRadius: 999,
                 fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 5,
-                boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK}40`,
+                boxShadow: shareState === 'copied' ? 'none' : `0 2px 6px ${PINK_MENU}40`,
                 transition: 'background 0.2s',
               }}>
                 {shareState === 'copied' ? (
@@ -2844,7 +2844,7 @@ function ParticipantsSheet({ order, onClose, onSave, invite }) {
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             <button onClick={onClose} style={{
               flex: 1, padding: 14, borderRadius: 14, background: 'transparent',
-              border: `1.5px solid ${BORDER}`, fontSize: 14.5, fontWeight: 700, color: TEXT,
+              border: `1.5px solid ${BORDER_MENU}`, fontSize: 14.5, fontWeight: 700, color: TEXT_MENU,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Annulla</button>
             <button onClick={() => onSave(n)} style={{
@@ -2870,19 +2870,19 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   const versione = (editLine && editLine.versione) || ctx?.versione || null;
   const dish = dishConVersione(findDish(ctx?.dishId), versione);
   const isEdit = !!editLine;
-  const [expanded, setExpanded] = useState(false);
-  const [extras, setExtras] = useState(editLine?.extras || {});
-  const [removed, setRemoved] = useState(editLine?.removed || {}); // ingredient -> true
-  const [variants, setVariants] = useState(editLine?.variants || {});
-  const [nutriOpen, setNutriOpen] = useState(true);
-  const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
-  const [descInfo, setDescInfo] = useState(false);   // popover "i" della descrizione generata
+  const [expanded, setExpanded] = useStateMenu(false);
+  const [extras, setExtras] = useStateMenu(editLine?.extras || {});
+  const [removed, setRemoved] = useStateMenu(editLine?.removed || {}); // ingredient -> true
+  const [variants, setVariants] = useStateMenu(editLine?.variants || {});
+  const [nutriOpen, setNutriOpen] = useStateMenu(true);
+  const [nutriInfo, setNutriInfo] = useStateMenu(false); // popover "i" del badge IA
+  const [descInfo, setDescInfo] = useStateMenu(false);   // popover "i" della descrizione generata
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useStateMenu(1);
 
   if (!dish) {
-    return <div style={{ padding: 80, textAlign: 'center', color: MUTED }}>Piatto non trovato.</div>;
+    return <div style={{ padding: 80, textAlign: 'center', color: MUTED_MENU }}>Piatto non trovato.</div>;
   }
 
   const setExtra = (id, q) => setExtras(e => {
@@ -2963,13 +2963,13 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 
   return (
     <div data-screen-label="Dettaglio piatto" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Back button — fisso sopra tutto */}
       <div style={{ position: 'absolute', top: 56, left: 16, zIndex: 50 }}>
         <button onClick={goBack} style={{
-          width: 42, height: 42, borderRadius: 999, background: SURF,
+          width: 42, height: 42, borderRadius: 999, background: SURF_MENU,
           border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         }}><I.Back size={20}/></button>
@@ -3013,7 +3013,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {/* Title + price */}
         <div style={{ padding: '4px 22px 0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: TEXT, lineHeight: 1.1, letterSpacing: -0.5 }}>{dish.name}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: TEXT_MENU, lineHeight: 1.1, letterSpacing: -0.5 }}>{dish.name}</div>
             <div style={{
               fontSize: 16, fontWeight: 700, color: '#fff',
               background: WINE, padding: '6px 12px', borderRadius: 999,
@@ -3043,7 +3043,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {dish.descAi && !expanded && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, position: 'relative' }}>
               <div style={{
-                background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
+                background: PINK_MENU, color: '#fff', fontSize: 10, fontWeight: 800,
                 padding: '4px 9px', borderRadius: 999, letterSpacing: 0.5,
                 display: 'flex', alignItems: 'center', gap: 4,
               }}>✨ IA</div>
@@ -3051,7 +3051,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                 onClick={(e) => { e.stopPropagation(); setDescInfo(v => !v); }}
                 style={{
                   width: 20, height: 20, borderRadius: 999, flexShrink: 0,
-                  background: SURF, border: `1.5px solid ${PINK}`, color: PINK,
+                  background: SURF_MENU, border: `1.5px solid ${PINK_MENU}`, color: PINK_MENU,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11.5, fontWeight: 800, fontStyle: 'italic', fontFamily: 'Georgia, serif',
                   cursor: 'pointer', lineHeight: 1,
@@ -3078,20 +3078,20 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               )}
             </div>
           )}
-          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.55, marginTop: dish.descAi && !expanded ? 6 : 10 }}>
+          <div style={{ fontSize: 13.5, color: MUTED_MENU, lineHeight: 1.55, marginTop: dish.descAi && !expanded ? 6 : 10 }}>
             {expanded ? dish.longDesc : (
               <>
                 {dish.desc.slice(0, 75)}{dish.desc.length > 75 ? '...' : ''}{' '}
-                <span onClick={() => setExpanded(true)} style={{ color: PINK, fontWeight: 600, cursor: 'pointer' }}>altro</span>
+                <span onClick={() => setExpanded(true)} style={{ color: PINK_MENU, fontWeight: 600, cursor: 'pointer' }}>altro</span>
               </>
             )}
             {expanded && (
-              <span onClick={() => setExpanded(false)} style={{ color: PINK, fontWeight: 600, cursor: 'pointer', marginLeft: 4 }}> meno</span>
+              <span onClick={() => setExpanded(false)} style={{ color: PINK_MENU, fontWeight: 600, cursor: 'pointer', marginLeft: 4 }}> meno</span>
             )}
           </div>
           {dish.allergens.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-              <span style={{ fontSize: 11.5, color: MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>Allergeni</span>
+              <span style={{ fontSize: 11.5, color: MUTED_MENU, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>Allergeni</span>
               <AllergenDots ids={dish.allergens} decongelato={dish.decongelato}/>
             </div>
           )}
@@ -3100,8 +3100,8 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {/* Remove ingredients */}
         {dish.ingredients.length > 0 && (
           <div style={{ padding: '24px 22px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, marginBottom: 4, letterSpacing: -0.2 }}>Personalizza</div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 14 }}>Tocca un ingrediente per toglierlo</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_MENU, marginBottom: 4, letterSpacing: -0.2 }}>Personalizza</div>
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, marginBottom: 14 }}>Tocca un ingrediente per toglierlo</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {dish.ingredients.map(ing => {
                 const out = !!removed[ing];
@@ -3109,8 +3109,8 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   <button key={ing} onClick={() => toggleRemove(ing)} style={{
                     padding: '8px 14px', borderRadius: 999,
                     border: out ? `1.5px solid #d0d0d0` : `1.5px solid ${WINE}`,
-                    background: out ? TINT : SURF,
-                    color: out ? '#999' : TEXT,
+                    background: out ? TINT_MENU : SURF_MENU,
+                    color: out ? '#999' : TEXT_MENU,
                     fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                     textDecoration: out ? 'line-through' : 'none',
                     display: 'flex', alignItems: 'center', gap: 5,
@@ -3128,18 +3128,18 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {/* Extras */}
         {dish.extras.length > 0 && (
           <div style={{ padding: '28px 22px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, marginBottom: 14, letterSpacing: -0.2 }}>Aggiungi</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_MENU, marginBottom: 14, letterSpacing: -0.2 }}>Aggiungi</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {dish.extras.map(ex => {
                 const q = extras[ex.id] || 0;
                 return (
                   <div key={ex.id} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-                    padding: '12px 0', borderBottom: `1px solid ${BORDER}`,
+                    padding: '12px 0', borderBottom: `1px solid ${BORDER_MENU}`,
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT }}>{ex.name}</div>
-                      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{ex.price === 0 ? 'gratis' : `+${ex.price}€`}</div>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT_MENU }}>{ex.name}</div>
+                      <div style={{ fontSize: 12.5, color: MUTED_MENU, marginTop: 2 }}>{ex.price === 0 ? 'gratis' : `+${ex.price}€`}</div>
                       {/* L'aggiunta che introduce un allergene che il piatto
                           non ha lo dice qui, e se è uno di quelli dichiarati
                           lo dice in rosso: entra nel filtro come gli
@@ -3152,7 +3152,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                         const nomi = nuovi.map(a => (ALLERGENS[a] ? ALLERGENS[a].label : a).toLowerCase()).join(', ');
                         return (
                           <div style={{ fontSize: 12, marginTop: 3, fontWeight: scontro ? 700 : 500,
-                            color: scontro ? '#b3261e' : MUTED }}>
+                            color: scontro ? '#b3261e' : MUTED_MENU }}>
                             {scontro ? `⚠ aggiunge ${nomi}` : `aggiunge ${nomi}`}
                           </div>
                         );
@@ -3160,10 +3160,10 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                     </div>
                     {q === 0 ? (
                       <button onClick={() => setExtra(ex.id, 1)} style={{
-                        width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${BORDER}`,
-                        background: SURF, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${BORDER_MENU}`,
+                        background: SURF_MENU, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer',
-                      }}><I.Plus size={14} color={TEXT}/></button>
+                      }}><I.Plus size={14} color={TEXT_MENU}/></button>
                     ) : (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 8,
@@ -3190,7 +3190,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {/* Variants */}
         {dish.variants.length > 0 && dish.variants.map(v => (
           <div key={v.id} style={{ padding: '28px 22px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, marginBottom: 14, letterSpacing: -0.2 }}>{v.label}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_MENU, marginBottom: 14, letterSpacing: -0.2 }}>{v.label}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {v.options.map(opt => {
                 const sel = variants[v.id] === opt;
@@ -3198,9 +3198,9 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   <button key={opt} onClick={() => setVariants(vv => ({ ...vv, [v.id]: opt }))}
                     style={{
                       padding: '10px 16px', borderRadius: 999,
-                      border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER}`,
-                      background: sel ? WINE : SURF,
-                      color: sel ? '#fff' : TEXT,
+                      border: sel ? `1.5px solid ${WINE}` : `1.5px solid ${BORDER_MENU}`,
+                      background: sel ? WINE : SURF_MENU,
+                      color: sel ? '#fff' : TEXT_MENU,
                       fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                     }}>{opt}</button>
                 );
@@ -3213,13 +3213,13 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
         {dish.cal > 0 && (
           <div style={{ padding: '32px 22px 0' }}>
             <div style={{
-              borderRadius: 18, background: SURF, padding: 16,
-              border: `1px solid ${BORDER}`, position: 'relative',
+              borderRadius: 18, background: SURF_MENU, padding: 16,
+              border: `1px solid ${BORDER_MENU}`, position: 'relative',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
             }}>
               <div style={{ position: 'absolute', top: -10, left: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{
-                  background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
+                  background: PINK_MENU, color: '#fff', fontSize: 10, fontWeight: 800,
                   padding: '4px 9px', borderRadius: 999, letterSpacing: 0.5,
                   display: 'flex', alignItems: 'center', gap: 4,
                 }}>✨ IA</div>
@@ -3228,7 +3228,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   onClick={(e) => { e.stopPropagation(); setNutriInfo(v => !v); }}
                   style={{
                     width: 20, height: 20, borderRadius: 999, flexShrink: 0,
-                    background: SURF, border: `1.5px solid ${PINK}`, color: PINK,
+                    background: SURF_MENU, border: `1.5px solid ${PINK_MENU}`, color: PINK_MENU,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11.5, fontWeight: 800, fontStyle: 'italic', fontFamily: 'Georgia, serif',
                     cursor: 'pointer', lineHeight: 1,
@@ -3267,11 +3267,11 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   </svg>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>Valori nutrizionali</div>
-                  <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{dish.cal} Kcal a porzione</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: TEXT_MENU }}>Valori nutrizionali</div>
+                  <div style={{ fontSize: 12.5, color: MUTED_MENU, marginTop: 1 }}>{dish.cal} Kcal a porzione</div>
                 </div>
                 <div style={{ transform: nutriOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
-                  <I.ChevDown color={TEXT} size={18}/>
+                  <I.ChevDown color={TEXT_MENU} size={18}/>
                 </div>
               </div>
               {nutriOpen && (
@@ -3279,10 +3279,10 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   {macroBars.map(m => (
                     <div key={m.label}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                        <span style={{ color: TEXT, fontWeight: 500 }}>{m.label}</span>
-                        <span style={{ color: TEXT, fontWeight: 700 }}>{m.val}g</span>
+                        <span style={{ color: TEXT_MENU, fontWeight: 500 }}>{m.label}</span>
+                        <span style={{ color: TEXT_MENU, fontWeight: 700 }}>{m.val}g</span>
                       </div>
-                      <div style={{ height: 6, background: TINT, borderRadius: 999, overflow: 'hidden' }}>
+                      <div style={{ height: 6, background: TINT_MENU, borderRadius: 999, overflow: 'hidden' }}>
                         <div style={{
                           width: `${Math.min(100, (m.val / m.max) * 100)}%`,
                           height: '100%', background: m.color, borderRadius: 999, transition: 'width 0.4s',
@@ -3305,8 +3305,8 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           return (
             <div style={{ padding: '28px 0 0' }}>
               <div style={{ padding: '0 22px', marginBottom: 12 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, letterSpacing: -0.2 }}>Spesso ordinato con</div>
-                <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Gli altri clienti hanno aggiunto anche</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.2 }}>Spesso ordinato con</div>
+                <div style={{ fontSize: 12.5, color: MUTED_MENU, marginTop: 2 }}>Gli altri clienti hanno aggiunto anche</div>
               </div>
               <div className="hscroll" style={{ display: 'flex', gap: 10, padding: '0 22px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {others.map(d => {
@@ -3314,7 +3314,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                   const qty = plain ? plain.qty : 0;
                   const inCart = qty > 0;
                   const stepBtn = {
-                    width: 28, height: 28, borderRadius: 999, border: 'none', background: TINT,
+                    width: 28, height: 28, borderRadius: 999, border: 'none', background: TINT_MENU,
                     color: WINE, fontSize: 18, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   };
@@ -3324,7 +3324,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                       overflow: 'hidden', cursor: inCart ? 'default' : 'pointer', position: 'relative',
                       boxShadow: inCart ? `0 2px 10px rgba(90,26,46,0.22)` : '0 1px 4px rgba(0,0,0,0.05)',
                       border: inCart ? `2px solid ${WINE}` : '2px solid transparent',
-                      background: inCart ? TINT : SURF,
+                      background: inCart ? TINT_MENU : SURF_MENU,
                       transition: 'all 0.18s',
                     }}>
                       <div style={{ height: 90, overflow: 'hidden', position: 'relative' }}>
@@ -3344,7 +3344,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                         )}
                       </div>
                       <div style={{ padding: '8px 10px 10px' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: inCart ? WINE : TEXT, lineHeight: 1.2,
+                        <div style={{ fontSize: 12, fontWeight: 700, color: inCart ? WINE : TEXT_MENU, lineHeight: 1.2,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
                         {inCart ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 }}>
@@ -3353,7 +3353,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
                             <button onClick={(e) => { e.stopPropagation(); addDish(d.id); }} title="Aggiungi" style={stepBtn}>+</button>
                           </div>
                         ) : (
-                          <div style={{ fontSize: 11, color: MUTED, fontWeight: 400, marginTop: 3 }}>Tocca per aggiungere</div>
+                          <div style={{ fontSize: 11, color: MUTED_MENU, fontWeight: 400, marginTop: 3 }}>Tocca per aggiungere</div>
                         )}
                       </div>
                     </div>
@@ -3371,13 +3371,13 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
       {/* Bottom CTA */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
+        padding: '14px 22px 22px', background: SURF_MENU, borderTop: `1px solid ${BORDER_MENU}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         {/* Domanda — solo in modifica di una riga con più porzioni */}
         {isEdit && editLine.qty > 1 && (
-          <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, textAlign: 'center' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: MUTED_MENU, textAlign: 'center' }}>
             A quante porzioni applicare le modifiche?
           </div>
         )}
@@ -3386,18 +3386,18 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {!isEdit && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 4, height: 56, flex: '0 0 auto',
-              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 6px', background: SURF,
+              borderRadius: 999, border: `1px solid ${BORDER_MENU}`, padding: '0 6px', background: SURF_MENU,
             }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
-                color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT_MENU,
+                color: TEXT_MENU, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty <= 1 ? 'default' : 'pointer', opacity: qty <= 1 ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>−</button>
-              <span style={{ minWidth: 24, textAlign: 'center', fontSize: 16, fontWeight: 800, color: TEXT }}>{qty}</span>
+              <span style={{ minWidth: 24, textAlign: 'center', fontSize: 16, fontWeight: 800, color: TEXT_MENU }}>{qty}</span>
               <button onClick={() => setQty(q => q + 1)} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
-                color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT_MENU,
+                color: TEXT_MENU, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>+</button>
             </div>
@@ -3406,18 +3406,18 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           {isEdit && editLine.qty > 1 && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 4, height: 56, flex: '0 0 auto',
-              borderRadius: 999, border: `1px solid ${BORDER}`, padding: '0 8px', background: SURF,
+              borderRadius: 999, border: `1px solid ${BORDER_MENU}`, padding: '0 8px', background: SURF_MENU,
             }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
-                color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT_MENU,
+                color: TEXT_MENU, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty <= 1 ? 'default' : 'pointer', opacity: qty <= 1 ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>−</button>
-              <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: TEXT, whiteSpace: 'nowrap' }}>{qty} di {editLine.qty}</span>
+              <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: TEXT_MENU, whiteSpace: 'nowrap' }}>{qty} di {editLine.qty}</span>
               <button onClick={() => setQty(q => Math.min(editLine.qty, q + 1))} disabled={qty >= editLine.qty} style={{
-                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT,
-                color: TEXT, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
+                width: 38, height: 38, borderRadius: 999, border: 'none', background: TINT_MENU,
+                color: TEXT_MENU, fontSize: 22, fontWeight: 700, lineHeight: 1, fontFamily: 'inherit',
                 cursor: qty >= editLine.qty ? 'default' : 'pointer', opacity: qty >= editLine.qty ? 0.4 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>+</button>
@@ -3547,13 +3547,13 @@ function applyPayments(setState, payments) {
 // TAP sul pomello → cicla modalità con morphing di icona/colore.
 // DRAG → riempimento progressivo, rilascio elastico o pagamento con check.
 function SlideToPay({ mode, label, amount, disabled, onCycle, onPay }) {
-  const trackRef = useRef(null);
-  const [x, setX] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const [phase, setPhase] = useState('idle'); // 'idle' | 'success'
-  const [pulse, setPulse] = useState(0);
-  const startX = useRef(0);
-  const moved = useRef(false);
+  const trackRef = useRefMenu(null);
+  const [x, setX] = useStateMenu(0);
+  const [dragging, setDragging] = useStateMenu(false);
+  const [phase, setPhase] = useStateMenu('idle'); // 'idle' | 'success'
+  const [pulse, setPulse] = useStateMenu(0);
+  const startX = useRefMenu(0);
+  const moved = useRefMenu(false);
   const KNOB = 46;
   const themes = {
     mine:  { grad: CTA_GRAD, glow: '0 12px 26px -10px rgba(227,36,89,.65)' },
@@ -3606,8 +3606,8 @@ function SlideToPay({ mode, label, amount, disabled, onCycle, onPay }) {
 
   return (
     <div ref={trackRef} style={{
-      position: 'relative', height: 58, borderRadius: 999, background: TINT,
-      border: `1.5px solid ${BORDER}`, overflow: 'hidden', userSelect: 'none',
+      position: 'relative', height: 58, borderRadius: 999, background: TINT_MENU,
+      border: `1.5px solid ${BORDER_MENU}`, overflow: 'hidden', userSelect: 'none',
       touchAction: 'none', opacity: disabled ? 0.55 : 1,
     }}>
       <style>{`
@@ -3646,12 +3646,12 @@ function SlideToPay({ mode, label, amount, disabled, onCycle, onPay }) {
           <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: .2 }}>Pagamento in corso…</span>
         ) : (
           <>
-            <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>{label}</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>{amount.toFixed(2)}€</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_MENU }}>{label}</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: TEXT_MENU, fontVariantNumeric: 'tabular-nums' }}>{amount.toFixed(2)}€</span>
             <span style={{ display: 'inline-flex', marginLeft: 2 }}>
               {[0, 1, 2].map(i => (
                 <svg key={i} width="9" height="12" viewBox="0 0 8 12" style={{ animation: `stpChev 1.7s ${i * 0.18}s ease-in-out infinite` }}>
-                  <path d="M1.5 1.5 6 6l-4.5 4.5" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M1.5 1.5 6 6l-4.5 4.5" fill="none" stroke={MUTED_MENU} strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               ))}
             </span>
@@ -3744,7 +3744,7 @@ function NotteAvviso({ mancano }) {
 
 function PaymentScreen({ state, setState, goTo, goBack }) {
   const order = state.activeOrder;
-  if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED}}>Nessun ordine attivo.</div>;
+  if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED_MENU}}>Nessun ordine attivo.</div>;
 
   // I coperti non si chiedono più all'utente: il numero arriva da order.covers
   // (lo imposta lo staff di sala), quindi il pagamento si apre diretto.
@@ -3764,25 +3764,25 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     }, 0);
     return mio <= 0.001 && tableRemaining(order, settled) > 0.001 ? 'all' : 'mine';
   };
-  const [mode, setMode] = useState(modoIniziale);
+  const [mode, setMode] = useStateMenu(modoIniziale);
   // selectedExtras: lineId -> true (piatti di altri che voglio pagare io)
-  const [selectedExtras, setSelectedExtras] = useState(state.payingExtras || {});
+  const [selectedExtras, setSelectedExtras] = useStateMenu(state.payingExtras || {});
   // open accordion per owner
-  const [openOwners, setOpenOwners] = useState({});
+  const [openOwners, setOpenOwners] = useStateMenu({});
   // mancia: percentuale (0 | 0.05 | 0.1) oppure arrotondamento all'euro
   // successivo (tipRound). Mutuamente esclusivi.
-  const [tipPct, setTipPct] = useState(0); // 0, 0.05, 0.10
-  const [tipRound, setTipRound] = useState(false);
+  const [tipPct, setTipPct] = useStateMenu(0); // 0, 0.05, 0.10
+  const [tipRound, setTipRound] = useStateMenu(false);
   // overlay di caricamento durante il pagamento
-  const [paying, setPaying] = useState(false);
-  const [splitInfo, setSplitInfo] = useState(null);
-  const [confirmRejectSplit, setConfirmRejectSplit] = useState(null);
+  const [paying, setPaying] = useStateMenu(false);
+  const [splitInfo, setSplitInfo] = useStateMenu(null);
+  const [confirmRejectSplit, setConfirmRejectSplit] = useStateMenu(null);
   // Sheet "Al tavolo": apre la lista commensali con badge ✓ ha l'app / ospite
-  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useStateMenu(false);
 
   // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
-  const [ctaMode, setCtaMode] = useState(modoIniziale); // 'mine' | 'all'
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [ctaMode, setCtaMode] = useStateMenu(modoIniziale); // 'mine' | 'all'
+  const [detailsOpen, setDetailsOpen] = useStateMenu(false);
   const cycleCtaMode = () => setCtaMode(m => {
     const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
     setMode(next === 'all' ? 'all' : 'mine');
@@ -3831,7 +3831,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // "+" = contorno vino su bianco; "−"/attivo = pieno vino.
   const addBtnStyle = {
     width: 32, height: 32, borderRadius: 999, flexShrink: 0,
-    border: `1.5px solid ${WINE}`, background: SURF, color: WINE,
+    border: `1.5px solid ${WINE}`, background: SURF_MENU, color: WINE,
     fontSize: 20, fontWeight: 500, lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   };
@@ -3899,7 +3899,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     const allPicked = available.length > 0 && picked.length === available.length;
     return (
       <div key={id} style={{
-        background: SURF, borderRadius: 14, overflow: 'hidden',
+        background: SURF_MENU, borderRadius: 14, overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)', opacity: frozen ? 0.7 : 1,
       }}>
         <div onClick={() => !frozen && toggleOwner(id)} style={{
@@ -3914,10 +3914,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             fontSize: 13, fontWeight: 700,
           }}>{avatar}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{title}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_MENU }}>{title}</div>
             <div style={{
               fontSize: 12, marginTop: 1,
-              color: allPaid ? '#1c8c5b' : MUTED, fontWeight: allPaid ? 700 : 500,
+              color: allPaid ? '#1c8c5b' : MUTED_MENU, fontWeight: allPaid ? 700 : 500,
             }}>
               {allPaid
                 ? 'Tutto già pagato'
@@ -3930,7 +3930,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           </div>
           {!frozen && (
             <div style={{ transform: open ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
-              <I.ChevDown color={MUTED} size={16}/>
+              <I.ChevDown color={MUTED_MENU} size={16}/>
             </div>
           )}
         </div>
@@ -3939,7 +3939,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             <button onClick={() => addAllItems(items)} disabled={allPicked} style={{
               width: '100%', padding: '8px 12px', borderRadius: 999,
               background: allPicked ? '#ebe3d6' : WINE,
-              color: allPicked ? MUTED : '#fff',
+              color: allPicked ? MUTED_MENU : '#fff',
               border: 'none', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
               cursor: allPicked ? 'default' : 'pointer', marginBottom: 8,
             }}>{allPicked ? 'Già tutti sul tuo conto' : `Aggiungi tutto (${availableTotal.toFixed(2)}€)`}</button>
@@ -3953,22 +3953,22 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 return (
                   <div key={i.lineId} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '11px 0', borderTop: `1px solid ${BORDER}`,
+                    padding: '11px 0', borderTop: `1px solid ${BORDER_MENU}`,
                     opacity: off ? 0.45 : 1,
                   }}>
                     <div style={{
-                      flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: TEXT,
+                      flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: TEXT_MENU,
                       textDecoration: paid ? 'line-through' : 'none',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{i.name}</div>
                     <div style={{
-                      fontSize: 14.5, fontWeight: 700, color: TEXT, flexShrink: 0,
+                      fontSize: 14.5, fontWeight: 700, color: TEXT_MENU, flexShrink: 0,
                       fontVariantNumeric: 'tabular-nums',
                     }}>{(paid ? i.price * i.qty : lineRemaining(order, i, settledOra)).toFixed(2)}€</div>
                     {off ? (
                       <div style={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
                         {locked ? (
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED_MENU} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                           </svg>
@@ -4067,12 +4067,12 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // "Paga ora": niente conferma "stai offrendo", mostra il caricamento (5s) e procede.
   // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
   // quota: la slide da sola non basta come conferma.
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmAll, setConfirmAll] = useStateMenu(false);
   // La finestra notturna (P-148): dentro, il pagamento aspetta mezzanotte
   // italiana come in cassa; il conto alla rovescia si aggiorna ogni secondo.
   const notte = window.byupNotteInfo ? window.byupNotteInfo() : { dentro: false, mancano: 0 };
-  const [, setNotteTick] = useState(0);
-  useEffect(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
+  const [, setNotteTick] = useStateMenu(0);
+  useEffectMenu(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const payNow = () => {
     if (paying || ctaTotal <= 0 || notte.dentro) return;
     // La modalita' della CTA e' ctaMode ('mine' | 'all'), non `mode`:
@@ -4089,24 +4089,24 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   return (
     <div data-screen-label="Pagamento" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header fisso: back + titolo, sempre visibile anche scrollando */}
       <div style={{
-        flexShrink: 0, paddingTop: 60, background: BG_PAGE,
+        flexShrink: 0, paddingTop: 60, background: BG_PAGE_MENU,
         position: 'relative', zIndex: 5, boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
       }}>
         {/* Header con back + titolo */}
         <div style={{ padding: '8px 22px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={goBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: SURF,
+            width: 40, height: 40, borderRadius: 999, background: SURF_MENU,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', flexShrink: 0,
           }}><I.Back size={18}/></button>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, lineHeight: 1.1 }}>Il tuo conto</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{order.table}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4, lineHeight: 1.1 }}>Il tuo conto</div>
+            <div style={{ fontSize: 12, color: MUTED_MENU, marginTop: 2 }}>{order.table}</div>
           </div>
         </div>
       </div>
@@ -4116,14 +4116,14 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         {/* Card "Tu" — in bold solo nome e totale, righe piatti regular */}
         {!(mode === 'mine' && myItems.length === 0 && extraItems.length === 0 && tableItems.length > 0) && (
         <div style={{ padding: '20px 22px 0' }}>
-          <div style={{ background: SURF, borderRadius: 18, padding: '14px 16px 4px',
+          <div style={{ background: SURF_MENU, borderRadius: 18, padding: '14px 16px 4px',
             border: `1.5px solid ${WINE}2e`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 11 }}>
               <div style={{ width: 38, height: 38, borderRadius: 11, background: BADGE, color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14.5, fontWeight: 800, flexShrink: 0 }}>T</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, flex: 1, letterSpacing: -0.3 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_MENU, flex: 1, letterSpacing: -0.3 }}>
                 {mode === 'all' ? 'Tu · offri il tavolo' : 'Tu'}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_MENU, fontVariantNumeric: 'tabular-nums' }}>
                 {(subtotal + cover).toFixed(2)}€</div>
             </div>
             {(mode === 'all' ? order.items : myItems).map(it => {
@@ -4144,21 +4144,21 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 : '';
               return (
                 <div key={it.lineId} style={{ display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
+                  padding: '11px 0', borderTop: `1px solid ${BORDER_MENU}` }}>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14.5, color: paid ? MUTED : TEXT,
+                    <span style={{ fontSize: 14.5, color: paid ? MUTED_MENU : TEXT_MENU,
                       textDecoration: paid ? 'line-through' : 'none' }}>{it.name}</span>
-                    {it.qty > 1 && <span style={{ fontSize: 12, color: MUTED }}>×{it.qty}</span>}
+                    {it.qty > 1 && <span style={{ fontSize: 12, color: MUTED_MENU }}>×{it.qty}</span>}
                     {isShared && !paid && mode === 'mine' && (
                       <span onClick={(e) => { e.stopPropagation(); setSplitInfo({ item: it, names: sharedNames, splitN, myShare }); }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: TINT, color: WINE,
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: TINT_MENU, color: WINE,
                           padding: '2.5px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                         {splitN === 2 ? '½' : `1/${splitN}`} con {sharedNames}
                       </span>
                     )}
                     {paid && <span style={{ fontSize: 11, color: '#1c8c5b', fontWeight: 700 }}>✓ pagato</span>}
                   </div>
-                  <span style={{ fontSize: 14.5, color: paid ? MUTED : TEXT, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  <span style={{ fontSize: 14.5, color: paid ? MUTED_MENU : TEXT_MENU, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                     {myShare.toFixed(2)}€</span>
                 </div>
               );
@@ -4173,15 +4173,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               const share = lineRemaining(order, it, settledOra);
               return (
                 <div key={'x-' + it.lineId} style={{ display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
+                  padding: '11px 0', borderTop: `1px solid ${BORDER_MENU}` }}>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14.5, color: TEXT }}>{it.name}</span>
-                    <span style={{ background: TINT, color: WINE, padding: '2.5px 9px', borderRadius: 999,
+                    <span style={{ fontSize: 14.5, color: TEXT_MENU }}>{it.name}</span>
+                    <span style={{ background: TINT_MENU, color: WINE, padding: '2.5px 9px', borderRadius: 999,
                       fontSize: 11, fontWeight: 700 }}>{isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`}</span>
                   </div>
-                  <span style={{ fontSize: 14.5, color: TEXT, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{share.toFixed(2)}€</span>
+                  <span style={{ fontSize: 14.5, color: TEXT_MENU, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{share.toFixed(2)}€</span>
                   <button onClick={() => toggleExtra(it.lineId)} aria-label="Togli" style={{
-                    width: 22, height: 22, borderRadius: 999, border: 'none', background: TINT, color: WINE,
+                    width: 22, height: 22, borderRadius: 999, border: 'none', background: TINT_MENU, color: WINE,
                     fontSize: 14, lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                 </div>
@@ -4189,13 +4189,13 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             })}
             {cover > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
-                <span style={{ fontSize: 14.5, color: MUTED }}>{copertoNome}{copertoFisso ? (mode === 'all' ? ` × ${covers}` : '') : ` ${copertoCfg.aliquota}%`}</span>
-                <span style={{ fontSize: 14.5, color: MUTED, fontVariantNumeric: 'tabular-nums' }}>{cover.toFixed(2)}€</span>
+                padding: '11px 0', borderTop: `1px solid ${BORDER_MENU}` }}>
+                <span style={{ fontSize: 14.5, color: MUTED_MENU }}>{copertoNome}{copertoFisso ? (mode === 'all' ? ` × ${covers}` : '') : ` ${copertoCfg.aliquota}%`}</span>
+                <span style={{ fontSize: 14.5, color: MUTED_MENU, fontVariantNumeric: 'tabular-nums' }}>{cover.toFixed(2)}€</span>
               </div>
             )}
             {myItems.length === 0 && extraItems.length === 0 && mode === 'mine' && (
-              <div style={{ padding: '14px 0', borderTop: `1px solid ${BORDER}`, fontSize: 13.5, color: MUTED, textAlign: 'center' }}>
+              <div style={{ padding: '14px 0', borderTop: `1px solid ${BORDER_MENU}`, fontSize: 13.5, color: MUTED_MENU, textAlign: 'center' }}>
                 ✓ Non hai piatti tuoi sul conto.
               </div>
             )}
@@ -4208,7 +4208,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {mode === 'mine' && (appGuests.length > 0 || webGuests.length > 0 || altroItems.length > 0) && (
               <div style={{ padding: '28px 22px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4 }}>
                     Il tavolo
                   </div>
                   {/* Partecipanti — tap per vedere chi è loggato */}
@@ -4216,16 +4216,16 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     display: 'flex', alignItems: 'center', gap: 6,
                     background: 'transparent', border: 'none', padding: 0,
                     cursor: 'pointer', fontFamily: 'inherit',
-                    fontSize: 13, color: MUTED,
+                    fontSize: 13, color: MUTED_MENU,
                   }}>
-                    <span><span style={{ fontWeight: 700, color: TEXT }}>{(order.guests?.length || 0)}</span> partecipanti</span>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <span><span style={{ fontWeight: 700, color: TEXT_MENU }}>{(order.guests?.length || 0)}</span> partecipanti</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={MUTED_MENU} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                   </button>
                 </div>
                 {/* Subheadline: lega il numero di partecipanti alla divisione dei piatti "tavolo" */}
-                <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.45, marginBottom: 14 }}>
+                <div style={{ fontSize: 12.5, color: MUTED_MENU, lineHeight: 1.45, marginBottom: 14 }}>
                   I piatti messi a "tavolo" si dividono tra i {(order.guests?.length || 0)} partecipanti; qui puoi comunque prenderne la parte di qualcun altro. Tocca il numero per modificarli.
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -4242,7 +4242,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                   {altroItems.length > 0 && renderTableCard({
                     id: 'altro',
                     title: 'Altro',
-                    avatarBg: TINT,
+                    avatarBg: TINT_MENU,
                     avatarColor: WINE,
                     avatar: (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -4260,7 +4260,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {/* Footer: CTA a scorrimento + dettagli pagamento */}
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: SURF, borderTop: `1px solid ${BORDER}`,
+        background: SURF_MENU, borderTop: `1px solid ${BORDER_MENU}`,
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
         padding: '12px 16px calc(26px + env(safe-area-inset-bottom, 0px))',
       }}>
@@ -4275,7 +4275,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         />
         <button onClick={() => setDetailsOpen(true)} style={{
           display: 'block', width: '100%', marginTop: 7, padding: '8px 0', background: 'none', border: 'none',
-          color: MUTED, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          color: MUTED_MENU, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
         }}>Dettagli pagamento · mancia e metodo</button>
       </div>
 
@@ -4286,19 +4286,19 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           display: 'flex', alignItems: 'flex-end',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: '100%', background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            width: '100%', background: SURF_MENU, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             padding: '10px 0 calc(18px + env(safe-area-inset-bottom, 0px))',
           }}>
             <div style={{ width: 40, height: 4, borderRadius: 999, background: MUTESURF, margin: '0 auto 12px' }}/>
             <div style={{ padding: '0 16px 8px', fontSize: 13 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 12 }}>Dettagli pagamento</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED, marginBottom: 6 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_MENU, marginBottom: 12 }}>Dettagli pagamento</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: MUTED_MENU, marginBottom: 6 }}>
                 <span>{mode === 'all' ? 'Tutto il tavolo' : (extraTotal > 0 ? 'I miei piatti + offerti' : 'I miei piatti')}</span>
-                <span style={{ fontWeight: 600, color: TEXT }}>{(subtotal + cover).toFixed(2)}€</span>
+                <span style={{ fontWeight: 600, color: TEXT_MENU }}>{(subtotal + cover).toFixed(2)}€</span>
               </div>
           {/* Mancia inline */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-            <span style={{ color: MUTED, flexShrink: 0 }}>Mancia</span>
+            <span style={{ color: MUTED_MENU, flexShrink: 0 }}>Mancia</span>
             <div style={{ display: 'flex', gap: 4, flexShrink: 0, justifyContent: 'flex-end' }}>
               {[
                 { id: 0, label: '—' },
@@ -4313,15 +4313,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     else { setTipPct(t.id); setTipRound(false); }
                   }} style={{
                     minWidth: 36, height: 28, padding: '0 10px', borderRadius: 999,
-                    background: active ? WINE : TINT,
-                    color: active ? '#fff' : TEXT,
+                    background: active ? WINE : TINT_MENU,
+                    color: active ? '#fff' : TEXT_MENU,
                     border: 'none', fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>{t.id === 'round' && active ? `+${roundUpTip.toFixed(2)}€` : t.label}</button>
                 );
               })}
             </div>
-            <span style={{ fontWeight: 600, color: tipAmount > 0 ? TEXT : MUTED, minWidth: 50, textAlign: 'right' }}>
+            <span style={{ fontWeight: 600, color: tipAmount > 0 ? TEXT_MENU : MUTED_MENU, minWidth: 50, textAlign: 'right' }}>
               {tipAmount > 0 ? `${tipAmount.toFixed(2)}€` : '—'}
             </span>
           </div>
@@ -4331,13 +4331,13 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         <div onClick={() => goTo('paymethod')} style={{
           margin: '0 16px 8px', padding: '10px 12px',
           display: 'flex', alignItems: 'center', gap: 10,
-          background: TINT, borderRadius: 12, cursor: 'pointer',
+          background: TINT_MENU, borderRadius: 12, cursor: 'pointer',
         }}>
           <div style={{
             width: 44, height: 28, borderRadius: 6, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: payMethod === 'apple' ? '#000' : (payMethod === 'klarna' ? '#ffb3c7' : SURF),
-            border: (payMethod === 'apple' || payMethod === 'klarna') ? 'none' : `1px solid ${BORDER}`, gap: 2,
+            background: payMethod === 'apple' ? '#000' : (payMethod === 'klarna' ? '#ffb3c7' : SURF_MENU),
+            border: (payMethod === 'apple' || payMethod === 'klarna') ? 'none' : `1px solid ${BORDER_MENU}`, gap: 2,
           }}>
             {payMethod === 'apple' && <>
               <svg width="11" height="14" viewBox="0 0 170 170" fill="#fff">
@@ -4350,20 +4350,20 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {payMethod === 'card' && <CardIcon size={18}/>}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: MUTED, fontWeight: 500, lineHeight: 1 }}>Paghi con</div>
-            <div style={{ fontSize: 13, color: TEXT, fontWeight: 700, marginTop: 2 }}>{payMethodName(payMethod)}</div>
+            <div style={{ fontSize: 12, color: MUTED_MENU, fontWeight: 500, lineHeight: 1 }}>Paghi con</div>
+            <div style={{ fontSize: 13, color: TEXT_MENU, fontWeight: 700, marginTop: 2 }}>{payMethodName(payMethod)}</div>
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: WINE }}>Cambia</span>
         </div>
 
         <div style={{ padding: '4px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: TEXT }}>Totale</span>
-          <span style={{ fontSize: 19, fontWeight: 800, color: TEXT }}>{ctaTotal.toFixed(2)}€</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: TEXT_MENU }}>Totale</span>
+          <span style={{ fontSize: 19, fontWeight: 800, color: TEXT_MENU }}>{ctaTotal.toFixed(2)}€</span>
         </div>
         <div style={{ padding: '10px 16px 0' }}>
           <button onClick={() => setDetailsOpen(false)} style={{
-            width: '100%', height: 48, borderRadius: 999, border: `1.5px solid ${BORDER}`,
-            background: 'transparent', color: TEXT, fontSize: 14, fontWeight: 800,
+            width: '100%', height: 48, borderRadius: 999, border: `1.5px solid ${BORDER_MENU}`,
+            background: 'transparent', color: TEXT_MENU, fontSize: 14, fontWeight: 800,
             fontFamily: 'inherit', cursor: 'pointer',
           }}>Fatto</button>
         </div>
@@ -4387,14 +4387,14 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           zIndex: 100,
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            background: SURF_MENU, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             width: '100%', maxWidth: 430, padding: '20px 22px 28px',
           }}>
             <div style={{ width: 36, height: 4, borderRadius: 999, background: MUTESURF, margin: '0 auto 16px' }}/>
-            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 4 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.3, marginBottom: 4 }}>
               {splitInfo.item.name}
             </div>
-            <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: MUTED_MENU, marginBottom: 16 }}>
               Diviso tra {splitInfo.splitN} persone
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -4404,19 +4404,19 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               ].map(p => (
                 <div key={p.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 12px', background: TINT, borderRadius: 12,
+                  padding: '10px 12px', background: TINT_MENU, borderRadius: 12,
                 }}>
                   <div style={{
                     width: 34, height: 34, borderRadius: 999,
-                    background: p.isMe ? PINK_DARK : (p.isGuest ? '#ebe3d6' : BADGE),
-                    color: p.isMe ? '#fff' : (p.isGuest ? MUTED : '#fff'),
+                    background: p.isMe ? PINK_DARK_MENU : (p.isGuest ? '#ebe3d6' : BADGE),
+                    color: p.isMe ? '#fff' : (p.isGuest ? MUTED_MENU : '#fff'),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, fontWeight: 700,
                   }}>{p.isMe ? 'T' : (p.initial || '?')}</div>
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: TEXT }}>
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: TEXT_MENU }}>
                     {p.name}{p.isMe ? ' (tu)' : ''}
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: TEXT }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: TEXT_MENU }}>
                     {splitInfo.myShare.toFixed(2)}€
                   </div>
                 </div>
@@ -4424,11 +4424,11 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             </div>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 12px', background: TINT, borderRadius: 12,
+              padding: '12px 12px', background: TINT_MENU, borderRadius: 12,
               marginBottom: 16,
             }}>
-              <span style={{ fontSize: 12.5, color: MUTED }}>Totale piatto</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: TEXT }}>
+              <span style={{ fontSize: 12.5, color: MUTED_MENU }}>Totale piatto</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: TEXT_MENU }}>
                 {(splitInfo.item.price * splitInfo.item.qty).toFixed(2)}€
               </span>
             </div>
@@ -4453,15 +4453,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           zIndex: 110, animation: 'fade 0.2s ease',
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: SURF, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            background: SURF_MENU, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             width: '100%', maxWidth: 430, padding: '10px 22px 32px',
             animation: 'slideUp 0.28s cubic-bezier(.2,.9,.3,1.05)',
           }}>
             <div style={{ width: 36, height: 4, borderRadius: 999, background: MUTESURF, margin: '4px auto 18px' }}/>
-            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.3, marginBottom: 8 }}>
               Rifiuti la divisione?
             </div>
-            <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5, marginBottom: 22 }}>
+            <div style={{ fontSize: 13.5, color: MUTED_MENU, lineHeight: 1.5, marginBottom: 22 }}>
               "{confirmRejectSplit.name}" tornerà a essere a carico di chi l'ha ordinato. Tu non lo pagherai.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -4472,9 +4472,9 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               }}>Sì, rifiuta</button>
               <button onClick={() => setConfirmRejectSplit(null)} style={{
                 width: '100%', padding: '14px', borderRadius: 14,
-                border: '1.5px solid #E0DADC', background: SURF,
+                border: '1.5px solid #E0DADC', background: SURF_MENU,
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 15, fontWeight: 600, color: TEXT,
+                fontSize: 15, fontWeight: 600, color: TEXT_MENU,
               }}>Annulla</button>
             </div>
           </div>
@@ -4508,22 +4508,22 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
           display: 'flex', alignItems: 'flex-end', animation: 'fade 0.2s ease',
         }}>
           <div style={{
-            width: '100%', background: SURF, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            width: '100%', background: SURF_MENU, borderTopLeftRadius: 24, borderTopRightRadius: 24,
             padding: '10px 22px 26px', animation: 'slideUp 0.3s cubic-bezier(.2,.9,.3,1.05)',
           }}>
             <div style={{ width: 38, height: 4, background: MUTESURF, borderRadius: 999, margin: '4px auto 18px' }}/>
-            <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 6 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.3, marginBottom: 6 }}>
               Paghi per tutto il tavolo?
             </div>
-            <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5, marginBottom: 18 }}>
+            <div style={{ fontSize: 14, color: MUTED_MENU, lineHeight: 1.5, marginBottom: 18 }}>
               Saldi l'intero conto, comprese le consumazioni degli altri commensali.
             </div>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
               padding: '12px 14px', borderRadius: 14, background: '#F6F7F9', marginBottom: 16,
             }}>
-              <span style={{ fontSize: 14, color: MUTED, fontWeight: 600 }}>Totale</span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: TEXT }}>€ {ctaTotal.toFixed(2)}</span>
+              <span style={{ fontSize: 14, color: MUTED_MENU, fontWeight: 600 }}>Totale</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU }}>€ {ctaTotal.toFixed(2)}</span>
             </div>
             <button onClick={payConfirmed} style={{
               width: '100%', padding: '15px', borderRadius: 16, border: 'none',
@@ -4532,7 +4532,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             }}>Sì, pago tutto</button>
             <button onClick={() => setConfirmAll(false)} style={{
               width: '100%', padding: '12px', background: 'none', border: 'none',
-              fontFamily: 'inherit', fontSize: 14.5, color: MUTED, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 14.5, color: MUTED_MENU, fontWeight: 600, cursor: 'pointer',
             }}>Torna indietro</button>
           </div>
         </div>
@@ -4545,7 +4545,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
   const isTakeaway = ctx?.mode === 'takeaway';
   const total = isTakeaway ? (state.pendingTakeaway?.total || 0) : (state.payTotal || 0);
-  const [method, setMethod] = useState(isTakeaway ? 'apple' : (state.payMethod || 'apple'));
+  const [method, setMethod] = useStateMenu(isTakeaway ? 'apple' : (state.payMethod || 'apple'));
 
   // Dine-in: questa schermata NON paga, conferma solo il metodo e torna al conto.
   const confirmMethod = () => {
@@ -4609,19 +4609,19 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 
   return (
     <div data-screen-label="Metodo pagamento" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 60, paddingBottom: 130 }}>
         <div style={{ padding: '8px 22px 0' }}>
           <button onClick={goBack} style={{
-            width: 40, height: 40, borderRadius: 999, background: SURF,
+            width: 40, height: 40, borderRadius: 999, background: SURF_MENU,
             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}><I.Back size={18}/></button>
         </div>
         <div style={{ padding: '22px 22px 0' }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4, marginBottom: 18 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.4, marginBottom: 18 }}>
             Seleziona metodo<br/>di pagamento
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -4633,8 +4633,8 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                 : () => setMethod(m.id);
               return (
                 <button key={m.id} onClick={onPick} style={{
-                  background: sel ? TINT : SURF, borderRadius: 14, padding: '14px 16px',
-                  border: sel ? `2px solid ${PINK}` : `1.5px solid ${BORDER}`,
+                  background: sel ? TINT_MENU : SURF_MENU, borderRadius: 14, padding: '14px 16px',
+                  border: sel ? `2px solid ${PINK_MENU}` : `1.5px solid ${BORDER_MENU}`,
                   boxShadow: sel ? '0 10px 24px -14px rgba(227,36,89,.5)' : 'none',
                   transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
                   display: 'flex', alignItems: 'center', gap: 14,
@@ -4643,17 +4643,17 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
                   <div style={{
                     width: 36, height: 36, borderRadius: 10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: m.id === 'klarna' ? '#ffb3c7' : (__BYUP_DARK ? '#f6f1ea' : TINT),
+                    background: m.id === 'klarna' ? '#ffb3c7' : (__BYUP_DARK_MENU ? '#f6f1ea' : TINT_MENU),
                     border: 'none',
                   }}>{m.icon}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT }}>{m.name}</div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT_MENU }}>{m.name}</div>
                     {m.sub && <div style={{ fontSize: 12, color: WINE, marginTop: 2, fontWeight: 600 }}>{m.sub}</div>}
                   </div>
                   <div style={{
                     width: 22, height: 22, borderRadius: 999,
-                    border: sel ? `6px solid ${PINK}` : `1.5px solid ${__BYUP_DARK ? 'rgba(246,236,233,.4)' : BORDER}`,
-                    background: sel ? SURF : 'transparent',
+                    border: sel ? `6px solid ${PINK_MENU}` : `1.5px solid ${__BYUP_DARK_MENU ? 'rgba(246,236,233,.4)' : BORDER_MENU}`,
+                    background: sel ? SURF_MENU : 'transparent',
                     boxSizing: 'border-box',
                     transition: 'border-color 160ms ease',
                   }}/>
@@ -4666,12 +4666,12 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: SURF, borderTop: `1px solid ${BORDER}`,
+        padding: '14px 22px 22px', background: SURF_MENU, borderTop: `1px solid ${BORDER_MENU}`,
       }}>
         {isTakeaway ? (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: TEXT }}>Totale</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: TEXT_MENU }}>Totale</span>
               <span style={{ fontSize: 18, fontWeight: 800, color: WINE }}>{total.toFixed(2)}€</span>
             </div>
             <button onClick={proceed} style={{
@@ -4689,8 +4689,8 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
           </>
         ) : (
           <>
-            <div style={{ fontSize: 12.5, color: MUTED, textAlign: 'center', marginBottom: 12 }}>
-              Pagherai con <span style={{ fontWeight: 700, color: TEXT }}>{payMethodName(method)}</span> · il pagamento avviene dal conto
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, textAlign: 'center', marginBottom: 12 }}>
+              Pagherai con <span style={{ fontWeight: 700, color: TEXT_MENU }}>{payMethodName(method)}</span> · il pagamento avviene dal conto
             </div>
             <button onClick={confirmMethod} style={{
               width: '100%', height: 52, borderRadius: 999, border: 'none',
@@ -4711,12 +4711,12 @@ function PayMethodScreen({ state, setState, goTo, goBack, ctx }) {
 // ─── SUCCESS + RATING ──────────────────────────────────────
 function SuccessScreen({ state, setState, goTo, ctx }) {
   const isTakeaway = ctx?.mode === 'takeaway';
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useStateMenu(0);
 
-  const [hoverStar, setHoverStar] = useState(0);
-  const [aspects, setAspects] = useState([]); // ids selezionati
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [hoverStar, setHoverStar] = useStateMenu(0);
+  const [aspects, setAspects] = useStateMenu([]); // ids selezionati
+  const [comment, setComment] = useStateMenu('');
+  const [submitted, setSubmitted] = useStateMenu(false);
 
   const venue = isTakeaway
     ? (state.takeawayOrder?.venue || 'Ristorante Maria Grazia')
@@ -4784,7 +4784,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
   if (isTakeaway) {
     return (
       <div data-screen-label="Pagamento riuscito" style={{
-        width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+        width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '52px 22px 180px' }}>
@@ -4797,11 +4797,11 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: TEXT, lineHeight: 1.2, letterSpacing: -0.5, marginBottom: 6 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: TEXT_MENU, lineHeight: 1.2, letterSpacing: -0.5, marginBottom: 6 }}>
               Ordine confermato!
             </div>
-            <div style={{ fontSize: 13.5, color: MUTED, marginTop: 4, lineHeight: 1.45, maxWidth: 290 }}>
-              Ritira il tuo ordine alle <b style={{color: TEXT}}>{pickupTime}</b> da {venue}
+            <div style={{ fontSize: 13.5, color: MUTED_MENU, marginTop: 4, lineHeight: 1.45, maxWidth: 290 }}>
+              Ritira il tuo ordine alle <b style={{color: TEXT_MENU}}>{pickupTime}</b> da {venue}
             </div>
           </div>
         </div>
@@ -4836,7 +4836,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
   return (
     <div data-screen-label="Pagamento riuscito" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
+      width: '100%', height: '100%', background: BG_PAGE_MENU, position: 'relative',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '84px 22px 176px' }}>
@@ -4853,11 +4853,11 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
           {/* Peak-end: la "fine" si chiude sulla gratitudine, non sul conto.
               L'importo (fonte di "pain of paying") resta visibile ma sobrio. */}
-          <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, color: TEXT, lineHeight: 1.15 }}>
+          <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, color: TEXT_MENU, lineHeight: 1.15 }}>
             Fatto. Goditi la serata.
           </div>
-          <div style={{ fontSize: 14.5, color: MUTED, marginTop: 10, lineHeight: 1.45, maxWidth: 290 }}>
-            Hai pagato <b style={{ color: TEXT }}>{paidAmount.toFixed(2)}€</b> a <b style={{ color: TEXT }}>{venue}</b>
+          <div style={{ fontSize: 14.5, color: MUTED_MENU, marginTop: 10, lineHeight: 1.45, maxWidth: 290 }}>
+            Hai pagato <b style={{ color: TEXT_MENU }}>{paidAmount.toFixed(2)}€</b> a <b style={{ color: TEXT_MENU }}>{venue}</b>
           </div>
           {/* Porta allo Storico ordini (Home app) con l'ordine appena pagato
               espanso. Cross-app: lo storico vive nel Profilo della Vetrina. */}
@@ -4870,7 +4870,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
           {daPagare.length > 0 && (
             <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
+              <div style={{ fontSize: 11, color: MUTED_MENU, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 }}>
                 Devono ancora pagare
               </div>
               {/* Pill in riga: gli avatar sovrapposti non dicevano chi manca,
@@ -4884,7 +4884,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                   <div key={g.id || i} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7,
                     padding: '6px 12px 6px 6px', borderRadius: 999,
-                    background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER}`,
+                    background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER_MENU}`,
                   }}>
                     <div style={{
                       width: 24, height: 24, borderRadius: 999, flexShrink: 0,
@@ -4892,11 +4892,11 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                       color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 700,
                     }}>{g.initial || '?'}</div>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT_MENU }}>
                       {g.name || 'Ospite'}
                     </span>
                     {g.amount != null && (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: MUTED_MENU }}>
                         € {Number(g.amount).toFixed(2)}
                       </span>
                     )}
@@ -4906,7 +4906,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                   <div style={{
                     display: 'inline-flex', alignItems: 'center',
                     padding: '6px 12px', borderRadius: 999,
-                    background: MUTESURF, fontSize: 13, fontWeight: 700, color: MUTED,
+                    background: MUTESURF, fontSize: 13, fontWeight: 700, color: MUTED_MENU,
                   }}>+{daPagare.length - 4}</div>
                 )}
               </div>
@@ -4917,16 +4917,16 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
         {/* Sospesa dalle recensioni (P-88): al posto delle stelle il rifiuto
             spiegato — fino a quando, il motivo, la via per contestare. */}
         {!submitted && sospensione && (
-          <div style={{ marginTop: 40, padding: '14px 16px', borderRadius: 14, background: TINT, border: `1px solid ${BORDER}` }}>
-            <div style={{ fontSize: 11, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Recensioni sospese</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: TEXT }}>Fino al {sospensioneFine} non puoi lasciare recensioni.</div>
-            <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>Motivo: {sospensione.motivo}. Puoi contestare la decisione rispondendo alla comunicazione che trovi in Posta.</div>
+          <div style={{ marginTop: 40, padding: '14px 16px', borderRadius: 14, background: TINT_MENU, border: `1px solid ${BORDER_MENU}` }}>
+            <div style={{ fontSize: 11, color: MUTED_MENU, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Recensioni sospese</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: TEXT_MENU }}>Fino al {sospensioneFine} non puoi lasciare recensioni.</div>
+            <div style={{ fontSize: 13, color: MUTED_MENU, marginTop: 4, lineHeight: 1.45 }}>Motivo: {sospensione.motivo}. Puoi contestare la decisione rispondendo alla comunicazione che trovi in Posta.</div>
           </div>
         )}
         {/* Recensione — stelle inline, niente card */}
         {!submitted && !sospensione && (
           <div style={{ marginTop: 40 }}>
-            <div style={{ fontSize: 11, color: MUTED, textAlign: 'center', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700 }}>
+            <div style={{ fontSize: 11, color: MUTED_MENU, textAlign: 'center', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700 }}>
               Lascia una valutazione
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}
@@ -4943,10 +4943,10 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                       transform: filled ? 'scale(1.05)' : 'scale(1)',
                     }}>
                     {/* Stessa resa delle stelle in vetrina (VenueOriginal):
-                        tessera arrotondata PINK + stella bianca. */}
+                        tessera arrotondata PINK_MENU + stella bianca. */}
                     <div style={{
                       width: 38, height: 38, borderRadius: 9,
-                      background: filled ? PINK : TINT,
+                      background: filled ? PINK_MENU : TINT_MENU,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'background 0.12s',
                     }}>
@@ -4958,7 +4958,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 );
               })}
             </div>
-            <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: TEXT, minHeight: 18, marginTop: 8 }}>
+            <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: TEXT_MENU, minHeight: 18, marginTop: 8 }}>
               {visualRating === 0 ? '\u00A0' :
                visualRating === 1 ? 'Pessima' :
                visualRating === 2 ? 'Sotto le attese' :
@@ -4968,7 +4968,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
 
             {rating > 0 && (
               <div style={{ marginTop: 18 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 10, textAlign: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: TEXT_MENU, marginBottom: 10, textAlign: 'center' }}>
                   {isNegative ? "Cosa non ha funzionato?" :
                    isMid       ? "Cosa potrebbe migliorare?" :
                                  "Cosa hai apprezzato?"}
@@ -4981,9 +4981,9 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                       <button key={a.id} onClick={() => toggleAspect(a.id)} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '8px 12px', borderRadius: 999,
-                        border: sel ? `1.5px solid ${accent}` : `1.5px solid ${BORDER}`,
-                        background: sel ? `${accent}10` : SURF,
-                        color: sel ? accent : TEXT,
+                        border: sel ? `1.5px solid ${accent}` : `1.5px solid ${BORDER_MENU}`,
+                        background: sel ? `${accent}10` : SURF_MENU,
+                        color: sel ? accent : TEXT_MENU,
                         fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
                         cursor: 'pointer', transition: 'all 0.15s',
                       }}>
@@ -5006,8 +5006,8 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                   style={{
                     width: '100%', minHeight: 64, resize: 'none', marginTop: 14,
                     padding: '12px 14px', borderRadius: 14,
-                    border: `1.5px solid ${BORDER}`, background: SURF,
-                    fontSize: 13.5, fontFamily: 'inherit', color: TEXT,
+                    border: `1.5px solid ${BORDER_MENU}`, background: SURF_MENU,
+                    fontSize: 13.5, fontFamily: 'inherit', color: TEXT_MENU,
                     outline: 'none', boxSizing: 'border-box', lineHeight: 1.4,
                   }}/>
 
@@ -5034,7 +5034,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: TEXT, letterSpacing: -0.2 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.2 }}>
               Grazie per la recensione!
             </div>
           </div>
@@ -5047,7 +5047,7 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
         padding: '22px 22px 26px',
-        background: __BYUP_DARK
+        background: __BYUP_DARK_MENU
           ? 'linear-gradient(to top, #161514 60%, rgba(22,21,20,0))'
           : 'linear-gradient(to top, #fafaf7 60%, rgba(250,250,247,0))',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
@@ -5129,7 +5129,7 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
     const mm = String(t.getMinutes()).padStart(2, '0');
     slots.push(`${hh}:${mm}`);
   }
-  const [pickupTime, setPickupTime] = useState(slots[1]);
+  const [pickupTime, setPickupTime] = useStateMenu(slots[1]);
 
   const onContinue = () => {
     // Salva ctx takeaway in state e vai al pagamento
@@ -5148,26 +5148,26 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
   };
 
   return (
-    <div style={{ background: SURF, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: SURF_MENU, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Status bar spacer */}
       <div style={{ height: 54 }}/>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 14px', gap: 10 }}>
         <button onClick={goBack} style={{
-          width: 38, height: 38, borderRadius: 999, background: BG_GRAY, border: 'none',
+          width: 38, height: 38, borderRadius: 999, background: BG_GRAY_MENU, border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
-        }}><I.Back size={20} color={TEXT}/></button>
+        }}><I.Back size={20} color={TEXT_MENU}/></button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>Take Away</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: TEXT, letterSpacing: -0.3 }}>Quando vieni a ritirare?</div>
+          <div style={{ fontSize: 12, color: MUTED_MENU, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>Take Away</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.3 }}>Quando vieni a ritirare?</div>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 22px 22px' }}>
         {/* Locale info */}
         <div style={{
-          background: TINT, borderRadius: 18, padding: 14,
+          background: TINT_MENU, borderRadius: 18, padding: 14,
           display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18,
         }}>
           <div style={{
@@ -5181,13 +5181,13 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT, letterSpacing: -0.2 }}>Ristorante Maria Grazia</div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Via del Corso 47 · Roma</div>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: TEXT_MENU, letterSpacing: -0.2 }}>Ristorante Maria Grazia</div>
+            <div style={{ fontSize: 12.5, color: MUTED_MENU, marginTop: 2 }}>Via del Corso 47 · Roma</div>
           </div>
         </div>
 
         {/* Slot orari */}
-        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, marginBottom: 12, letterSpacing: -0.2 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, marginBottom: 12, letterSpacing: -0.2 }}>
           Scegli l'orario di ritiro
         </div>
         <div style={{
@@ -5196,9 +5196,9 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
           {slots.map(t => (
             <button key={t} onClick={() => setPickupTime(t)} style={{
               padding: '12px 4px', borderRadius: 14,
-              border: `1.5px solid ${pickupTime === t ? WINE : BORDER}`,
-              background: pickupTime === t ? WINE : SURF,
-              color: pickupTime === t ? '#fff' : TEXT,
+              border: `1.5px solid ${pickupTime === t ? WINE : BORDER_MENU}`,
+              background: pickupTime === t ? WINE : SURF_MENU,
+              color: pickupTime === t ? '#fff' : TEXT_MENU,
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
               cursor: 'pointer', letterSpacing: -0.1,
             }}>{t}</button>
@@ -5206,30 +5206,30 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
         </div>
 
         {/* Recap ordine */}
-        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, marginBottom: 10, letterSpacing: -0.2 }}>Il tuo ordine</div>
-        <div style={{ background: BG_GRAY, borderRadius: 18, padding: 14, marginBottom: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU, marginBottom: 10, letterSpacing: -0.2 }}>Il tuo ordine</div>
+        <div style={{ background: BG_GRAY_MENU, borderRadius: 18, padding: 14, marginBottom: 18 }}>
           {items.map(it => (
             <div key={it.id} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
             }}>
               <div style={{
-                minWidth: 26, height: 26, borderRadius: 8, background: SURF,
-                fontSize: 13, fontWeight: 700, color: TEXT,
+                minWidth: 26, height: 26, borderRadius: 8, background: SURF_MENU,
+                fontSize: 13, fontWeight: 700, color: TEXT_MENU,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>{it.qty}×</div>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{it.price * it.qty}€</div>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: TEXT_MENU, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_MENU }}>{it.price * it.qty}€</div>
             </div>
           ))}
           <div style={{ height: 1, background: '#e8e0e3', margin: '10px 0' }}/>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: MUTED, marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: MUTED_MENU, marginBottom: 4 }}>
             <span>Subtotale</span><span>{subtotal}€</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: MUTED, marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: MUTED_MENU, marginBottom: 8 }}>
             <span>Costo servizio</span><span>{serviceFee === 0 ? 'Gratis' : `${serviceFee}€`}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: TEXT, letterSpacing: -0.2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: TEXT_MENU, letterSpacing: -0.2 }}>
             <span>Totale</span><span>{total}€</span>
           </div>
         </div>
@@ -5237,8 +5237,8 @@ function TakeawayScreen({ state, setState, goTo, goBack }) {
 
       {/* CTA fissa in basso */}
       <div style={{
-        padding: '12px 22px 18px', borderTop: `1px solid ${BORDER}`,
-        background: SURF,
+        padding: '12px 22px 18px', borderTop: `1px solid ${BORDER_MENU}`,
+        background: SURF_MENU,
       }}>
         <button onClick={onContinue} style={{
           width: '100%', height: 54, borderRadius: 999, border: 'none',
@@ -5280,7 +5280,7 @@ function MenuApp({ initial = null }) {
     pickupCode: '4729',
   } : null;
 
-  const [state, setState] = useState(() => ({
+  const [state, setState] = useStateMenu(() => ({
     cart: [],
     splits: {},
     coperti: loadCoperti() || undefined,
@@ -5335,7 +5335,7 @@ function MenuApp({ initial = null }) {
   }));
   // Riprendi i pagamenti già fatti in questa sessione (la SPA smonta MenuApp
   // quando torni in home: senza hydrate il conto tornerebbe tutto da pagare).
-  useEffect(() => {
+  useEffectMenu(() => {
     try {
       const t = JSON.parse(sessionStorage.getItem('byup_table') || 'null');
       if (t && t.settled) setState(s => s.activeOrder ? {
@@ -5344,7 +5344,7 @@ function MenuApp({ initial = null }) {
       } : s);
     } catch {}
   }, []);
-  const [route, setRoute] = useState(() => {
+  const [route, setRoute] = useStateMenu(() => {
     const valid = ['menu','home','pay','paymethod','success','takeaway'];
     if (initial && valid.includes(initial)) return { name: initial, ctx: initial === 'paymethod' ? { from: 'app' } : null };
     try {
@@ -5376,7 +5376,7 @@ function MenuApp({ initial = null }) {
   return screen;
 }
 
-function Root() {
+function RootMenu() {
   return (
     <div style={{
       minHeight: '100vh', background: '#ececec',
@@ -5395,4 +5395,4 @@ window.MenuApp = MenuApp;
 /* Mount solo nella pagina menu (byup Menu.html). Dentro la SPA Home,
    MenuApp è renderizzato da app.jsx come pagina 'menu' — prototipo unico. */
 const __menuRoot = document.getElementById('menu-root');
-if (__menuRoot) ReactDOM.createRoot(__menuRoot).render(<Root/>);
+if (__menuRoot) ReactDOM.createRoot(__menuRoot).render(<RootMenu/>);
