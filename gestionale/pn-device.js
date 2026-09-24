@@ -56,6 +56,62 @@
     }
   } catch (e) {}
 
+  // Nella vetrina tutto SEMBRA cliccabile (hover, cursori, scroll restano veri)
+  // ma nessun click, tasto o trascinamento arriva all'app: chi vuole usarlo
+  // davvero si registra. I listener stanno su window in cattura, quindi
+  // intercettano l'evento prima della radice di React.
+  if (DEMO) (function () {
+    var ultimo = 0;
+    function avviso() {
+      var ora = Date.now();
+      if (ora - ultimo < 1600) return;
+      ultimo = ora;
+      var t = document.getElementById('byup-demo-avviso');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'byup-demo-avviso';
+        t.textContent = 'Anteprima demo \u00b7 entra in lista d\u2019attesa per usarlo davvero';
+        t.style.cssText = 'position:fixed;left:50%;bottom:22px;z-index:2147483647;transform:translate(-50%,12px);' +
+          'padding:11px 18px;border-radius:999px;font:600 13px/1.2 "Plus Jakarta Sans",system-ui,sans-serif;color:#fff;' +
+          'background:linear-gradient(90deg,#F86C5F,#FD1569);box-shadow:0 10px 30px -8px rgba(235,52,86,.6),inset 0 1px 0 rgba(255,255,255,.35);' +
+          'opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;white-space:nowrap;';
+        (document.body || document.documentElement).appendChild(t);
+      }
+      requestAnimationFrame(function () { t.style.opacity = '1'; t.style.transform = 'translate(-50%,0)'; });
+      clearTimeout(t._h);
+      t._h = setTimeout(function () { t.style.opacity = '0'; t.style.transform = 'translate(-50%,12px)'; }, 1800);
+    }
+    function suScrollbar(e) {
+      var el = e.target;
+      return el && el.clientWidth && (e.offsetX > el.clientWidth || e.offsetY > el.clientHeight);
+    }
+    function ferma(e) { e.stopPropagation(); e.stopImmediatePropagation(); }
+    function blocca(e) { e.preventDefault(); ferma(e); }
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(function (ev) {
+      window.addEventListener(ev, function (e) {
+        if (ev !== 'touchstart' && suScrollbar(e)) return;
+        ferma(e);
+        if (ev === 'mousedown' && e.target && e.target.closest && e.target.closest('input,textarea,select,[contenteditable]')) e.preventDefault();
+      }, true);
+    });
+    ['click', 'dblclick', 'auxclick', 'contextmenu', 'submit', 'dragstart', 'pointerup', 'mouseup', 'touchend'].forEach(function (ev) {
+      window.addEventListener(ev, function (e) {
+        if (ev === 'click' || ev === 'submit') avviso();
+        if (ev === 'pointerup' || ev === 'mouseup' || ev === 'touchend') { ferma(e); return; }
+        blocca(e);
+      }, true);
+    });
+    var NAV = { ArrowUp: 1, ArrowDown: 1, PageUp: 1, PageDown: 1, Home: 1, End: 1, ' ': 1 };
+    ['keydown', 'keypress', 'keyup', 'beforeinput'].forEach(function (ev) {
+      window.addEventListener(ev, function (e) {
+        var inCampo = e.target && e.target.closest && e.target.closest('input,textarea,select,[contenteditable]');
+        if (!inCampo && NAV[e.key]) return;
+        blocca(e);
+      }, true);
+    });
+    window.open = function () { avviso(); return null; };
+  })();
+
   // Il nome file della pagina corrente, spazi decodificati.
   var page = decodeURIComponent((location.pathname.split('/').pop() || 'index.html'));
 
