@@ -32,6 +32,30 @@
   var PHONE_SHORT_MAX = 600;
   var TABLET_W_MAX = 1280;
 
+  // ── Modalità vetrina (?demo=1) ───────────────────────────────────────────
+  // Il sito byup.it incorpora il gestionale in un iframe come demo da provare.
+  // Lì deve sembrare il gestionale di un locale già avviato: tela di design
+  // desktop (non il layout tablet che scatterebbe a ~1000px di iframe), niente
+  // fasce «Collega Stripe / dati fiscali», niente proposta di ingrandimento né
+  // notifica d'esempio. Vale SOLO dentro un iframe aperto con ?demo=1; la scelta
+  // resta in sessionStorage così vale anche navigando fra le pagine della demo.
+  // Il gestionale usato normalmente non cambia.
+  var DEMO = false;
+  try {
+    var inFrame = window.self !== window.top;
+    if (inFrame && new URLSearchParams(location.search).get('demo') === '1') sessionStorage.setItem('byup_demo', '1');
+    DEMO = inFrame && sessionStorage.getItem('byup_demo') === '1';
+    if (DEMO) {
+      localStorage.setItem('byup_proposta_scala', '1');
+      sessionStorage.setItem('byup_notif_demo', '1');
+      sessionStorage.setItem('byup_attivazioni_rimandate', JSON.stringify([
+        'attiva-stripe', 'attiva-stripe-limitato',
+        'attiva-fiscale-', 'attiva-fiscale-cred', 'attiva-fiscale-delega', 'attiva-fiscale-creddelega',
+      ]));
+      document.documentElement.setAttribute('data-byup-demo', '');
+    }
+  } catch (e) {}
+
   // Il nome file della pagina corrente, spazi decodificati.
   var page = decodeURIComponent((location.pathname.split('/').pop() || 'index.html'));
 
@@ -61,6 +85,7 @@
   function classify() {
     var w = window.innerWidth, h = window.innerHeight;
     if (Math.min(w, h) < PHONE_SHORT_MAX) return 'phone';
+    if (DEMO) return 'desktop';
     if (w < TABLET_W_MAX) return 'tablet';
     return 'desktop';
   }
