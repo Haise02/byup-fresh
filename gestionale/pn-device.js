@@ -140,8 +140,8 @@
 
   function classify() {
     var w = window.innerWidth, h = window.innerHeight;
+    if (DEMO) return w < PHONE_SHORT_MAX ? 'phone' : 'desktop';
     if (Math.min(w, h) < PHONE_SHORT_MAX) return 'phone';
-    if (DEMO) return 'desktop';
     if (w < TABLET_W_MAX) return 'tablet';
     return 'desktop';
   }
