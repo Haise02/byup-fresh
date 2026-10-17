@@ -3,8 +3,10 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/spot/byup-spot.html", "destination": "/hubble/byup-hubble.html", "permanent": true },
-    { "source": "/spot/:path*", "destination": "/hubble/:path*", "permanent": true }
+    { "source": "/spot/byup-spot.html", "destination": "/desk/byup-desk.html", "permanent": true },
+    { "source": "/spot/:path*", "destination": "/desk/:path*", "permanent": true },
+    { "source": "/hubble/byup-hubble.html", "destination": "/desk/byup-desk.html", "permanent": false },
+    { "source": "/hubble/:path*", "destination": "/desk/:path*", "permanent": false }
   ],
   "headers": [
     {
