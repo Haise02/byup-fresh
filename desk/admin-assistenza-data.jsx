@@ -1,4 +1,4 @@
-// Hubble — Chiamata assistenza · dati
+// Desk — Chiamata assistenza · dati
 //
 // Sei corpi di dati che vivono nella stessa sezione perché rispondono alla
 // stessa domanda — «come stiamo andando con chi ci usa?» — da lati diversi:
@@ -944,7 +944,7 @@ const SRV_RIPRISTINO_METODI = [
   { id:'altro',                        label:'Altro',                         nota:'Va detto nelle note: senza, il metodo non regge la decisione' },
 ];
 const SRV_RIPRISTINO_CANALI = { callback:'Chiamata', email:'Email', chat:'Chat', gestionale:'Gestionale' };
-// Data e ora di una pratica, nel formato di Hubble. Mancava: la sezione dei
+// Data e ora di una pratica, nel formato di Desk. Mancava: la sezione dei
 // ripristini andava in errore appena si apriva una pratica (trovato con
 // P-172, che la porta nella scheda del locale).
 const srvDataOra = (d) => { if (!d) return '—'; const x = new Date(d); return `${typeof fmtDate === 'function' ? fmtDate(x) : x.toLocaleDateString('it-IT')} · ${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };

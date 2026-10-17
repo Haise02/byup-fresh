@@ -39,7 +39,7 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 | `web/`         | byup Web          | `index.html`                | Consumer       | [README](web/CLAUDE.md) |
 | `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [README](staff/README.md) |
 | `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   | — |
-| `hubble/`        | Hubble (ex byup Spot) | `byup-hubble.html`            | Interno        | [README](hubble/README.md) |
+| `desk/`          | Desk (ex Hubble, ex byup Spot) | `byup-desk.html`     | Interno        | [README](desk/README.md) |
 | `backend/`     | API (NestJS)      | servizio Node separato      | —              | [BACKEND.md](backend/BACKEND.md) |
 
 ## Stato della documentazione
@@ -51,7 +51,7 @@ vale e cosa no:
 |---|---|
 | `gestionale/PROGRESS.md` | ✅ **Da leggere per primo.** Registro delle sessioni riscritto e portato al 9 ago; le sezioni backend (2–8) fotografano il 30 maggio e da allora il backend non è stato toccato |
 | `gestionale/DESIGN_DECISIONS.md` | ✅ Allineato, con una sezione datata per ogni batch. In caso di dubbio vincono i token `PN` nel codice |
-| `gestionale/README.md` · `hubble/README.md` · `app/README.md` | ✅ Verificati riga per riga contro il codice |
+| `gestionale/README.md` · `desk/README.md` · `app/README.md` | ✅ Verificati riga per riga contro il codice |
 | `app/*.md`, `web/CLAUDE.md`, `staff/README.md` | ✅ Dal 5 settembre 2026 (P-162) parlano solo del mockup: il prodotto sta nei documenti fuori dal repo. `backend/BACKEND.md` descrive la bozza del backend, che si riscrive da zero |
 | `gestionale/icon*.md`, `dashboard-icon-mapping.md` | 🕰 **Documenti storici** della migrazione icone di luglio. Marcati come tali: per sapere quali icone esistono si legge il codice |
 | `backend/erd/` | ✅ Modello dati: ERD v0.7 in DBML, riferimento agli enum, PDF di progettazione. Stavano dentro il progetto Vue, ora cancellato, e non c'entravano niente con lui |
@@ -75,7 +75,7 @@ fare il prodotto*, vince il documento.
 - `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
 - `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
   schermata "Salda conto".
-- **Il cache-buster `?v=N`** lo usano `hubble/byup-hubble.html`, `staff/index.html` e
+- **Il cache-buster `?v=N`** lo usano `desk/byup-desk.html`, `staff/index.html` e
   quattro pagine del gestionale (`byup Impostazioni.html`, `byup Statistiche.html`,
   `byup Contabilita.html`, `byup Cucina KDS v2.html`), su alcuni `.jsx` e non su
   tutti. Va incrementato a mano quando si modifica uno di quei file: senza, il
@@ -87,9 +87,9 @@ fare il prodotto*, vince il documento.
 - **Se una modifica «non si vede»**, la prima cosa da guardare è `git status`, non
   la cache: il sito serve l'ultimo commit su `main`, quindi finché una modifica
   resta nel working tree non esiste per chi guarda il sito.
-- **Prima di un rilascio**: `grep -rn "data-demo-only" hubble/` — marca le affordance
+- **Prima di un rilascio**: `grep -rn "data-demo-only" desk/` — marca le affordance
   che esistono solo per la demo e non devono finire in produzione. **Oggi non ce n'è
-  nessuna** (l'unico riscontro è lo stesso comando scritto in `hubble/README.md`): l'ultima era il
+  nessuna** (l'unico riscontro è lo stesso comando scritto in `desk/README.md`): l'ultima era il
   "simula manomissione" del riesame accessi, sparito insieme alla catena di impronte
   che dimostrava (D-44: il riesame vive fuori dal prodotto, DPT 12.2). Il
   controllo resta perché la prossima ci sarà.

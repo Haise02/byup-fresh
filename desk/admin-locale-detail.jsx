@@ -765,7 +765,7 @@ function DrwFiscali({ locale: l }) {
               dell'Agenzia (specifiche RT §2.9). Le credenziali sono sue, il
               rinnovo lo fa lei, Byup non ne è parte: qui si LEGGE, per
               l'assistenza, ciò che i Dati fiscali del gestionale hanno
-              raccolto (hubIncaricatoDi) — nessun atto di nomina da Hubble. */}
+              raccolto (hubIncaricatoDi) — nessun atto di nomina da Desk. */}
           {(() => {
             const inc = hubIncaricatoDi(l);
             if (!inc) return null;
@@ -851,7 +851,7 @@ function DrwFiscali({ locale: l }) {
           <div>
             <label style={drwLab}>Regime fiscale</label>
             {/* La cassa fiscale non è disponibile per il forfettario (P-176 ·
-                D-128): Hubble lo vede qui, e il registro dei locali ci filtra. */}
+                D-128): Desk lo vede qui, e il registro dei locali ci filtra. */}
             {String(form.regime || '').toLowerCase().indexOf('forfett') === 0 && (
               <div data-forfettario style={{marginBottom:6}}>
                 <HubPillola color="WARN" size="sm">Forfettario · cassa fiscale non disponibile</HubPillola>
@@ -929,7 +929,7 @@ function DataRow({ label, value, mono, last }) {
 // ─── Statistiche — i dati del locale, e basta ──────────────────────────────
 // Le «cifre da cameriere» dell'utenza del titolare (scontrino medio, mancia
 // media, ordini e coperti della persona) sono uscite (P-166 · D-116): sono
-// indicatori individuali, che Hubble non espone — il documento tecnico 5.3 —
+// indicatori individuali, che Desk non espone — il documento tecnico 5.3 —
 // e che il locale legge nelle proprie Statistiche (D-30). Qui resta il
 // business del locale.
 function DrwStatisticheLocale({ locale: l }) {
@@ -1079,7 +1079,7 @@ const DRW_CONSENSI_NOTA = 'Le comunicazioni di servizio (fatture, avvisi tecnici
 // era legittimo» — alla revoca si deve sapere da quando era lecito. Seminato
 // dallo STESSO seme di drwConsensiLocale: lo stato corrente e la storia non
 // possono divergere. Chi lo dà e lo toglie è l'esercente, dal gestionale:
-// Hubble legge. M-EM e M-SMS restano stato senza storia — coda registrata.
+// Desk legge. M-EM e M-SMS restano stato senza storia — coda registrata.
 const CONSENT_EVENTS = (() => {
   const out = [];
   LOCALI.forEach(l => {
@@ -1666,7 +1666,7 @@ function DrwFatturazione({ locale: l }) {
   // consegna un segnaposto nominato dalla fattura — il gesto è completo
   // senza fingere il contenuto.
   const scaricaFattura = (f) => {
-    const blob = new Blob([`Fattura ${f.num} · ${l.nome} · ${fmtDate(f.data)} · ${fmtEur(f.importo)} (mock Hubble)`], { type: 'text/plain' });
+    const blob = new Blob([`Fattura ${f.num} · ${l.nome} · ${fmtDate(f.data)} · ${fmtEur(f.importo)} (mock Desk)`], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `fattura-${f.num}.txt`;
@@ -1912,7 +1912,7 @@ function DrwCertificazioni({ locale: l, onCambia }) {
   // Il PDF nel mock non esiste: il download consegna un segnaposto col nome
   // vero del file, così il gesto è completo senza fingere il contenuto.
   const scarica = (c) => {
-    const blob = new Blob([`Copia del documento ${c.file} · certificazione ${c.id} di ${l.nome} (mock Hubble)`], { type: 'text/plain' });
+    const blob = new Blob([`Copia del documento ${c.file} · certificazione ${c.id} di ${l.nome} (mock Desk)`], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = c.file;

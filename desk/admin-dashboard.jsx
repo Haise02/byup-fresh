@@ -428,7 +428,7 @@ function AdmDashboard({ onNav }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
-      {/* La testata alla maniera di Hubble: la pagina si presenta da sola,
+      {/* La testata alla maniera di Desk: la pagina si presenta da sola,
           nell'header resta la briciola. La banda bianca delle tab, che prima
           toccava l'header, ora è una striscia con i suoi due bordi. */}
       <div style={{padding:'28px 28px 18px'}}>
@@ -4537,7 +4537,7 @@ function DashCamerieri({ filtri }) {
       </div>
 
       {/* Niente scontrino medio né mancia media per cameriere, nemmeno in
-          aggregato (P-166 · D-116): sono indicatori individuali che Hubble non
+          aggregato (P-166 · D-116): sono indicatori individuali che Desk non
           tratta — li raccoglie il locale come datore di lavoro. */}
 
       {/* Riga 2 · Benchmark detail + abbandono */}

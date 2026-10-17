@@ -132,7 +132,7 @@ const STAFF = (() => {
 
     // Le statistiche da sala esistono solo per chi ha un'utenza CAMERIERE:
     // sono loro a prendere ordini, servire coperti e ricevere mance.
-    // RESTANO CALCOLATE anche se Hubble non le mostra (P-194): servono alle
+    // RESTANO CALCOLATE anche se Desk non le mostra (P-194): servono alle
     // Statistiche del gestionale, dove il locale le legge come datore di
     // lavoro (D-30). Non è codice morto: chi facesse pulizia togliendole
     // toglierebbe il dato a un'altra superficie.
@@ -435,7 +435,7 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
           {/* Una cifra sola (P-166 · D-116): da quando l'utenza è registrata,
               che serve all'assistenza. Scontrino medio, mancia media, ordini e
               coperti della persona non si mostrano: il documento tecnico 5.3
-              dice che la vista di Hubble sullo staff non espone indicatori di
+              dice che la vista di Desk sullo staff non espone indicatori di
               produttività individuale — quelle statistiche le raccoglie il
               locale come datore di lavoro (art. 4 co. 3 dello Statuto) e le
               legge nelle proprie Statistiche (D-30); Byup le tratta per suo

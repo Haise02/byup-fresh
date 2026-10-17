@@ -1,4 +1,4 @@
-// Hubble · Workflow — il canvas ad albero.
+// Desk · Workflow — il canvas ad albero.
 //
 // Un workflow si legge dall'alto in basso come una ricetta, finché non
 // incontra una CONDIZIONE: lì la colonna si apre in più corsie affiancate, una

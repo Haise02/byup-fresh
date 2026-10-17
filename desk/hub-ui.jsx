@@ -1,4 +1,4 @@
-// Hubble — i pezzi condivisi: modale, pannello laterale, filtri, colonne,
+// Desk — i pezzi condivisi: modale, pannello laterale, filtri, colonne,
 // testate di pagina, riquadri e tabelle.
 //
 // Contatti, Elenchi, Marketing, Workflow e Agent montano tutti questi stessi
@@ -10,7 +10,7 @@
 const { useState: useStateHub, useMemo: useMemoHub, useEffect: useEffectHub, useRef: useRefHub } = React;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Il foglio di stile di Hubble — iniettato una volta sola da HubStile
+// Il foglio di stile di Desk — iniettato una volta sola da HubStile
 // ═══════════════════════════════════════════════════════════════════════════
 const HUB_CSS = `
 @keyframes hubVeloIn   { from { opacity: 0 } to { opacity: 1 } }
@@ -21,7 +21,7 @@ const HUB_CSS = `
 @keyframes hubScorri   { from { background-position: 0% 50% } to { background-position: 200% 50% } }
 @keyframes hubPulsa    { 0%,100% { opacity: 1 } 50% { opacity: 0.45 } }
 
-/* Il nome del marchio: il gradiente Hubble ritagliato dentro le lettere. */
+/* Il nome del marchio: il gradiente Desk ritagliato dentro le lettere. */
 .hub-marchio {
   background: linear-gradient(100deg, #FF1F5A 0%, #ED1999 52%, #D410F1 100%);
   -webkit-background-clip: text; background-clip: text;
@@ -62,7 +62,7 @@ function HubStile() {
 // Primitive
 // ═══════════════════════════════════════════════════════════════════════════
 
-// La pillola di Hubble: un corpo solo per stati, tipologie ed etichette.
+// La pillola di Desk: un corpo solo per stati, tipologie ed etichette.
 function HubPillola({ color = 'PLAN_FREE', children, forte, size = 'md' }) {
   const c = ADM[color] || color;
   const soft = ADM[color + '_SOFT'] || 'rgba(15,17,21,0.06)';

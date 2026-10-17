@@ -8,7 +8,7 @@ const { useState: useStateTeam } = React;
 const ADM_SEZIONI = {
   // Niente `hr`: Risorse Umane non esiste più come sezione, e il registro della
   // formazione se n'è andato con Risk Management.
-  // Le testate alla maniera di Hubble: entrambe le sezioni si presentano da
+  // Le testate alla maniera di Desk: entrambe le sezioni si presentano da
   // sole nel contenuto — da quando la governance è una voce sola, il titolone
   // di pagina non arriva più dall'header della shell.
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica','limiti'],
@@ -1102,7 +1102,7 @@ function PlatformConfig() {
     { id:'discovery', label:'Discovery' },
     { id:'accrediti', label:'Accrediti', badge: ACCREDITI.filter(a => a.stato === 'in_attesa').length },
     // «Aliquote degli articoli» (P-164 · D-112) al posto della pillola
-    // «Dizionari»: l'unico dizionario che il modello dice governato da Hubble
+    // «Dizionari»: l'unico dizionario che il modello dice governato da Desk
     // — le tipologie dell'articolo con i loro trattamenti IVA — si cura da qui,
     // con il proprio gesto per ogni cambiamento, fuori dal salvataggio comune.
     // Gli altri dizionari (gusti, servizi, certificazioni, allergeni) sono
@@ -1704,7 +1704,7 @@ function AccessiList() {
     const csv = '\ufeff' + ['Persona;Email;Ruolo;Ultimo accesso;Giorni dall\'ultimo accesso;Dormiente (90+ giorni)', ...righe].join('\n');
     try {
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-      const a = document.createElement('a'); a.href = url; a.download = `hubble-accessi-${oggi.toISOString().slice(0, 10)}.csv`;
+      const a = document.createElement('a'); a.href = url; a.download = `desk-accessi-${oggi.toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {}
     AUDIT_EVENTS.unshift({ who: IO, action: 'ha esportato l\'elenco degli accessi', target: `${membri.length} persone · riesame periodico`, icon: 'download', color: 'INFO', tipo: 'estrazione', when: oggi });
@@ -1716,7 +1716,7 @@ function AccessiList() {
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
       {me.demo && (
         <div style={{padding:'10px 14px', borderRadius:10, background:ADM.PINK_BG_SOFT, border:`1px solid #FFA9BF`, fontSize:13, color:ADM.TEXT}}>
-          Stai guardando Hubble come <b>{admLabelRuolo(me.ruolo)}</b> (demo, <code>?ruolo=</code>): i gesti che questo preset non può fare sono spenti, col perché.
+          Stai guardando Desk come <b>{admLabelRuolo(me.ruolo)}</b> (demo, <code>?ruolo=</code>): i gesti che questo preset non può fare sono spenti, col perché.
         </div>
       )}
 

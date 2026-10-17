@@ -1,4 +1,4 @@
-// Hubble · Il costruttore visuale delle email
+// Desk · Il costruttore visuale delle email
 //
 // Tre colonne: a sinistra i blocchi da aggiungere, al centro la mail come la
 // vedrà chi la riceve, a destra le proprietà di quello che hai selezionato.
@@ -49,7 +49,7 @@ function mbFondoStileEmail(f) {
 }
 
 const MB_GRADIENTI = [
-  { l: 'Hubble',   da: '#FF1F5A', a: '#D410F1', angolo: 135 },
+  { l: 'Rosa viola', da: '#FF1F5A', a: '#D410F1', angolo: 135 },
   { l: 'Tramonto', da: '#FF8A00', a: '#FF1F5A', angolo: 120 },
   { l: 'Notte',    da: '#1B0B2E', a: '#5B34D6', angolo: 160 },
   { l: 'Menta',    da: '#0D9488', a: '#2563EB', angolo: 120 },
@@ -59,7 +59,7 @@ const MB_GRADIENTI = [
 function mbNuovo(tipo) {
   const base = { id: mbId(), tipo, padTop: 14, padBottom: 14, allinea: 'left', fondo: mbFondoVuoto() };
   switch (tipo) {
-    case 'logo':     return { ...base, allinea: 'center', src: 'hubble.png', larghezza: 132, padTop: 26, padBottom: 20 };
+    case 'logo':     return { ...base, allinea: 'center', src: 'desk.png', larghezza: 132, padTop: 26, padBottom: 20 };
     case 'titolo':   return { ...base, testo: 'Un titolo che dice la cosa', corpo: 27, colore: '#16181D', peso: 800 };
     case 'testo':    return { ...base, testo: 'Scrivi qui il messaggio. Una mail che si legge in venti secondi viene letta; una che ne chiede due minuti viene archiviata.', corpo: 15.5, colore: '#3A3D45', interlinea: 1.6 };
     case 'immagine': return { ...base, src: '', alt: 'Immagine', raggio: 10 };
@@ -87,7 +87,7 @@ function mbDocIniziale() {
       // La testata parte sfumata di proposito: chi apre il builder deve
       // vedere subito che una sezione può avere un fondo suo, altrimenti la
       // funzione esiste e non la trova nessuno.
-      Object.assign(mbNuovo('logo'), { src: 'hubble-badge.png', larghezza: 148,
+      Object.assign(mbNuovo('logo'), { src: 'desk-badge.png', larghezza: 148,
         fondo: { tipo: 'gradiente', colore: '#FFF1F4', da: '#FF1F5A', a: '#D410F1', angolo: 135 } }),
       Object.assign(mbNuovo('titolo'), { testo: 'Le prenotazioni ora si gestiscono <span style="color: #FF1F5A">da sole</span>' }),
       Object.assign(mbNuovo('testo'), { testo: 'Ciao {{nome}}, da oggi byup accetta, sposta e conferma le prenotazioni senza che nessuno debba stare al telefono. Ecco le <b>tre cose</b> che cambiano nel tuo servizio.' }),
@@ -247,7 +247,7 @@ function mbBloccoHtml(b, doc) {
   const R = (dentro, extra) => `<tr><td style="${pad}${al}${bg}${extra || ''}">${dentro}</td></tr>`;
   switch (b.tipo) {
     case 'logo':
-      return R(`<img src="${mbEsc(b.src)}" width="${b.larghezza}" alt="Hubble" style="display:inline-block;border:0;width:${b.larghezza}px;max-width:100%;height:auto;"/>`);
+      return R(`<img src="${mbEsc(b.src)}" width="${b.larghezza}" alt="Desk" style="display:inline-block;border:0;width:${b.larghezza}px;max-width:100%;height:auto;"/>`);
     case 'titolo':
       return R(mbRicco(b.testo), `font-size:${b.corpo}px;font-weight:${b.peso};color:${b.colore};line-height:1.25;letter-spacing:-0.02em;`);
     case 'testo':
@@ -334,7 +334,7 @@ function MbBlocco({ b, doc, selezionato, onSeleziona, onSu, onGiu, onElimina, on
 
   const dentro = () => {
     switch (b.tipo) {
-      case 'logo':     return <img src={b.src} alt="Hubble" style={{ width: b.larghezza, maxWidth: '100%', display: 'inline-block' }}/>;
+      case 'logo':     return <img src={b.src} alt="Desk" style={{ width: b.larghezza, maxWidth: '100%', display: 'inline-block' }}/>;
       case 'titolo':   return ricco('testo', { fontSize: b.corpo, fontWeight: b.peso, color: b.colore, lineHeight: 1.25, letterSpacing: '-0.02em' });
       case 'testo':    return ricco('testo', { fontSize: b.corpo, color: b.colore, lineHeight: b.interlinea });
       case 'immagine': return b.src
@@ -449,7 +449,7 @@ function MbCursore({ label, valore, onCambia, min, max, unita = 'px' }) {
 
 // Il preventDefault sul mousedown — necessario per non far collassare la
 // selezione quando si preme un comando — sopprime anche lo :active globale di
-// byup-hubble.html: senza aiuto questi bottoni non mostrerebbero mai la
+// byup-desk.html: senza aiuto questi bottoni non mostrerebbero mai la
 // pressione. L'hover arriva dalla classe (funziona su qualunque fondo, anche
 // le tinte della palette); la pressione la simuliamo a mano nel mousedown.
 const MB_TASTO_CSS = `
@@ -775,8 +775,9 @@ function MbIspettore({ b, doc, onCambia, onDoc }) {
         <React.Fragment>
           <HubCampo label="File" nota="Nel prototipo si sceglie fra gli asset già caricati.">
             <AdmSelect block value={b.src} onChange={set('src')} options={[
-              { value: 'hubble.png', label: 'Hubble · lockup a colori' },
-              { value: 'hubble-mark.png', label: 'Hubble · solo marchio' },
+              { value: 'desk.png', label: 'Desk · lockup' },
+              { value: 'desk-mark.png', label: 'Desk · solo marchio' },
+              { value: 'desk-badge.png', label: 'Desk · badge lilla' },
               { value: 'byup.png', label: 'byup · lockup' },
             ]}/>
           </HubCampo>

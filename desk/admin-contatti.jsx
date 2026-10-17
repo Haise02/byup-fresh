@@ -56,7 +56,7 @@ const CNT_CICLO = {
   // permanente sta nella proprietà «Rientrato il», non nel badge.
   returning:      { label: 'Returning',        color: 'PURPLE',       rango: 5 },
   // «Cessato», come nella scala del modello (P-121): l'id `annullato` resta,
-  // perché è uno stadio commerciale di Hubble e non il lifecycle_status.
+  // perché è uno stadio commerciale di Desk e non il lifecycle_status.
   annullato:      { label: 'Cessato',          color: 'DANGER',       rango: 6 },
   eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE',    rango: 7 },
 };
@@ -101,7 +101,7 @@ window.hubStadio = hubStadio;
 
 // ─── Piano ──────────────────────────────────────────────────────────────────
 // La colonna dei piani, separata dallo stadio: per i locali il piano
-// Fresh (coi colori che i piani hanno già in tutto Hubble), per gli utenti app
+// Fresh (coi colori che i piani hanno già in tutto Desk), per gli utenti app
 // il piano dell'app (Base/Pro), per lo staff niente — un trattino.
 const CNT_PIANI = {
   free:     { label: 'Gratuito', color: 'PLAN_FREE',     rango: 0 },
@@ -1559,7 +1559,7 @@ function CntSchedaProprieta({ riga }) {
         <AdmCard padding={18}>
           <div style={{fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 9}}>Che cosa manca</div>
           <div style={{fontSize: 13.2, color: ADM.MUTED, lineHeight: 1.6}}>
-            Questo contatto è nato in Hubble: non ha ancora un record operativo in byup — niente ordini, niente configurazione, niente certificazioni. Quelle schede compaiono da sole quando il locale entra in piattaforma.
+            Questo contatto è nato in Desk: non ha ancora un record operativo in byup — niente ordini, niente configurazione, niente certificazioni. Quelle schede compaiono da sole quando il locale entra in piattaforma.
           </div>
         </AdmCard>
       </div>

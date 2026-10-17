@@ -1221,7 +1221,7 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
 // ─── Certificazioni: card di stato + popup di caricamento ───────────────────
 
 // Le dodici del modello (P-61 · RL-06), copia VERBATIM di CERT_TIPI di Hubble
-// (hubble/admin-data.jsx), che governa il dizionario: prototipo e modello
+// (desk/admin-data.jsx), che governa il dizionario: prototipo e modello
 // divergevano, e qui c'erano cinque etichette libere. Due nature: con ente e
 // documento, oppure AUTODICHIARAZIONE senza documento da caricare —
 // vegetariano, senza lattosio, filiera corta — che Byup prende d'atto senza

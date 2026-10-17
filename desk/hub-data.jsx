@@ -1,4 +1,4 @@
-// Hubble — il vocabolario del CRM: proprietà, operatori, elenchi, materiali
+// Desk — il vocabolario del CRM: proprietà, operatori, elenchi, materiali
 // di marketing, automazioni e agenti.
 //
 // Questo file non disegna niente. Dice DI CHE COSA si parla: quali proprietà
@@ -124,7 +124,7 @@ const HUB_GRUPPI_PROP = [
 
 // ─── Gusti: la copia del dizionario (P-30 · D-28) ───────────────────────────
 // Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28):
-// il dizionario è uno e Hubble lo governa, ma i bundle sono due — finché non
+// il dizionario è uno e Desk lo governa, ma i bundle sono due — finché non
 // sarà servito dalla piattaforma la fonte resta quella e questa è la sua
 // copia, come per gli allergeni. Si cambia di là, e si riallinea a mano.
 // I gusti sono i soli food_tag con selectable_by_consumer vero. MAI i tre
@@ -837,7 +837,7 @@ const HUB_WF_FAMIGLIE = [
   { id: 'dati',       label: 'Segna qualcosa',  desc: 'Cambia lo stato nel CRM' },
   { id: 'intelligenza', label: 'Fai ragionare', desc: 'Chiedi a un agente' },
   { id: 'controllo',  label: 'Decidi e aspetta', desc: 'Rami e tempi' },
-  { id: 'tecnici',    label: 'Esci da Hubble',  desc: 'Codice e sistemi esterni' },
+  { id: 'tecnici',    label: 'Esci da Desk',  desc: 'Codice e sistemi esterni' },
 ];
 
 const HUB_WF_NODI = {
@@ -1124,7 +1124,7 @@ const HUB_DOMINI = [
     spf: true, dkim: true, dmarc: true, verificato: new Date(2025, 3, 12), reputazione: 98 },
   { id: 'DM-2', dominio: 'mail.byup.it', uso: 'Sottodominio dedicato agli invii massivi', stato: 'verificato',
     spf: true, dkim: true, dmarc: true, verificato: new Date(2025, 8, 2), reputazione: 96 },
-  { id: 'DM-3', dominio: 'hubble.byup.it', uso: 'Pagine dei form e landing', stato: 'in attesa',
+  { id: 'DM-3', dominio: 'desk.byup.it', uso: 'Pagine dei form e landing', stato: 'in attesa',
     spf: true, dkim: false, dmarc: false, verificato: null, reputazione: null },
 ];
 
@@ -1350,7 +1350,7 @@ function hubAttivita(c) {
 
   // ── la nascita del contatto ──
   const eta = Math.max(3, Math.round((Date.now() - new Date(c.iscritto || Date.now()).getTime()) / 86400000));
-  push(eta, 9, 'creato', 'Contatto creato in Hubble',
+  push(eta, 9, 'creato', 'Contatto creato in Desk',
     c.primoForm ? `Dalla submission del form «${c.primoForm}»` : c.canale ? `Origine: ${hubEtichettaOpzione(HUB_PROP.canale, c.canale)}` : 'Inserito manualmente',
     c.referral ? { Referral: c.referral } : null);
 

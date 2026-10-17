@@ -436,7 +436,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   // (consent_events.consent_type). L'app scrive il registro in localStorage
   // (ByupConsensi in app/byup-app-kit.jsx: stato corrente in
   // byup_consent_state, log append-only in byup_consent_data, righe
-  // {id, ok, quando, versione}); sullo stesso dominio Hubble lo legge dal
+  // {id, ok, quando, versione}); sullo stesso dominio Desk lo legge dal
   // vivo per l'utente demo dell'app (UTENTE_APP_DEMO_ID) e per gli altri
   // mostra valori d'esempio con i default dell'app. L'id storico LI-SUGG
   // (l'opposizione ai suggerimenti prima dei nomi del modello) vale come

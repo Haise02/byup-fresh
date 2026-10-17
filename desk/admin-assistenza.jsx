@@ -1,4 +1,4 @@
-// Hubble — Assistenza
+// Desk — Assistenza
 //
 // Quattro tab, un solo tema: il rapporto fra byup e il ristoratore quando
 // qualcosa non va.
@@ -23,7 +23,7 @@
 //
 // ─── Impianto visivo ────────────────────────────────────────────────────────
 // La sezione non inventa un proprio linguaggio: prende in prestito i due
-// idiomi che Hubble ha già.
+// idiomi che Desk ha già.
 //
 //   Chiamate, Ticket, Guide → l'inbox a due pannelli: elenco fitto a
 //     sinistra, contenuto a destra. La versione a card impilate a tutta
@@ -322,7 +322,7 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
-      {/* La testata alla maniera di Hubble: da quando la shell non ha più
+      {/* La testata alla maniera di Desk: da quando la shell non ha più
           l'header coi titoli, anche Assistenza si presenta da sola. */}
       <div style={{padding:'18px 28px 0', background:'#fff', flexShrink:0}}>
         <HubTestata titolo="Assistenza"
@@ -633,7 +633,7 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
               c'è nulla registrato per quel protocollo e il click non fa
               niente, senza dire perché. Il numero grande e il copia bastano —
               chi ha il centralino a parte incolla, chi ha il telefono in mano
-              legge. Se un giorno Hubble avrà un centralino integrato, quello
+              legge. Se un giorno Desk avrà un centralino integrato, quello
               sarà un pulsante che compone davvero e registra la durata. */}
           <AdmCard padding={0} style={{overflow:'hidden'}}>
             <div style={{padding:'14px 18px 16px'}}>
@@ -1278,7 +1278,7 @@ function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
 // 3. Guide — due pannelli: gli argomenti a sinistra, le loro guide a destra
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Stesso impianto di Chiamate e Ticket, che è l'idioma che Hubble già usa per
+// Stesso impianto di Chiamate e Ticket, che è l'idioma che Desk già usa per
 // «scegli a sinistra, lavora a destra». Prima era un elenco unico lungo con le
 // guide raggruppate: per arrivare a un argomento si scorreva tutto, e le
 // azioni sull'argomento stavano in mezzo alle sue guide.

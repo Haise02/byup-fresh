@@ -134,7 +134,7 @@ function buildLocali() {
     ['Bar Centrale', 'Lecce', 'Puglia'],
     ['Ristorante Antica Bottega', 'Parma', 'Emilia-Romagna'],
     ['Pizzeria 50 Kalò', 'Napoli', 'Campania'],
-    // Il locale demo del gestionale (id `cp` di là), che Hubble legge dallo
+    // Il locale demo del gestionale (id `cp` di là), che Desk legge dallo
     // stesso dominio per l'incaricato della società, il cambio di soggetto e
     // gli eventi dell'account (P-116, P-117): il quarto campo è il ponte.
     ['Cacio e Pepe', 'Roma', 'Lazio', 'cp'],
@@ -167,7 +167,7 @@ function buildLocali() {
 
   // Il tipo è un CODICE delle otto venue_category del dizionario di
   // piattaforma (PN_GUSTI, P-29 · D-28 — la copia è HUB_PN_GUSTI in hub-data),
-  // non la prima parola dell'insegna: Hubble scriveva un vocabolario suo
+  // non la prima parola dell'insegna: Desk scriveva un vocabolario suo
   // (Trattoria, Osteria, Pub) che non combaciava con le otto. Trattoria e
   // Osteria sono ristoranti, il Pub è un bar; l'insegna resta com'è.
   const tipiByPrefix = {
@@ -367,7 +367,7 @@ function buildLocali() {
       citta: n[1],
       regione: n[2],
       // L'id del locale nel gestionale, solo per il locale demo: è la chiave
-      // con cui Hubble legge ciò che il gestionale scrive sullo stesso dominio.
+      // con cui Desk legge ciò che il gestionale scrive sullo stesso dominio.
       gestionaleId: n[3] || null,
       indirizzo: `Via ${['Roma','Garibaldi','Mazzini','Dante','Verdi','Cavour','Manzoni'][Math.floor(r()*7)]} ${Math.floor(r()*200)+1}`,
       cap: String(10000 + Math.floor(r() * 89999)),
@@ -1696,7 +1696,7 @@ function ctrCessazione(l) {
 }
 
 // ─── Incaricato della società, cambio di soggetto, eventi dell'account ──────
-// (P-116 · P-117 · D-103 · D-104). Tre cose che Hubble LEGGE e non scrive:
+// (P-116 · P-117 · D-103 · D-104). Tre cose che Desk LEGGE e non scrive:
 // l'assistenza vede, non modifica, e da qui non si compie nessun atto.
 //
 // L'INCARICATO. Il documento commerciale online non è delegabile a
@@ -1710,10 +1710,10 @@ function ctrCessazione(l) {
 // rinnovo della password ogni novanta giorni lo fa quella persona: Byup non
 // ne è parte. Fino al 03/09 il prototipo aveva un «incaricato di Byup» —
 // registro byup_incaricati, scheda «Incaricati Fisconline», rinnovo da
-// Hubble — costruito senza decisione: D-103 lo ritira, e la figura resta
+// Desk — costruito senza decisione: D-103 lo ritira, e la figura resta
 // annotata come alternativa sospesa fuori dal prototipo. Il dato lo
 // raccolgono i Dati fiscali del gestionale; per il locale demo (gestionaleId
-// `cp`) Hubble lo legge dallo stesso dominio, chiave byup_ade_incaricato
+// `cp`) Desk lo legge dallo stesso dominio, chiave byup_ade_incaricato
 // { nome, cognome, cf, nominato_il: 'YYYY-MM-DD' }, con lo stesso seme del
 // gestionale se la chiave manca; per gli altri locali del mock un nome
 // stabile dall'id. Il gestionale avvisa con l'evento window
@@ -1747,7 +1747,7 @@ function hubIncaricatoDi(l) {
 // riconferita e revocata, credenziali nuove, nuovo conto Stripe, censimento
 // dei POS rifatto, e alla fine la riaccettazione dei termini a nome del nuovo
 // soggetto, senza la quale il cambio non è concluso (restaurant_holder_changes
-// al solo cambio di soggetto, stato terms_reaccepted). Hubble legge il record
+// al solo cambio di soggetto, stato terms_reaccepted). Desk legge il record
 // del locale demo dalla chiave byup_soggetto_change e lo mostra nei Dati
 // fiscali: la data dell'ultimo cambio, il precedente, i passi. Evento window
 // `byup-soggetto-change`. Se la chiave manca: nessun cambio a registro.
@@ -1773,7 +1773,7 @@ function hubSoggettoChangeDi(l) {
 // telefono si verificano prima di sostituire i precedenti, il recapito
 // precedente riceve l'avviso, e ogni modifica scrive un evento con il valore
 // precedente e il nuovo (audit_events). Nessuna verifica dell'identità da
-// parte di Byup: chi cambia è autenticato. Hubble li legge per il locale
+// parte di Byup: chi cambia è autenticato. Desk li legge per il locale
 // demo dalla chiave byup_audit_events, array di { at (ISO), type:
 // 'email_changed'|'phone_changed'|'name_changed', from, to, by }, e li mostra
 // nel Log del locale. Evento window `byup-audit-change`. Se manca: nessun
@@ -1800,7 +1800,7 @@ Object.assign(window, { HUB_ADE_INCARICATO_KEY, hubIncaricatoDi, HUB_SOGGETTO_KE
 // sulla sala, nessuna verifica d'identità, nessun ban sul dispositivo, nessun
 // blocco per indirizzo di rete. I nomi sono quelli del modello:
 // orders.source_surface vale staff_web | webapp_guest | byup_app.
-// Registri sullo stesso dominio: byup_limiti (i tre parametri, che Hubble
+// Registri sullo stesso dominio: byup_limiti (i tre parametri, che Desk
 // governa), byup_tavoli_qr (i tavoli aperti da un cliente), byup_invii (la
 // storia recente per tavolo e per dispositivo), byup_limiti_rifiuti (quante
 // volte al giorno, per limite: quante, non chi). Rete di prova: ?rete=fuori.
@@ -2015,7 +2015,7 @@ const VET_MOTIVI = [
 ];
 const vetMotivoLabel = (v) => (VET_MOTIVI.find(m => m.value === v) || { label: v }).label;
 // I tre numeri del merito: ordini al mese, adozione QR, prenotazioni al mese.
-// Niente media recensioni: Hubble non ha un voto per locale (il voto vive
+// Niente media recensioni: Desk non ha un voto per locale (il voto vive
 // solo nell'app, seminato lì) — contraddizione registrata.
 const vetFotografia = (l) => ({ ordiniMese: l.ordiniMese, qrAdoption: l.qrAdoption, prenotazioniMese: l.prenotazioniMese });
 const VETRINE = (() => {
@@ -2058,7 +2058,7 @@ const MOD_ESITI = {
 const MOD_DECISIONI = [];
 
 // ─── Estrazione del registro operazioni (P-47 · D-38) ───────────────────────
-// Registrare senza esporre, esibire su richiesta. Hubble non ha una vista di
+// Registrare senza esporre, esibire su richiesta. Desk non ha una vista di
 // cassa: le operazioni di un ristorante si estraggono per un periodo, con
 // perimetro limitato al ristorante richiedente, e l'estrazione si registra a
 // sua volta — restituisce l'attività di persone che lavorano (D-30: mai una
@@ -2095,7 +2095,7 @@ function admEstrai(l, dal, al, motivo, nota, righe) {
 // esibire anche presentandosi in sede. Tiene le SOLE deleghe degli esercenti
 // — la delega unica a due servizi. L'incaricato che una società nomina sul
 // portale dell'Agenzia (specifiche RT §2.9) è un atto della società, non di
-// Byup (D-103): Hubble non ne tiene registro, lo legge nella scheda del
+// Byup (D-103): Desk non ne tiene registro, lo legge nella scheda del
 // locale, Dati fiscali (hubIncaricatoDi, sotto).
 // «Verificata il» sta perché il portale dà riscontro sulla delega, a
 // differenza dei POS (P-105: dichiarati, mai verificati).

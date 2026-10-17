@@ -1,4 +1,4 @@
-// Hubble · Workflow — le automazioni.
+// Desk · Workflow — le automazioni.
 //
 // Un workflow è una frase lunga: «quando succede questo, aspetta tanto, se
 // vale quest'altra cosa fai A, altrimenti fai B». Si legge dall'alto in basso
@@ -983,13 +983,16 @@ function HubAgentPage() {
       <HubStile/>
       <HubTestata titolo="Agent"
         sotto={vistaAg === 'squadra'
-          ? 'Agenti costruiti su quello che Hubble già sa dei tuoi clienti. Gli dai un obiettivo e delle fonti; il resto lo decidono loro, e qui vedi che cosa hanno prodotto.'
+          ? 'Agenti costruiti su quello che Desk già sa dei tuoi clienti. Gli dai un obiettivo e delle fonti; il resto lo decidono loro, e qui vedi che cosa hanno prodotto.'
           : 'Dove gli agenti lavorano insieme. Non si chiamano fra loro: scrivono su una lavagna per argomento, e chi è iscritto si sveglia.'}
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea agente</HubStrumento>}/>
 
       <HubSegmenti attivo={vistaAg} onCambia={setVistaAg} voci={[
         { id: 'squadra',  label: 'La squadra', conteggio: HUB_AGENTI.length },
-        { id: 'ambiente', label: 'Ambiente',   conteggio: catene.length },
+        // «Ambiente agenti» e non solo «Ambiente»: dal 17 ottobre Ambiente è
+        // il posto del team nella barra di Desk (desk-ambiente.jsx), e due
+        // pagine con lo stesso nome a due clic di distanza si confondono.
+        { id: 'ambiente', label: 'Ambiente agenti', conteggio: catene.length },
       ]}/>
 
       {vistaAg === 'ambiente' ? <HubAmbientePage catene={catene} setCatene={setCatene}/> : (

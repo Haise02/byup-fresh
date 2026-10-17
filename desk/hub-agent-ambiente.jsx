@@ -1,4 +1,4 @@
-// Hubble · Agent — l'Ambiente.
+// Desk · Agent — l'Ambiente.
 //
 // La pagina Agent elencava agenti. Uno per uno funzionano; insieme non
 // esistevano. L'Ambiente è il posto dove esistono insieme, e la scelta di

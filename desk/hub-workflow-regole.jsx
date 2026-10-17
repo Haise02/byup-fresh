@@ -1,4 +1,4 @@
-// Hubble · Workflow — l'editor delle condizioni e delle attese.
+// Desk · Workflow — l'editor delle condizioni e delle attese.
 //
 // Un ramo prima sapeva chiedere una cosa sola: com'È il contatto. Bastava per
 // «i clienti Business», non bastava per l'unica domanda che i workflow fanno

@@ -1,27 +1,29 @@
-// Hubble design tokens — autosufficienti, non dipendono da PN
+// Desk design tokens — autosufficienti, non dipendono da PN
 //
-// ─── La palette del marchio ─────────────────────────────────────────────────
-// Il logo Hubble è UN GRADIENTE che va dal rosa byup al viola, passando per il
-// magenta. Tre colori, non uno, e la console li usa con tre mestieri diversi:
+// ─── Il nome e il marchio ───────────────────────────────────────────────────
+// La console si chiamava byup Spot, poi Hubble; dal 17 ottobre 2026 è DESK, il
+// CRM interno di byup. Il nome Hubble passa al marketplace dei fornitori (in
+// sviluppo). Il logo di Desk è il segno byup con la scritta «Desk», PRUGNA su
+// LILLA (`desk.png`, `desk-mark.png`, `desk-badge.png`): i due colori vivono
+// qui sotto come DESK_PRUGNA e DESK_LILLA e si usano per i momenti di marca —
+// il logo, il pulsante di Ambiente, le superfici di Ambiente — non per
+// l'azione.
 //
-//   ROSA (#FF1F5A)     l'ACCENTO D'AZIONE. Eredita il posto che aveva il
-//                      corallo byup: voce attiva, focus, pillole, CTA. È il
-//                      colore che si vede cento volte al giorno, e sta al
-//                      punto del gradiente più vicino al marchio di partenza —
-//                      il rebrand si legge come un'evoluzione, non un trapianto.
-//   MAGENTA (#ED1999)  il colore del MARKETING: mail, SMS, push, form. Una
-//                      famiglia di sezioni nuove che deve distinguersi dal CRM
-//                      senza uscire dal marchio.
-//   VIOLA (#D410F1)    il colore dell'INTELLIGENZA: Workflow e Agent. È la
-//                      fine del gradiente, il punto più lontano da byup: le
-//                      cose che la piattaforma fa da sola.
+// ─── La palette di lavoro ───────────────────────────────────────────────────
+// La palette con cui la console lavora resta quella di prima, per scelta
+// esplicita: tre colori con tre mestieri diversi.
 //
-// Il gradiente intero resta un fatto di MARCA — logo, testate, momenti di
-// benvenuto — e non entra mai sotto a un testo lungo o a una tabella.
+//   ROSA (#FF1F5A)     l'ACCENTO D'AZIONE: voce attiva, focus, pillole, CTA.
+//                      È il colore che si vede cento volte al giorno.
+//   MAGENTA (#ED1999)  il colore del MARKETING: mail, SMS, push, form.
+//   VIOLA (#D410F1)    il colore dell'INTELLIGENZA: Workflow e Agent.
+//
+// Il gradiente intero rosa → viola resta un fatto di marca della console —
+// testate, momenti di benvenuto — e non entra mai sotto a un testo lungo o a
+// una tabella.
 //
 // Tutto il resto della palette (verde/ambra/rosso/blu/teal) è SEMANTICO e non
-// si tocca: il colore lì significa stato, non identità. Un rebrand che si
-// mangia i colori di stato è un rebrand che rende la console illeggibile.
+// si tocca: il colore lì significa stato, non identità.
 
 const ADM = {
   // canvas / surfaces  — Apple-style soft warm-grays
@@ -46,18 +48,27 @@ const ADM = {
   // border — softer
   BORDER:       '#E6E6EB',
   BORDER_SOFT:  '#F0F0F2',
-  // ─── brand Hubble ─────────────────────────────────────────────────────────
+  // ─── marchio Desk: prugna e lilla, dal file del logo ──────────────────────
+  DESK_PRUGNA:       '#492844',   // la scritta e il segno del logo
+  DESK_PRUGNA_SCURO: '#351C30',   // la prugna sotto il mouse / premuta
+  DESK_PRUGNA_CHIARO:'#6E4C68',   // testo secondario su lilla
+  DESK_LILLA:        '#DCBAD7',   // il fondo del badge
+  DESK_PRUGNA_SOFT:  '#F4EAF2',   // = lilla tenue: il fondo delle icone in prugna
+  DESK_LILLA_SOFT:   '#F4EAF2',   // superfici tenui di Ambiente
+  DESK_LILLA_BG:     '#FAF5F9',   // fondo della colonna di Ambiente
+  // ─── accento della console (rosa → magenta → viola) ──────────────────────
   // I nomi restano PINK/PINK_DARK/…: sono l'accento della console da sempre e
   // rinominarli avrebbe voluto dire toccare ottomila righe per cambiare tre
   // valori. Cambia il colore, non il ruolo.
-  PINK:         '#FF1F5A',   // rosa Hubble — accento d'azione
+  PINK:         '#FF1F5A',   // rosa della console — accento d'azione
   PINK_DARK:    '#C40B45',   // il rosa scurito per il TESTO su bianco (4.5:1)
   PINK_SOFT:    '#FFE0E8',   // fondo delle pillole
   PINK_BG_SOFT: '#FFF1F4',   // fondo tenue di sezione
   PINK_HOVER:   '#FFCBD8',   // pillola accesa sotto il mouse
   WINE:         '#9E0B3C',
   WINE_SOFT:    '#FFE0E8',
-  // I tre punti del gradiente, presi dal file del logo.
+  // I tre punti del gradiente rosa → viola (il marchio di prima, che resta
+  // la palette d'azione della console).
   HUB_ROSA:         '#FF1F5A',
   HUB_MAGENTA:      '#ED1999',
   HUB_MAGENTA_DARK: '#B01173',  // magenta leggibile su bianco

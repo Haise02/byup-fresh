@@ -14,12 +14,12 @@
 // cioè «ciò che rende opponibile l'accettazione» — e `document_hash`, che
 // prova quale testo. Nessuna delle due può nascere dal click di un operatore:
 // nascono dove la persona è, nel gestionale, nell'app di sala, nella Byup App.
-// Hubble pubblica, comunica e guarda. Il giorno che qui comparisse un
+// Desk pubblica, comunica e guarda. Il giorno che qui comparisse un
 // «segna come accettato», il fascicolo smetterebbe di valere qualcosa.
 //
 // IL TESTO SI CARICA, NON SI SCRIVE QUI. Il testo autorevole nasce altrove —
 // nel corpus, in markdown, scritto e rivisto da chi di dovere — e un editor in
-// Hubble creerebbe un secondo posto dove quel testo vive, libero di divergere:
+// Desk creerebbe un secondo posto dove quel testo vive, libero di divergere:
 // su un contratto. E l'impronta dev'essere di un artefatto solo e
 // indiscutibile: di un testo battuto in un editor non si saprebbe che cosa
 // impronta, se l'HTML o il markdown, e uno spazio in più cambierebbe l'hash

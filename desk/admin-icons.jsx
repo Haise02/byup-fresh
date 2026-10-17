@@ -1,4 +1,4 @@
-// Icone di Hubble — paths-only, single Icon component
+// Icone di Desk — paths-only, single Icon component
 
 const ICON_PATHS = {
   home:          'M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z',
@@ -57,7 +57,7 @@ const ICON_PATHS = {
   pencil:        'M4 20h4L18.5 9.5a2.6 2.6 0 0 0-3.7-3.7L4 16.3V20z|M14 7l3.7 3.7',
   trash:         'M4 7h16|M10 4h4a1 1 0 0 1 1 1v2H9V5a1 1 0 0 1 1-1z|M6.5 7l.9 12.1a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7|M10.5 11v6M13.5 11v6',
 
-  // ─── Hubble: CRM, marketing, automazioni ─────────────────────────────────
+  // ─── Desk: CRM, marketing, automazioni ─────────────────────────────────
   grid:          'rect:3,3,7.5,7.5,2|rect:13.5,3,7.5,7.5,2|rect:3,13.5,7.5,7.5,2|rect:13.5,13.5,7.5,7.5,2',
   layers:        'M12 3l9 5-9 5-9-5 9-5z|M3 13l9 5 9-5|M3 17.5l9 5 9-5',
   bolt:          'M13.5 2L4 13.5h6.5L10 22l9.5-11.5H13L13.5 2z',
@@ -88,6 +88,31 @@ const ICON_PATHS = {
   save:          'M5 3h11l3 3v15H5V3z|M8 3v6h7V3|M8 14h8v7H8v-7z',
   archive:       'rect:3,4,18,4,1|M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8|M10 12h4',
   users3:        'circle:8,8,3|M2 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5|circle:17,9,2.4|M15.5 14.8c3 .2 5.5 2.2 5.5 5.2',
+  // Ambiente — chat, attività e riunioni del team
+  hash:          'M5 9h15M4 15h15|M10 3L8 21M16 3l-2 18',
+  at:            'circle:12,12,4|M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8',
+  smile:         'circle:12,12,9|M8 14s1.5 2 4 2 4-2 4-2|circle:9,10,0.7,fill|circle:15,10,0.7,fill',
+  video:         'rect:2,6,14,12,2|M16 10l6-3v10l-6-3',
+  mic:           'rect:9,2,6,12,3|M5 10a7 7 0 0 0 14 0|M12 17v4M8 21h8',
+  micOff:        'M15 9.3V5a3 3 0 0 0-5.7-1.3|M9 9v2a3 3 0 0 0 5 2.2|M5 10a7 7 0 0 0 11.6 5.3M19 10a7 7 0 0 1-.6 2.9|M12 17v4M8 21h8|M3 3l18 18',
+  videoOff:      'M10.7 6H14a2 2 0 0 1 2 2v3.3l6-3.3v10|M16 16v0a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2|M3 3l18 18',
+  headphones:    'M3 18v-6a9 9 0 0 1 18 0v6|M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z',
+  checkCircle:   'circle:12,12,9|M8 12.5l2.7 2.7L16.5 9',
+  checkSquare:   'rect:3,3,18,18,4|M8 12.5l2.7 2.7L16.5 9',
+  square:        'rect:4,4,16,16,4',
+  file:          'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z|M14 3v5h5',
+  folder:        'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  pin:           'M9 3h6l-1 6 4 4H6l4-4z|M12 13v8',
+  moreH:         'circle:5,12,1.2,fill|circle:12,12,1.2,fill|circle:19,12,1.2,fill',
+  reply:         'M9 7L4 12l5 5|M4 12h11a5 5 0 0 1 5 5v2',
+  kanban:        'rect:3,3,18,18,3|M9 3v18M15 3v18|M5.5 7h1.5M11 7h2M17 7h1.5|M5.5 10.5h1.5M11 10.5h2',
+  hand:          'M8 13V5.5a1.5 1.5 0 0 1 3 0V11|M11 10V4.5a1.5 1.5 0 0 1 3 0V11|M14 10.5V6a1.5 1.5 0 0 1 3 0v7.5a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5.2-3l-2.1-3.7a1.5 1.5 0 0 1 2.5-1.6L8 15',
+  flag:          'M5 21V4|M5 4h11l-2 4 2 4H5',
+  inbox:         'M3 13l3-8h12l3 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M3 13h5l1.5 2.5h5L16 13h5',
+  phoneCall:     'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  bold:          'M7 5h6a3.5 3.5 0 0 1 0 7H7z|M7 12h7a3.5 3.5 0 0 1 0 7H7z',
+  italic:        'M10 5h8M6 19h8M14 5l-4 14',
+  dot:           'circle:12,12,4,fill',
 };
 
 // ─── Icone PIENE per la sidebar (stile gestionale). fill=colore, niente stroke;
@@ -116,7 +141,7 @@ const ICON_FILLED = {
   // sovrapposizione: archetto, due padiglioni, braccio e capsula.
   headsetFill: 'M2.4 13.6A9.6 9.6 0 0 1 21.6 13.6H19.8A7.8 7.8 0 0 0 4.2 13.6Z|M2.4 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M16.6 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M19.1 18.6h2.5v1.6a2.3 2.3 0 0 1-2.3 2.3h-4a1.25 1.25 0 0 1 0-2.5h2.55a1.25 1.25 0 0 0 1.25-1.25z|M15.3 19.3a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8z',
 
-  // ─── Hubble ────────────────────────────────────────────────────────────────
+  // ─── Desk ────────────────────────────────────────────────────────────────
   // Le voci nuove della nav. Stessa famiglia: forme piene, nessuno stroke, i
   // dettagli interni sono FORI (evenodd) nello stesso tracciato — un pallino
   // bianco sovrapposto si vedrebbe sul fondo rosa della voce attiva.
@@ -153,6 +178,9 @@ const ICON_FILLED = {
   // appende a un contatto.
   tagFill: 'M3.2 4.4a1.4 1.4 0 0 1 1.4-1.4h6.9a1.4 1.4 0 0 1 1 .41l9.1 9.1a1.4 1.4 0 0 1 0 1.98l-6.9 6.9a1.4 1.4 0 0 1-1.98 0l-9.1-9.1a1.4 1.4 0 0 1-.42-1zM8 6.15a1.85 1.85 0 1 0 0 3.7 1.85 1.85 0 0 0 0-3.7z',
 
+  // Ambiente: due fumetti sovrapposti — la conversazione del team, distinta
+  // dal fumetto singolo (chatFill) che è dell'Assistenza.
+  ambienteFill: 'M9.5 3C14.2 3 18 6.1 18 10s-3.8 7-8.5 7c-.95 0-1.86-.13-2.7-.36-1.12.74-2.5 1.24-4.03 1.3a.55.55 0 0 1-.44-.92c.66-.7 1.14-1.55 1.36-2.47C2.03 13.27 1 11.73 1 10c0-3.9 3.8-7 8.5-7z|M19.6 8.7c2.1 1.2 3.4 3.1 3.4 5.3 0 1.45-.58 2.79-1.56 3.85.17.8.56 1.53 1.1 2.13a.48.48 0 0 1-.38.8 6.1 6.1 0 0 1-3.37-1.05c-.83.25-1.73.39-2.67.39-2.2 0-4.18-.73-5.6-1.9 5.02-.32 8.98-3.87 9.06-8.24 0-.43-.03-.86-.1-1.28z',
 };
 
 function renderIconParts(spec) {

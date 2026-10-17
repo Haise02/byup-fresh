@@ -1,4 +1,4 @@
-// Hubble · Impostazioni — recapiti e domini di invio, catalogo delle proprietà.
+// Desk · Impostazioni — recapiti e domini di invio, catalogo delle proprietà.
 //
 // Vivono nel menu del profilo e non nella barra: si toccano una volta al mese,
 // e stavano occupando lo spazio del lavoro di tutti i giorni. Nello stesso
@@ -676,11 +676,11 @@ window.IM_TIPI_PROP = IM_TIPI_PROP;
 // ─── Incaricati Fisconline: non esiste più (P-116 · D-103) ──────────────────
 // Qui stava il registro byup_incaricati con la scheda «Incaricati
 // Fisconline»: persone di Byup che ogni società avrebbe nominato incaricate
-// sul portale dell'Agenzia, con la password rinnovata da Hubble. Nessuna
+// sul portale dell'Agenzia, con la password rinnovata da Desk. Nessuna
 // decisione lo aveva stabilito, e D-103 lo ritira: l'incaricato è della
 // società (specifiche RT §2.9), lo nomina la società dal proprio profilo sul
 // portale, le credenziali sono sue e il rinnovo lo fa quella persona — Byup
-// non ne è parte. Da Hubble non si compie nessun atto di nomina: chi è
+// non ne è parte. Da Desk non si compie nessun atto di nomina: chi è
 // l'incaricato di una società si LEGGE nella scheda del locale, Dati fiscali
 // (hubIncaricatoDi in admin-data.jsx, dai Dati fiscali del gestionale).
 

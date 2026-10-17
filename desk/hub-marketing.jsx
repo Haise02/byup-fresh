@@ -1,4 +1,4 @@
-// Hubble · Marketing — Mail, SMS, Messaggi all'app (Posta + notifica), Form.
+// Desk · Marketing — Mail, SMS, Messaggi all'app (Posta + notifica), Form.
 //
 // «Promozioni» era una sezione sola con tre tab dentro: broadcast, workflow
 // email, campagne di acquisizione. Andava bene finché il marketing era una
@@ -955,7 +955,7 @@ function MktPushSchermo({ dove, titolo, corpo }) {
         borderRadius: 15, padding: '11px 12px', boxShadow: '0 8px 22px -8px rgba(0,0,0,0.4)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-          <img src="hubble-mark.png" alt="" style={{ width: 15, height: 'auto', borderRadius: 3 }}/>
+          <img src="byup-mark.png" alt="" style={{ width: 13, height: 'auto', borderRadius: 3 }}/>
           <span style={{ fontSize: 11, fontWeight: 700, color: '#3A3D45', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {dove === 'app' ? 'byup' : 'byup gestionale'}
           </span>
@@ -1528,12 +1528,12 @@ function HubFormEditor({ onChiudi }) {
   const [codice, setCodice] = useStateMk(false);
 
   // Lo snippet da incollare nel sito: il form si aggancia per slug, come le
-  // pagine su hubble.byup.it. Il tag script è spezzato in due pezzi per non
+  // pagine su desk.byup.it. Il tag script è spezzato in due pezzi per non
   // chiudere lo <script> che ci ospita se questo file venisse mai inlinato.
   const slug = (nome || 'nuovo-form').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nuovo-form';
   const snippet = '<!-- Incolla dove vuoi che compaia il form -->\n'
-    + '<div data-hubble-form="' + slug + '"></div>\n'
-    + '<script src="https://hubble.byup.it/embed.js" async></' + 'script>';
+    + '<div data-desk-form="' + slug + '"></div>\n'
+    + '<script src="https://desk.byup.it/embed.js" async></' + 'script>';
 
   const campo = campi.find(c => c.id === sel) || null;
   const setCampo = (k, v) => setCampi(cs => cs.map(c => c.id === sel ? Object.assign({}, c, { [k]: v }) : c));

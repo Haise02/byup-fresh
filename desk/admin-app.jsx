@@ -1,10 +1,11 @@
-// Hubble — shell principale con sidebar e router
+// Desk — shell principale con sidebar e router
 //
-// La console si chiamava «byup Spot». Il nome è cambiato, ma soprattutto è
-// cambiato il mestiere: non è più solo il posto da cui si guardano i numeri e
-// si risponde ai ticket, è il CRM con cui si parla ai locali e agli utenti. La
-// nav lo dice: prima la panoramica, poi i contatti, poi quello che si fa ai
-// contatti (marketing, workflow, agenti), e in fondo l'assistenza.
+// La console si chiamava «byup Spot», poi «Hubble»; dal 17 ottobre 2026 è
+// Desk, il CRM di byup (Hubble passa al marketplace dei fornitori). Il
+// mestiere resta quello: è il CRM con cui si parla ai locali e agli utenti.
+// La nav lo dice: in cima Ambiente, il posto dove il team lavora insieme
+// (chat, attività, riunioni); poi i contatti, quello che si fa ai contatti
+// (marketing, workflow, agenti), e in fondo l'assistenza.
 
 const { useState: useStateApp } = React;
 
@@ -121,18 +122,19 @@ function AdmNavItem({ item, active, onClick, collapsed, onFly, flyAperto }) {
       style={{
         position:'relative',
         width:'100%', display:'flex', alignItems:'center',
-        gap: collapsed ? 0 : 12,
+        gap: collapsed ? 0 : 11,
         justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '9px' : '9px 10px',
+        padding: collapsed ? '9px' : '8px 10px',
         background: active ? ADM.PINK_SOFT : flyAperto ? 'rgba(0,0,0,0.04)' : 'transparent',
         color: active ? ADM.PINK_DARK : ADM.TEXT,
-        border:'none', borderRadius:10,
-        fontSize: 19.5,
-        fontWeight: active ? 600 : 500,
+        border:'none', borderRadius:9,
+        fontSize: 16,
+        fontWeight: active ? 700 : 500,
+        letterSpacing: '-0.01em',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
       <span style={{position:'relative', display:'inline-flex'}}>
-        <Icon size={26} color={active ? ADM.PINK : ADM.MUTED}/>
+        <Icon size={21} color={active ? ADM.PINK : ADM.MUTED}/>
         {collapsed && hasBadge && (
           <span style={{position:'absolute', top:-2, right:-3, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #F7F8FA'}}/>
         )}
@@ -276,7 +278,11 @@ function GlobalSearch({ onClose, go }) {
 }
 
 function AdminApp({ tweaks }) {
-  const [route, setRouteRaw] = useStateApp('contatti');
+  // ?rotta=ambiente (o un'altra rotta) apre la console direttamente lì: serve
+  // a condividere un link alla sezione giusta senza spiegare dove cliccare.
+  const [route, setRouteRaw] = useStateApp(() => {
+    try { return new URLSearchParams(window.location.search).get('rotta') || 'contatti'; } catch (e) { return 'contatti'; }
+  });
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
@@ -288,7 +294,7 @@ function AdminApp({ tweaks }) {
   // overflow:auto taglierebbe qualunque figlio che ne esce.
   const [fly, setFly] = useStateApp(null);
   const [menuProfilo, setMenuProfilo] = useStateApp(false);
-  // «Esci da Hubble»: il logout è finto ma l'esito è vero — la shell sparisce
+  // «Esci da Desk»: il logout è finto ma l'esito è vero — la shell sparisce
   // dietro un velo e si rientra da dove si entra sempre, la rubrica.
   const [uscito, setUscito] = useStateApp(false);
   // Il ritardo di chiusura: senza, il pannello sparisce nel millimetro di
@@ -405,19 +411,19 @@ function AdminApp({ tweaks }) {
         padding: collapsed ? '20px 10px 56px' : '20px 14px 56px',
         transition:'width 220ms cubic-bezier(0.4,0,0.2,1), padding 220ms cubic-bezier(0.4,0,0.2,1)',
       }}>
-        {/* Logo Hubble: il lockup intero da espansa, il solo marchio da
-            compressa. Il gradiente è nel file — niente testo colorato a mano
-            che poi diverge dal logo vero alla prima revisione del marchio. */}
+        {/* Logo Desk: il lockup intero da espansa, il solo segno da compressa.
+            Prugna su trasparente, preso dal file del logo — niente testo
+            colorato a mano che poi diverge dal logo vero alla prima revisione. */}
         {!collapsed ? (
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 22px'}}>
-            <img src="hubble.png" alt="Hubble" style={{height:29, width:'auto', display:'block'}}/>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 18px'}}>
+            <img src="desk.png" alt="Desk" style={{height:27, width:'auto', display:'block'}}/>
             <button onClick={toggleCollapsed} title="Comprimi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           </div>
         ) : (
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:20}}>
-            <img src="hubble-mark.png" alt="Hubble" style={{height:28, width:'auto', display:'block'}}/>
+            <img src="desk-mark.png" alt="Desk" style={{height:27, width:'auto', display:'block'}}/>
             <button onClick={toggleCollapsed} title="Espandi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -427,8 +433,16 @@ function AdminApp({ tweaks }) {
         {/* La ricerca globale non ha un bottone: si apre SOLO con ⌘K, per chi
             la conosce — scelta di Fabio. Il listener sta più in basso e
             funziona da qualunque punto della console. */}
+        {/* Ambiente: il pulsante grande, sopra la nav e fuori dall'elenco.
+            Non è una sezione del CRM, è il posto dove il team sta tutto il
+            giorno — chat, attività, riunioni (desk-ambiente.jsx). */}
+        <DkAmbienteBottone attivo={route === 'ambiente'} compresso={collapsed} onClick={() => setRoute('ambiente')}/>
+
+        {!collapsed && (
+          <div style={{padding:'0 10px 6px', fontSize:11, fontWeight:800, letterSpacing:'0.09em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>CRM</div>
+        )}
         <nav onMouseLeave={chiudiFly}
-          style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:2}}>
+          style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:1}}>
           {HUB_NAV.map(item => {
             const figlio = item.figli && item.figli.some(f => f.id === route);
             return (
@@ -518,7 +532,7 @@ function AdminApp({ tweaks }) {
                     <span style={{width:28, height:28, borderRadius:8, display:'grid', placeItems:'center', color:ADM.MUTED}}>
                       <BuIcons.arrowRight size={15}/>
                     </span>
-                    <span style={{fontSize:13.8, fontWeight:600, color:ADM.MUTED}}>Esci da Hubble</span>
+                    <span style={{fontSize:13.8, fontWeight:600, color:ADM.MUTED}}>Esci da Desk</span>
                   </button>
                 </div>
               </div>
@@ -532,14 +546,15 @@ function AdminApp({ tweaks }) {
         onVai={(id)=>setRoute(id)} onEnter={tieniFly} onLeave={chiudiFly}/>}
 
       {/* Main */}
-      {/* Main. L'header non esiste più: la briciola «Hubble / sezione»
+      {/* Main. L'header non esiste più: la briciola «Desk / sezione»
           ripeteva quello che sidebar e testate già dicono, e la ricerca è
           scesa nella barra. Ogni pagina si presenta da sola con HubTestata —
           Assistenza compresa — e il contenuto guadagna tutta l'altezza.
           (Qui prima c'era anche la campanella delle notifiche: avvisi finti
           che duplicavano i badge della sidebar — tolta pure lei.) */}
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <div style={{flex:1, overflow:'auto'}}>
+        <div style={{flex:1, overflow: route === 'ambiente' ? 'hidden' : 'auto'}}>
+          {route === 'ambiente'     && <DkAmbientePage/>}
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
           {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
           {route === 'elenchi'      && <HubElenchiPage/>}
@@ -562,9 +577,9 @@ function AdminApp({ tweaks }) {
       {uscito && (
         <div style={{position:'fixed', inset:0, zIndex:200, background:'rgba(15,17,21,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'grid', placeItems:'center'}}>
           <div style={{width:360, background:'#fff', borderRadius:16, boxShadow:'0 32px 80px rgba(15,17,21,0.35)', padding:'30px 28px', textAlign:'center', animation:'admModalIn 0.18s ease'}}>
-            <img src="hubble-mark.png" alt="Hubble" style={{height:34, width:'auto', margin:'0 auto 14px', display:'block'}}/>
+            <img src="desk-mark.png" alt="Desk" style={{height:34, width:'auto', margin:'0 auto 14px', display:'block'}}/>
             <div style={{fontSize:17, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Sessione terminata</div>
-            <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:6, lineHeight:1.5}}>Sei uscito da Hubble. Per riprendere il lavoro accedi di nuovo.</div>
+            <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:6, lineHeight:1.5}}>Sei uscito da Desk. Per riprendere il lavoro accedi di nuovo.</div>
             <div style={{marginTop:18, display:'flex', justifyContent:'center'}}>
               <AdmButton variant="primary" size="md" onClick={()=>{ setUscito(false); setRoute('contatti'); }}>Accedi di nuovo</AdmButton>
             </div>
@@ -600,10 +615,10 @@ function ProfiloPage() {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      {/* La testata alla maniera di Hubble: la pagina si presenta da sola —
+      {/* La testata alla maniera di Desk: la pagina si presenta da sola —
           la shell non ha più un header con titoli o briciole. */}
       <HubTestata titolo="Il mio profilo"
-        sotto="Password, autenticazione a due fattori e sessioni attive: la sicurezza del tuo accesso a Hubble."/>
+        sotto="Password, autenticazione a due fattori e sessioni attive: la sicurezza del tuo accesso a Desk."/>
       {/* Header card */}
       <AdmCard padding={22}>
         <div style={{display:'flex', alignItems:'center', gap:18}}>

@@ -1,6 +1,6 @@
-# Hubble — la console interna di byup
+# Desk — la console interna di byup
 
-Entry: [byup-hubble.html](byup-hubble.html). Per chi: il team di byup.
+Entry: [byup-desk.html](byup-desk.html). Per chi: il team di byup.
 
 > **È un prototipo di UX/UI.** Vale quanto scritto nel
 > [README della monorepo](../README.md): i dati sono finti, niente si salva, e le
@@ -13,22 +13,29 @@ Entry: [byup-hubble.html](byup-hubble.html). Per chi: il team di byup.
 > questo file che descrivevano il prodotto sono uscite dopo l'estrazione, e
 > `Riesame-Accessi.md` con loro.
 
-*Contenuto verificato contro il codice il 2026-08-18; ridotto al mockup il 2026-09-05.*
+*Contenuto verificato contro il codice il 2026-08-18; ridotto al mockup il 2026-09-05; Desk e Ambiente il 2026-10-17.*
 
 ---
 
 ## Il nome
 
-La console si chiamava **byup Spot**. Dal 2026-08-14 si chiama **Hubble**, con
-un marchio proprio (gradiente rosa → magenta → viola). Il 2026-08-18 anche
-cartella e file di ingresso si sono allineati al nome: `spot/` è diventata
-`hubble/` e l'entry è `byup-hubble.html` — il commit dedicato che questo
-paragrafo prometteva. Gli URL vecchi non si rompono: `vercel.json` fa il
-redirect permanente da `/spot/*` alle nuove posizioni.
+La console si chiamava **byup Spot**, poi dal 2026-08-14 **Hubble**. Dal
+**2026-10-17 si chiama Desk**: il nome Hubble passa al futuro marketplace dei
+fornitori (i locali collegano il magazzino e trovano in automatico la rete dei
+fornitori), che è ancora in sviluppo. Cartella ed entry si sono allineati
+subito, come la volta prima: `hubble/` è diventata `desk/` e l'entry è
+`byup-desk.html`. Gli URL vecchi non si rompono: `vercel.json` rimanda
+`/spot/*` (permanente) e `/hubble/*` (temporaneo, 307 — `/hubble/` servirà al
+marketplace) alle nuove posizioni.
 
-Gli asset del marchio sono `hubble.png` (lockup a colori), `hubble-mark.png`
-(solo il marchio, per la barra compressa) e `hubble-badge.png` (versione
-negativa su rettangolo).
+Il marchio di Desk è il segno byup con la scritta «Desk», **prugna `#492844` su
+lilla `#DCBAD7`**: `desk.png` (lockup prugna su trasparente, nella barra),
+`desk-mark.png` (solo il segno, per la barra compressa), `desk-mark-bianco.png`
+(il segno in bianco, per i fondi scuri) e `desk-badge.png` (il badge lilla). I
+due colori stanno in `admin-tokens.jsx` come `DESK_PRUGNA` e `DESK_LILLA` e si
+usano per i momenti di marca — logo, pulsante e superfici di Ambiente. La
+palette di lavoro (rosa d'azione, magenta del marketing, viola di workflow e
+agenti) **resta quella di prima**, per scelta.
 
 ---
 
@@ -40,11 +47,12 @@ un pannello che si apre passandoci sopra col mouse.
 
 | Sezione | Cosa contiene |
 |---|---|
+| **Ambiente** (pulsante grande, in cima) | Il posto dove il team lavora insieme: canali, messaggi diretti, thread, attività in lista e in bacheca, riunioni video. Sta fuori dall'elenco del CRM perché non è una sezione del CRM. Si apre anche con `?rotta=ambiente` |
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
 | **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
 | **Marketing** → | **Mail**, **SMS**, **Messaggi all'app** (Posta e notifica, un canale — D-113), **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
-| **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
+| **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente agenti** (quello che fanno insieme; «agenti» per non confonderlo con Ambiente del team) |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
 
 Le vecchie pagine di sezione **Locali / Staff / Utenti App / Promozioni** e la
@@ -159,7 +167,8 @@ canale.
 | `hub-workflow.jsx` | Workflow (elenco, canvas, campi dei passi) e Agent |
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
-| `hub-agent-ambiente.jsx` | L'Ambiente: catene, lavagna, coda, registro, guardie |
+| `hub-agent-ambiente.jsx` | L'Ambiente degli agenti: catene, lavagna, coda, registro, guardie |
+| `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e il pulsante grande della barra (`DkAmbienteBottone`) |
 | `hub-impostazioni.jsx` | Recapiti e domini di invio (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |
 | `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |
@@ -243,6 +252,36 @@ Un'attesa scritta a mano dichiara solo i campi che le servono: **chi la legge
 passa da `hubAttesaPiena`**, che completa il resto. Senza, bastava cambiare
 modo nell'editor per leggere `a.tetto.n` su un `undefined`.
 
+### Ambiente — il team, insieme
+
+[desk-ambiente.jsx](desk-ambiente.jsx). Il team parlava su un'app, teneva le
+attività su un'altra e faceva le riunioni su una terza; il CRM stava in una
+quarta. Ambiente ne prende le funzioni che servono davvero a una decina di
+persone e le mette dentro Desk:
+
+- **chat** — canali (pubblici e privati), messaggi diretti e di gruppo,
+  thread, @menzioni (si scrivono `@Nome Cognome` e diventano un token `@[id]`
+  legato alla persona), reazioni, messaggi fissati, file, huddle (solo voce,
+  senza appuntamento) e la presenza di ciascuno;
+- **attività** — stato (Da fare, In corso, In revisione, Fatto), assegnatari,
+  scadenza, priorità, checklist e commenti; in **lista** raggruppata per stato o
+  in **bacheca** con il trascinamento fra le colonne;
+- **riunioni** — cinque giorni a colpo d'occhio, la riunione in corso in
+  evidenza, la riunione video con microfono, camera, schermo, mano alzata e
+  chat; quando finisce, il riassunto torna nel canale.
+
+E la cosa che fuori da Desk non si può fare: messaggi, attività e riunioni si
+**collegano a un contatto del CRM**, e il chip apre la sua scheda. Un messaggio
+diventa un'attività con un gesto dalla sua barra, senza ricopiarlo. Gli
+**agenti** scrivono nei canali come colleghi (con l'etichetta «Agente»).
+
+Le persone sono `TEAM` di `admin-data.jsx` — una fonte sola. Lo stato vive in
+uno store di modulo (`DK_STORE`, con `dkAggiorna` e `dkUsaStore`) e non nella
+pagina: il pulsante della barra conta i non letti anche ad Ambiente chiuso, e
+un messaggio scritto non sparisce cambiando sezione. Gli orari del mock sono
+relativi ad adesso, così la demo non invecchia. Tutti i nomi di primo livello
+del file cominciano con `dk`/`Dk`/`DK_`.
+
 ### L'Ambiente degli agenti
 
 Gli agenti **non si chiamano fra loro**. Un grafo di chiamate a cinque agenti
@@ -313,7 +352,7 @@ leve commerciali (prezzi, piani, soglie).
 
 Nessun build step: `.jsx` serviti come `text/babel` e compilati nel browser.
 I componenti si espongono su `window`; **l'ordine dei tag `<script>` in
-[byup-hubble.html](byup-hubble.html) conta** — `hub-data.jsx` va dopo
+[byup-desk.html](byup-desk.html) conta** — `hub-data.jsx` va dopo
 `admin-data.jsx`, `hub-ui.jsx` dopo `admin-atoms.jsx`, e `admin-app.jsx`
 per ultimo.
 
@@ -349,7 +388,7 @@ seconda volta e sfondano.
 ## Prima di un rilascio
 
 ```
-grep -rn "data-demo-only" hubble/
+grep -rn "data-demo-only" desk/
 ```
 
 Marca le affordance che esistono solo per la demo e **non devono finire in

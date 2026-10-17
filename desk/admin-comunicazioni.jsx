@@ -1,4 +1,4 @@
-// Ticket — inbox unificata Hubble
+// Ticket — inbox unificata Desk
 // La sezione si chiama Ticket in interfaccia: quello che arriva qui non è
 // posta da leggere, è una pratica che si apre, si assegna e si chiude. Gli
 // identificatori interni (rotta, componente, file) restano «comunicazioni».

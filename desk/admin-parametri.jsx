@@ -19,7 +19,7 @@ const PAR = {
   // l'asporto non occupa una sedia.
   // Le chiavi sono i CODICI delle otto venue_category del dizionario (P-29):
   // Trattoria e Osteria sono confluite in ristorante, il Pub in bar; le tre
-  // categorie che Hubble non aveva — giapponese, carne_griglia, cucina_etnica
+  // categorie che Desk non aveva — giapponese, carne_griglia, cucina_etnica
   // — prendono valori per prossimità (giapponese e cucina etnica come il
   // ristorante, la griglia come la trattoria di prima). Sono stime
   // dichiarate, non misure.

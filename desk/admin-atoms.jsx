@@ -277,9 +277,9 @@ function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
 
 // ─── Select con popover ─────────────────────────────────────────────────────
 // Il <select> nativo apre il menu del SISTEMA OPERATIVO: font di sistema,
-// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Hubble. Questo
+// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Desk. Questo
 // componente tiene il guscio di chi lo monta (via `buttonStyle`) e apre un
-// pannello nostro: stessa carta bianca dei popover di Hubble, voce attiva in
+// pannello nostro: stessa carta bianca dei popover di Desk, voce attiva in
 // pesca come la nav, spunta sulla scelta corrente.
 //   · options: [{value, label}] oppure stringhe semplici
 //   · block: il select riempie la riga (per i form nei drawer)

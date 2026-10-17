@@ -1,4 +1,4 @@
-// Hubble · Elenchi — segmenti che si aggiornano da soli e liste fisse.
+// Desk · Elenchi — segmenti che si aggiornano da soli e liste fisse.
 //
 // Un elenco ATTIVO è una domanda: «i locali Plus e Business che lavorano».
 // Chi risponde a quella domanda ci entra da solo, chi smette di rispondere ne
