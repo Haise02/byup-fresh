@@ -118,7 +118,8 @@ function mbDocIniziale() {
 //    CSS in un'email non esistono — molte caselle buttano via il `<style>`.
 
 const MB_TAG_OK = { B: 1, STRONG: 1, I: 1, EM: 1, U: 1, A: 1, SPAN: 1, BR: 1, DIV: 1, P: 1 };
-const MB_STILI_OK = ['color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'background-color'];
+// font-family c'è dal 17 ottobre: il carattere si sceglie anche sulle sole parole selezionate (hub-font.jsx).
+const MB_STILI_OK = ['color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'background-color', 'font-family'];
 
 function mbPulisci(html) {
   const d = document.createElement('div');
@@ -244,7 +245,9 @@ function mbBloccoHtml(b, doc) {
   const pad = `padding:${b.padTop}px 28px ${b.padBottom}px;`;
   const al = `text-align:${b.allinea || 'left'};`;
   const bg = mbFondoStileEmail(b.fondo);
-  const R = (dentro, extra) => `<tr><td style="${pad}${al}${bg}${extra || ''}">${dentro}</td></tr>`;
+  // Il carattere si scrive su ogni cella: Outlook non lo eredita dal <body>.
+  const ff = `font-family:${b.font || doc.font};`;
+  const R = (dentro, extra) => `<tr><td style="${pad}${al}${bg}${ff}${extra || ''}">${dentro}</td></tr>`;
   switch (b.tipo) {
     case 'logo':
       return R(`<img src="${mbEsc(b.src)}" width="${b.larghezza}" alt="Desk" style="display:inline-block;border:0;width:${b.larghezza}px;max-width:100%;height:auto;"/>`);
@@ -257,7 +260,7 @@ function mbBloccoHtml(b, doc) {
         ? `<img src="${mbEsc(b.src)}" alt="${mbEsc(b.alt)}" style="display:block;width:100%;height:auto;border:0;border-radius:${b.raggio}px;"/>`
         : `<div style="background:#EDEEF1;border-radius:${b.raggio}px;padding:44px 0;color:#8A8A90;font-size:13px;">Nessuna immagine caricata</div>`);
     case 'pulsante':
-      return R(`<a href="${mbEsc(b.url)}" style="display:inline-block;background:${b.sfondo};color:${b.colore};`
+      return R(`<a href="${mbEsc(b.url)}" style="display:inline-block;background:${b.sfondo};color:${b.colore};${ff}`
         + `font-size:${b.corpo}px;font-weight:700;text-decoration:none;border-radius:${b.raggio}px;`
         + `padding:${b.padY}px ${b.padX}px;">${mbEsc(b.testo)}</a>`);
     case 'colonne':
@@ -279,15 +282,26 @@ function mbBloccoHtml(b, doc) {
   }
 }
 
+// Tutte le pile di caratteri che la mail usa: il foglio, i blocchi e le parole.
+function mbPileUsate(doc) {
+  const pile = [doc.font];
+  doc.blocchi.forEach(b => {
+    if (b.font) pile.push(b.font);
+    ['testo', 'sx', 'dx'].forEach(k => { if (typeof b[k] === 'string') pile.push.apply(pile, hubFontNelTesto(b[k])); });
+  });
+  return pile.filter(Boolean);
+}
+
 function mbHtml(doc, meta) {
   const corpo = doc.blocchi.map(b => mbBloccoHtml(b, doc)).join('\n      ');
+  const caratteri = hubFontTestataHtml(mbPileUsate(doc));
   const sfondo = mbFondoStileEmail(doc.fondo) || `background-color:${doc.sfondo};`;
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>${mbEsc((meta && meta.oggetto) || 'byup')}</title>
+  <title>${mbEsc((meta && meta.oggetto) || 'byup')}</title>${caratteri ? '\n  <!-- caratteri web: li mostrano Apple Mail e iOS; Gmail e Outlook per Windows usano il ripiego della pila -->\n  ' + caratteri : ''}
   <style type="text/css">
     body { margin:0; padding:0; -webkit-text-size-adjust:100%; }
     img { border:0; outline:none; text-decoration:none; }
@@ -321,7 +335,7 @@ function MbBlocco({ b, doc, selezionato, onSeleziona, onSu, onGiu, onElimina, on
   const fondo = mbFondoCss(b.fondo);
   const pad = {
     paddingTop: b.padTop, paddingBottom: b.padBottom, paddingLeft: 28, paddingRight: 28,
-    textAlign: b.allinea, background: fondo || undefined,
+    textAlign: b.allinea, background: fondo || undefined, fontFamily: b.font || undefined,
   };
 
   // Il testo si scrive QUI, non in una casella laterale: è l'unico modo di
@@ -477,7 +491,8 @@ function MbBottoneStrumento({ icona, testo, titolo, onClick, largo }) {
 // Non prende in ingresso il blocco: lavora sulla selezione dell'editor che ha
 // il fuoco, qualunque esso sia. Così la stessa barra serve la mail e il form.
 function MbBarraTesto() {
-  const [pannello, setPannello] = useStateMb(null); // 'campi' | 'simboli' | 'link' | 'colore'
+  const [pannello, setPannello] = useStateMb(null); // 'campi' | 'simboli' | 'link' | 'colore' | 'carattere'
+  const [importa, setImporta] = useStateMb(false);
   const [url, setUrl] = useStateMb('https://');
   const [tinta, setTinta] = useStateMb(ADM.PINK);
 
@@ -497,6 +512,7 @@ function MbBarraTesto() {
         <MbBottoneStrumento titolo="Più grande" testo="A+" largo onClick={() => mbComando('fontSize', '5')}/>
         <MbBottoneStrumento titolo="Più piccolo" testo="A−" largo onClick={() => mbComando('fontSize', '2')}/>
         <MbBottoneStrumento titolo="Torna normale" icona="refresh" onClick={() => mbComando('removeFormat')}/>
+        <MbBottoneStrumento titolo="Carattere delle parole scelte" testo={<span style={{ fontFamily: 'Georgia, serif', fontWeight: 700 }}>Aa</span>} largo onClick={() => setPannello(p => p === 'carattere' ? null : 'carattere')}/>
         <span style={{ width: 1, background: ADM.BORDER, margin: '0 3px' }}/>
         <MbBottoneStrumento titolo="Colora le parole scelte" icona="paint" onClick={() => setPannello(p => p === 'colore' ? null : 'colore')}/>
         <MbBottoneStrumento titolo="Metti un link" icona="link" onClick={() => setPannello(p => p === 'link' ? null : 'link')}/>
@@ -526,6 +542,12 @@ function MbBarraTesto() {
           </div>
         </div>
       )}
+
+      {pannello === 'carattere' && (
+        <HubFontRapidi onApplica={(f) => { hubFontAssicura(f); mbComando('fontName', f.pila); }} onImporta={() => setImporta(true)}/>
+      )}
+      <HubFontModale open={importa} vistaIniziale="importa" onClose={() => setImporta(false)} titolo="Importa un carattere"
+        onScegli={() => {}}/>
 
       {pannello === 'link' && (
         <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
@@ -726,6 +748,8 @@ function MbIspettore({ b, doc, onCambia, onDoc }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>La mail nel suo insieme</div>
+        <HubFontScelta etichetta="Carattere della mail" valore={doc.font} onCambia={v => onDoc('font', v || "'Helvetica Neue', Helvetica, Arial, sans-serif")}
+          nota="I caratteri web si vedono su Apple Mail e iPhone; Gmail e Outlook per Windows mostrano il ripiego. Quelli «sicuri ovunque» si vedono uguali dappertutto."/>
         <MbFondo titolo="Sfondo attorno al foglio" valore={doc.fondo} onCambia={v => onDoc('fondo', v)}/>
         {(!doc.fondo || doc.fondo.tipo === 'nessuno') && <MbColore label="…o una tinta semplice" valore={doc.sfondo} onCambia={v => onDoc('sfondo', v)}/>}
         <MbColore label="Colore del foglio" valore={doc.foglio} onCambia={v => onDoc('foglio', v)}/>
@@ -763,6 +787,9 @@ function MbIspettore({ b, doc, onCambia, onDoc }) {
       </div>
 
       {conTesto && <MbBarraTesto/>}
+      {(conTesto || b.tipo === 'pulsante' || b.tipo === 'social') && (
+        <HubFontScelta etichetta="Carattere del blocco" valore={b.font || null} eredita="Come la mail" onCambia={set('font')}/>
+      )}
 
       {(b.tipo === 'titolo' || b.tipo === 'testo') && (
         <React.Fragment>
@@ -881,6 +908,9 @@ function HubMailBuilder({ doc, onDoc, meta }) {
   };
 
   const html = useMemoMb(() => mbHtml(doc, meta), [doc, meta]);
+  // L'anteprima deve vedere i caratteri che la mail usa, anche quelli
+  // arrivati da un modello o incollati in un blocco.
+  React.useEffect(() => { mbPileUsate(doc).forEach(hubFontAssicuraPila); }, [doc]);
   const largh = vista === 'mobile' ? 380 : doc.larghezza;
 
   return (

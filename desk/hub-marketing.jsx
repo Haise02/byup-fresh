@@ -1519,6 +1519,8 @@ function HubFormEditor({ onChiudi }) {
   });
   const [stile, setStile] = useStateMk({
     accento: '#FF1F5A', raggio: 10, sfondo: '#FFFFFF', bottone: 'Invia la richiesta',
+    // Il carattere del form e, se diverso, quello del titolo (hub-font.jsx).
+    font: hubFontPila('Plus Jakarta Sans', 'sans'), fontTitolo: null,
     fondo: mbFondoVuoto(),                                              // il modulo
     pagina: { tipo: 'tinta', colore: '#FAFAFB', da: '#FF1F5A', a: '#D410F1', angolo: 135 }, // la pagina attorno
     bottoneFondo: { tipo: 'gradiente', colore: '#FF1F5A', da: '#FF1F5A', a: '#D410F1', angolo: 90 },
@@ -1531,7 +1533,9 @@ function HubFormEditor({ onChiudi }) {
   // pagine su desk.byup.it. Il tag script è spezzato in due pezzi per non
   // chiudere lo <script> che ci ospita se questo file venisse mai inlinato.
   const slug = (nome || 'nuovo-form').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nuovo-form';
+  const fontForm = hubFontDa(stile.font);
   const snippet = '<!-- Incolla dove vuoi che compaia il form -->\n'
+    + '<!-- Il form porta con sé il suo carattere (' + (fontForm ? fontForm.nome : 'predefinito') + '): non serve caricarlo nel sito -->\n'
     + '<div data-desk-form="' + slug + '"></div>\n'
     + '<script src="https://desk.byup.it/embed.js" async></' + 'script>';
 
@@ -1626,7 +1630,7 @@ function HubFormEditor({ onChiudi }) {
               }}>{snippet}</pre>
               ) : (
               <div style={{
-                maxWidth: 440, margin: '0 auto', background: mbFondoCss(stile.fondo) || stile.sfondo, borderRadius: 16, padding: 26,
+                maxWidth: 440, margin: '0 auto', background: mbFondoCss(stile.fondo) || stile.sfondo, borderRadius: 16, padding: 26, fontFamily: stile.font,
                 boxShadow: '0 14px 34px -16px rgba(15,17,21,0.26)', border: `1px solid ${ADM.BORDER}`,
               }}>
                 {/* Titolo e sottotitolo si scrivono qui dentro, con la stessa
@@ -1634,7 +1638,7 @@ function HubFormEditor({ onChiudi }) {
                     titolo di un form fa lo stesso lavoro che fa in una mail. */}
                 <MbRicco chiave="frm-titolo" valore={testa.titolo} onFuoco={() => { setSel('__testa'); setTab('campi'); }}
                   onCambia={v => setTesta(t => ({ ...t, titolo: v }))}
-                  stile={{ fontSize: 19, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.02em', marginBottom: 4 }}/>
+                  stile={{ fontSize: 19, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.02em', marginBottom: 4, fontFamily: stile.fontTitolo || stile.font }}/>
                 <MbRicco chiave="frm-sotto" valore={testa.sotto} onFuoco={() => { setSel('__testa'); setTab('campi'); }}
                   onCambia={v => setTesta(t => ({ ...t, sotto: v }))}
                   stile={{ fontSize: 13.4, color: ADM.MUTED, marginBottom: 18, lineHeight: 1.5 }}/>
@@ -1716,6 +1720,9 @@ function HubFormEditor({ onChiudi }) {
           {tab === 'stile' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
               <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Aspetto</div>
+              <HubFontScelta etichetta="Carattere del form" valore={stile.font} onCambia={v => setStile(s => ({ ...s, font: v || hubFontPila('Plus Jakarta Sans', 'sans') }))}
+                nota="Il form vive su una pagina web: qualunque carattere si vede com'è, anche quelli importati."/>
+              <HubFontScelta etichetta="Carattere del titolo" valore={stile.fontTitolo} eredita="Come il form" onCambia={v => setStile(s => ({ ...s, fontTitolo: v }))}/>
               <MbFondo titolo="Fondo del modulo" valore={stile.fondo} onCambia={v => setStile(s => ({ ...s, fondo: v }))}/>
               {(!stile.fondo || stile.fondo.tipo === 'nessuno') &&
                 <MbColore label="…o una tinta semplice" valore={stile.sfondo} onCambia={v => setStile(s => ({ ...s, sfondo: v }))}/>}

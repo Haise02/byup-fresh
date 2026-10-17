@@ -163,6 +163,7 @@ canale.
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
+| `hub-font.jsx` | I caratteri dei materiali: catalogo (sicuri ovunque, Google Fonts, importati), importazione da Google Fonts o da file, selettore e pannello della barra di testo |
 | `hub-marketing.jsx` | Mail, SMS, Messaggi all'app (Posta + archivio notifiche), Form |
 | `hub-workflow.jsx` | Workflow (elenco, canvas, campi dei passi) e Agent |
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
@@ -328,11 +329,26 @@ da spiegare. Nell'HTML la sfumatura esce **sempre con un `background-color` di
 ripiego** pari al primo colore, perché Outlook su Windows ignora
 `background-image`: meglio una tinta che una banda vuota in mezzo alla mail.
 
+Il **carattere** si sceglie a tre livelli: per tutta la mail (l'ispettore
+quando non c'è niente selezionato), per un blocco («Come la mail» di
+predefinito), e per le sole parole selezionate (il tasto «Aa» della barra).
+Il catalogo sta in [hub-font.jsx](hub-font.jsx): i caratteri **sicuri
+ovunque** (Helvetica, Arial, Georgia…), una scelta di **Google Fonts**, e gli
+**importati** — qualunque altro carattere di Google Fonts, scritto per nome o
+incollando il link della sua pagina, oppure un file proprio (.woff2, .woff,
+.ttf, .otf). Si salva sempre la **pila** completa col ripiego scelto
+(`'Inter', Arial, Helvetica, sans-serif`): nella posta i caratteri web li
+mostrano Apple Mail e iOS, mentre Gmail e Outlook per Windows mostrano il
+ripiego. L'HTML generato mette i `<link>` di Google nella testata e il
+`font-family` su **ogni cella**, perché Outlook non lo eredita dal `<body>`.
+Un nome che non esiste su Google torna con un 400 senza intestazione CORS:
+per distinguerlo da una rete assente si prova un carattere sicuro (Inter).
+
 Le immagini si **caricano davvero** (`MbCarica`, drag&drop, GIF comprese, tetto
 di 2 MB): nel prototipo diventano un data URL, in produzione vanno su una CDN e
 nell'HTML ci finisce l'indirizzo.
 
-Il **form** usa gli stessi pezzi: titolo e introduzione ricchi, blocchi
+Il **form** usa gli stessi pezzi — carattere del form e del titolo compresi: titolo e introduzione ricchi, blocchi
 `Paragrafo` e `Immagine o GIF` accanto ai campi veri, fondo del modulo, della
 pagina e del pulsante con tinta o sfumatura.
 
