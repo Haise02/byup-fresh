@@ -13,7 +13,7 @@ Entry: [byup-desk.html](byup-desk.html). Per chi: il team di byup.
 > questo file che descrivevano il prodotto sono uscite dopo l'estrazione, e
 > `Riesame-Accessi.md` con loro.
 
-*Contenuto verificato contro il codice il 2026-08-18; ridotto al mockup il 2026-09-05; Desk e Ambiente il 2026-10-17.*
+*Contenuto verificato contro il codice il 2026-08-18; ridotto al mockup il 2026-09-05; Desk e Ambiente il 2026-10-17; nuova shell, Oggi e Byuppino il 2026-10-20.*
 
 ---
 
@@ -39,17 +39,77 @@ agenti) **resta quella di prima**, per scelta.
 
 ---
 
+## Lo stile (dal 2026-10-20)
+
+Desk è stato ridisegnato su riferimenti di dashboard CRM recenti (schede di
+vetro su carta calda, controlli a pillola, cerchi). I colori restano quelli di
+Desk; cambia la grammatica:
+
+- **Niente colonna a sinistra.** In alto il marchio, le **sezioni come
+  linguette** (quella accesa è una pillola d'inchiostro `INCHIOSTRO #1D1520`),
+  a destra gli strumenti: cerca (⌘K), la faccia di **Byuppino**, la **pillola
+  lilla di Ambiente** (grande, con chi c'è, le menzioni e la riunione in corso:
+  `DkAmbientePillola`) e il profilo.
+- **La barra nera degli strumenti** galleggia a sinistra, a metà altezza:
+  cerca, crea (attività, riunione, messaggio, campagna), chat, attività,
+  riunioni, Byuppino, impostazioni. Sotto ci abita Byuppino.
+- **Il fondo è carta calda** (`FONDO_PAGINA`: lilla in alto a sinistra, sabbia
+  a destra) e le schede sono **vetro** (`GLASS`, bianco al 72% con la
+  sfocatura, raggio `R_SCHEDA` 22). Bottoni, segmenti, ricerche e pillole sono
+  a pillola; icone e avatar stanno in **cerchi**. Pannelli laterali e modali
+  sono fogli arrotondati che galleggiano.
+- I titoli di pagina sono grandi (34 px, `HubTestata`); le tab sottolineate
+  sono diventate pillole (`AdmTabBar`).
+- **L'avviso in basso con «Annulla»** (`window.deskAvviso({testo, annulla})`)
+  dice cosa è appena cambiato e lo rimette com'era.
+
+Tutto questo vive nei componenti comuni (`admin-tokens`, `admin-atoms`,
+`hub-ui`) e nella shell (`admin-app`): le pagine lo ereditano senza essere
+riscritte una per una.
+
+## Oggi
+
+[desk-oggi.jsx](desk-oggi.jsx). La pagina d'ingresso (prima era la rubrica).
+Risponde, nell'ordine, a: come stiamo andando (fila di numeri, grafico dei
+ricavi 6/12 mesi), cosa devo seguire (schede colorate: le mie attività di
+Ambiente, le chiamate in coda, il locale fermo nell'avvio), cosa succede nel
+team (Ambiente). Nel mezzo **Byuppino ha letto i dati**: tre spunti con
+«Mostrami» (porta dove serve) e «Approfondisci» (apre la chat con la domanda).
+I numeri si leggono dalle stesse fonti delle pagine che aprono.
+
+## Byuppino, l'assistente
+
+[desk-byuppino.jsx](desk-byuppino.jsx). La mascotte di byup con le cuffie è
+l'assistente di Desk: gli si chiede in italiano normale e **risponde sui dati**
+(ricavi, locali per città/piano/tipo/fase, ticket, chiamate, mail, workflow,
+agenti, team, riunioni), **trova e apre** schede (locali, titolari, utenti,
+staff, sezioni) e **fa le cose**: crea e assegna attività, scrive in un canale
+o in privato in Ambiente, fissa riunioni, chiude attività e ticket.
+
+- Ogni azione che cambia i dati è prima una **proposta** con i campi in chiaro
+  e parte solo con «Conferma»; poi arriva l'avviso con «Annulla».
+- Si apre dal personaggio sotto la barra nera, dalla faccia in alto, dalla
+  barra nera, con **⌘J**, e da codice con `window.byuppinoApri(testo, invia)`.
+- I suggerimenti sotto la chat cambiano con la pagina in cui si è.
+- Nel prototipo capisce con un motore di intenti scritto a mano (`bpCapisci`);
+  nel prodotto il posto lo prende un modello linguistico con gli stessi
+  strumenti. È l'interfaccia, qui, che si sta decidendo.
+- Gli asset sono `byuppino.webp` (intero, scontornato) e `byuppino-viso.webp`
+  (la faccia, per i cerchi).
+
 ## Le sezioni
 
 La barra è tornata a parlare solo del lavoro di tutti i giorni: la governance
 è passata nel menu del profilo. Le voci con delle sotto-sezioni le mostrano in
-un pannello che si apre passandoci sopra col mouse.
+un pannello che si apre passandoci sopra col mouse, e dentro la pagina come
+una fila di pillole.
 
 | Sezione | Cosa contiene |
 |---|---|
-| **Ambiente** (pulsante grande, in cima) | Il posto dove il team lavora insieme: canali, messaggi diretti, thread, attività in lista e in bacheca, riunioni video. Sta fuori dall'elenco del CRM perché non è una sezione del CRM. Si apre anche con `?rotta=ambiente` |
+| **Oggi** (linguetta in testa, pagina d'ingresso) | Numeri del giorno, cose da seguire, Byuppino, il team. Vedi sopra |
+| **Ambiente** (pillola lilla grande, in alto a destra) | Il posto dove il team lavora insieme: canali, messaggi diretti, thread, attività in lista e in bacheca, riunioni video. Sta fuori dall'elenco del CRM perché non è una sezione del CRM. Si apre anche con `?rotta=ambiente` |
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
-| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
+| **Contatti** → | **Contatti** (la rubrica; è stata la pagina d'ingresso fino al 2026-10-20, ora lo è Oggi), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
 | **Marketing** → | **Mail**, **SMS**, **Messaggi all'app** (Posta e notifica, un canale — D-113), **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente agenti** (quello che fanno insieme; «agenti» per non confonderlo con Ambiente del team) |
@@ -61,7 +121,7 @@ editor «workflow email»: le rotte storiche vengono tradotte da `admin-app.jsx`
 (locali/camerieri/utenti → Contatti, promozioni → Marketing). I file di staff e
 utenti sopravvivono solo per i **dataset** e le **schede**.
 
-Nel **menu del profilo** (card in fondo alla barra) le voci sono due: **Il mio
+Nel **menu del profilo** (il cerchio in alto a destra) le voci sono due: **Il mio
 profilo** e **Impostazioni** — la governance in una voce sola, distinta
 internamente in Sicurezza e sistemi, Proprietà, Recapiti e domini di invio e
 **Piattaforma**, che è visibile al solo Super Admin. Le rotte storiche
@@ -157,7 +217,7 @@ canale.
 
 | File | Cosa c'è dentro |
 |---|---|
-| `admin-tokens.jsx` | La palette. Il marchio è un gradiente a tre colori: **rosa** `#FF1F5A` (accento d'azione), **magenta** `#ED1999` (marketing), **viola** `#D410F1` (workflow e agenti). I colori semantici — verde, ambra, rosso, blu, teal — **non si toccano**: lì il colore significa stato |
+| `admin-tokens.jsx` | La palette (dal 2026-10-20 anche fondo di carta, vetro, inchiostro e raggi). Il marchio è un gradiente a tre colori: **rosa** `#FF1F5A` (accento d'azione), **magenta** `#ED1999` (marketing), **viola** `#D410F1` (workflow e agenti). I colori semantici — verde, ambra, rosso, blu, teal — **non si toccano**: lì il colore significa stato |
 | `admin-icons.jsx` | Icone di contorno (`ICON_PATHS`) e piene per la barra (`ICON_FILLED`). Le piene accettano anche `rect:` e `circle:`; i **fori** vanno fatti con `evenodd` dentro lo **stesso** `path` |
 | `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, Posta (P-60: il canale in-app a due corsie, con la doppia interrogazione consent_check / suppression_check), form, workflow, agenti, domini e il sottodominio di tracciamento |
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
@@ -169,7 +229,9 @@ canale.
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
 | `hub-agent-ambiente.jsx` | L'Ambiente degli agenti: catene, lavagna, coda, registro, guardie |
-| `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e il pulsante grande della barra (`DkAmbienteBottone`) |
+| `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e la pillola della barra in alto (`DkAmbientePillola`) |
+| `desk-oggi.jsx` | Oggi, la pagina d'ingresso |
+| `desk-byuppino.jsx` | Byuppino: il motore che capisce (`bpCapisci`), le proposte con conferma, il pannello della chat, il personaggio |
 | `hub-impostazioni.jsx` | Recapiti e domini di invio (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |
 | `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |

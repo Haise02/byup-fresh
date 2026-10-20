@@ -5,7 +5,7 @@ function AdmBadge({ children, color = 'PLAN_FREE', soft = true, size = 'sm' }) {
   const bg = soft ? (ADM[color + '_SOFT'] || c + '20') : c;
   const fg = soft ? c : '#fff';
   const px = size === 'xs' ? '2px 7px' : size === 'sm' ? '3px 9px' : '5px 11px';
-  const fs = size === 'xs' ? 17 : size === 'sm' ? 18 : 19.5;
+  const fs = size === 'xs' ? 12 : size === 'sm' ? 12.8 : 13.6;
   return (
     <span style={{
       display:'inline-flex', alignItems:'center', gap:5,
@@ -28,10 +28,10 @@ function AdmPlanBadge({ piano }) {
 
 function AdmCard({ children, padding = 20, interactive = false, style = {}, className, ...rest }) {
   return (
-    <div className={`${interactive ? 'adm-card-interactive' : ''} ${className||''}`.trim()} style={{
-      background: ADM.PANEL,
-      border: `1px solid ${ADM.BORDER}`,
-      borderRadius: 14,
+    <div className={`desk-vetro ${interactive ? 'adm-card-interactive' : ''} ${className||''}`.trim()} style={{
+      background: ADM.GLASS,
+      border: `1px solid ${ADM.GLASS_BORDO}`,
+      borderRadius: ADM.R_SCHEDA,
       padding,
       boxShadow: ADM.CARD_SHADOW,
       ...style,
@@ -58,17 +58,17 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
   if (variant === 'segmented') {
     return (
       <div style={{
-        display:'inline-flex', gap:2, padding:3,
-        background:'rgba(120,120,128,0.12)',
-        borderRadius:10,
+        display:'inline-flex', gap:2, padding:4,
+        background:'rgba(73,40,68,0.07)',
+        borderRadius:999,
       }}>
         {tabs.map(t => {
           const isActive = active === t.id;
           return (
             <button key={t.id} onClick={()=>onChange(t.id)} style={{
-              padding:'6px 14px',
+              padding:'6px 15px',
               background: isActive ? '#fff' : 'transparent',
-              border:'none', borderRadius:8,
+              border:'none', borderRadius:999,
               color: isActive ? ADM.TEXT : ADM.MUTED,
               fontWeight: 600, fontSize:14,
               cursor:'pointer', fontFamily:'inherit',
@@ -94,7 +94,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
   return (
     // flexWrap: una scheda con molte tab (il dettaglio locale ne ha undici)
     // manda le ultime a capo invece di tagliarle fuori dallo schermo.
-    <div style={{display:'flex', gap:4, borderBottom:`1px solid ${ADM.BORDER}`, padding:'0 0', flexWrap:'wrap'}}>
+    <div style={{display:'flex', gap:4, padding:'4px 0', flexWrap:'wrap', alignItems:'center'}}>
       {tabs.map(t => {
         const isActive = active === t.id;
         return (
@@ -103,14 +103,12 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
             className={`adm-tab-btn${isActive ? ' is-active' : ''}`}
             onClick={()=>onChange(t.id)}
             style={{
-              padding:'11px 14px',
-              background: 'transparent',
+              padding:'8px 16px',
+              background: isActive ? ADM.INCHIOSTRO : 'transparent',
               border:'none',
-              borderRadius:'8px 8px 0 0',
-              borderBottom: isActive ? `2px solid ${ADM.PINK}` : '2px solid transparent',
-              marginBottom:-1,
-              color: isActive ? ADM.TEXT : ADM.MUTED,
-              fontWeight: isActive ? 600 : 500,
+              borderRadius:999,
+              color: isActive ? '#fff' : ADM.MUTED,
+              fontWeight: isActive ? 650 : 550,
               fontSize:14.4,
               letterSpacing:'-0.005em',
               cursor:'pointer',
@@ -121,7 +119,7 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
             {t.badge != null && t.badge > 0 && (
               <span style={{
                 fontSize:12.2, fontWeight:700,
-                background: isActive ? ADM.PINK : 'rgba(120,120,128,0.15)',
+                background: isActive ? ADM.PINK : 'rgba(73,40,68,0.10)',
                 color: isActive ? '#fff' : ADM.MUTED,
                 padding:'1px 7px', borderRadius:999, minWidth:16, textAlign:'center',
               }}>{t.badge}</span>
@@ -137,7 +135,7 @@ function AdmEmpty({ icon = 'eye', title, desc }) {
   const Icon = BuIcons[icon];
   return (
     <div style={{padding:'48px 32px', textAlign:'center', color:ADM.MUTED}}>
-      <div style={{display:'inline-grid', placeItems:'center', width:48, height:48, background:'#F3F4F6', borderRadius:12, marginBottom:14}}>
+      <div style={{display:'inline-grid', placeItems:'center', width:52, height:52, background:'rgba(255,255,255,0.8)', borderRadius:'50%', marginBottom:14, boxShadow:'0 8px 20px -12px rgba(73,40,68,0.35)'}}>
         <Icon size={27}/>
       </div>
       <div style={{fontSize:15.8, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>{title}</div>
@@ -148,18 +146,18 @@ function AdmEmpty({ icon = 'eye', title, desc }) {
 
 function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, disabled, style = {}, className }) {
   const styles = {
-    primary:   { bg: 'linear-gradient(180deg, #1F2229 0%, #0F1115 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(15,17,21,0.20), 0 1px 0 rgba(255,255,255,0.06) inset' },
+    primary:   { bg: ADM.INCHIOSTRO, fg: '#fff', border: 'transparent', shadow:'0 8px 18px -10px rgba(29,21,32,0.6), 0 1px 0 rgba(255,255,255,0.08) inset' },
     cta:       { bg: 'linear-gradient(180deg, #FF4A78 0%, #C40B45 100%)', fg: '#fff', border: 'transparent', shadow:'0 4px 12px -4px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.20) inset' },
-    ghost:     { bg: 'transparent', fg: ADM.TEXT, border: ADM.BORDER },
-    secondary: { bg: '#fff', fg: ADM.TEXT, border: ADM.BORDER, shadow:'0 1px 2px rgba(15,17,21,0.04)' },
+    ghost:     { bg: 'rgba(255,255,255,0.55)', fg: ADM.TEXT, border: 'rgba(73,40,68,0.12)' },
+    secondary: { bg: '#fff', fg: ADM.TEXT, border: 'rgba(73,40,68,0.10)', shadow:'0 4px 12px -8px rgba(73,40,68,0.3)' },
     danger:    { bg: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(220,38,38,0.30)' },
     success:   { bg: 'linear-gradient(180deg, #22C55E 0%, #16A34A 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(22,163,74,0.30)' },
     quiet:     { bg: 'transparent', fg: ADM.MUTED, border: 'transparent' },
   };
   const s = styles[variant];
-  const pad = size === 'sm' ? '6px 12px' : size === 'lg' ? '12px 20px' : '8px 16px';
-  const fs = size === 'sm' ? 19 : size === 'lg' ? 21 : 19.5;
-  const radius = size === 'sm' ? 7 : 9;
+  const pad = size === 'sm' ? '6px 13px' : size === 'lg' ? '12px 22px' : '9px 18px';
+  const fs = size === 'sm' ? 13.2 : size === 'lg' ? 15.5 : 14;
+  const radius = 999;
   const Icon = icon ? BuIcons[icon] : null;
   return (
     <button onClick={onClick} disabled={disabled}
@@ -193,8 +191,8 @@ function AdmIconBtn({ icon, onClick, label, color = ADM.MUTED, size = 30 }) {
       onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
       style={{
         display:'grid', placeItems:'center',
-        width:size, height:size, borderRadius: Math.round(size * 0.3),
-        background: h ? 'rgba(120,120,128,0.12)' : 'transparent',
+        width:size, height:size, borderRadius: '50%',
+        background: h ? 'rgba(73,40,68,0.08)' : 'transparent',
         border:'none', cursor:'pointer', color,
       }}>
       <Icon size={Math.round(size * 0.5)}/>
@@ -330,8 +328,8 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
         style={{
           display:'inline-flex', alignItems:'center', justifyContent:'space-between', gap:8,
           width: block ? '100%' : undefined, minWidth:0, boxSizing:'border-box',
-          padding:'7px 10px 7px 12px',
-          border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+          padding:'7px 11px 7px 14px',
+          border:`1px solid rgba(73,40,68,0.12)`, borderRadius:999,
           fontSize:13.7, fontWeight:500, color:ADM.TEXT,
           background:'#fff', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
           ...buttonStyle,
@@ -350,9 +348,10 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
           bottom: verso === 'su' ? 'calc(100% + 6px)' : 'auto',
           left: align === 'right' ? 'auto' : 0,
           right: align === 'right' ? 0 : 'auto',
-          minWidth:'100%', maxWidth:340, padding:6, borderRadius:12,
-          background:'#fff', border:`1px solid ${ADM.BORDER}`,
-          boxShadow:'0 18px 44px -10px rgba(15,17,21,0.22)',
+          minWidth:'100%', maxWidth:340, padding:6, borderRadius:18,
+          background:'rgba(255,255,255,0.96)', border:`1px solid ${ADM.BORDER}`,
+          backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
+          boxShadow:'0 24px 54px -16px rgba(73,40,68,0.32)',
           maxHeight, overflowY:'auto',
         }}>
           {opts.map((o, i) => {
@@ -364,7 +363,7 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
                 onMouseEnter={() => setSopra(i)}
                 style={{
                   display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
-                  padding:'8px 10px', borderRadius:8, border:'none',
+                  padding:'8px 11px', borderRadius:12, border:'none',
                   // Il passaggio del mouse SI VEDE: grigio pieno sulle voci a
                   // riposo, pesca più carico su quella già attiva.
                   background: attiva ? (hover ? '#FFCBD8' : ADM.PINK_SOFT)

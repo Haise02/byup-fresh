@@ -435,7 +435,7 @@ function AdmDashboard({ onNav }) {
         <HubTestata titolo="Analisi Dati"
           sotto="Come sta la piattaforma, letta dai numeri: locali, valore per il locale, utenti app, staff, servizio clienti e mercato."/>
       </div>
-      <div style={{padding:'0 28px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
+      <div style={{padding:'0 28px', display:'flex', alignItems:'center', gap:12}}>
         <AdmTabBar tabs={[
           { id:'generale', label:'Generale' },
           { id:'locali',   label:'Locali' },

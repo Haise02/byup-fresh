@@ -2,6 +2,8 @@
 
 const ICON_PATHS = {
   home:          'M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z',
+  arrowUpRight:  'M7 17L17 7|M8 7h9v9',
+  undo:          'M9 14L4 9l5-5|M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
   store:         'M3 8l1-4h16l1 4v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V8z|M5 10v10h14V10|M10 20v-6h4v6',
   users:         'circle:9,8,3.5|M2 21c0-4 3-6 7-6s7 2 7 6|circle:17,9,2.5|M16 15c3 0 6 1.5 6 5',
   user:          'circle:12,8,4|M4 21c0-4 4-7 8-7s8 3 8 7',

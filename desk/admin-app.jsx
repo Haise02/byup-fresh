@@ -1,11 +1,18 @@
-// Desk — shell principale con sidebar e router
+// Desk — la shell: barra in alto, barra degli strumenti a sinistra, pagina
 //
 // La console si chiamava «byup Spot», poi «Hubble»; dal 17 ottobre 2026 è
-// Desk, il CRM di byup (Hubble passa al marketplace dei fornitori). Il
-// mestiere resta quello: è il CRM con cui si parla ai locali e agli utenti.
-// La nav lo dice: in cima Ambiente, il posto dove il team lavora insieme
-// (chat, attività, riunioni); poi i contatti, quello che si fa ai contatti
-// (marketing, workflow, agenti), e in fondo l'assistenza.
+// Desk, il CRM di byup (Hubble passa al marketplace dei fornitori).
+//
+// Dal 20 ottobre 2026 la shell è ridisegnata (riferimento: dashboard CRM a
+// schede di vetro su carta calda). Niente più colonna a sinistra:
+//   · in alto il marchio, le SEZIONI come linguette (la accesa è una pillola
+//     d'inchiostro), e a destra gli strumenti di sempre — cerca, Byuppino,
+//     Ambiente (la pillola lilla, grande) e il profilo;
+//   · a sinistra, a metà altezza, la barra nera degli strumenti: cercare,
+//     creare, chat, attività, riunioni, Byuppino, impostazioni;
+//   · in basso al centro l'avviso con «Annulla» (window.deskAvviso);
+//   · in basso a destra Byuppino, l'assistente (desk-byuppino.jsx).
+// Si entra da Oggi (desk-oggi.jsx).
 
 const { useState: useStateApp } = React;
 
@@ -17,7 +24,10 @@ const { useState: useStateApp } = React;
 // Cliccando la voce madre si va comunque alla prima figlia — il flyout è una
 // scorciatoia, non un pedaggio.
 const HUB_NAV = [
-  { id: 'dashboard', label: 'Analisi Dati', icon: 'chartFill',
+  // Oggi: la pagina d'ingresso. Cosa c'è da fare, come va, cosa dice Byuppino.
+  { id: 'oggi', label: 'Oggi', icon: 'home',
+    desc: 'Il punto della giornata: numeri, cose da seguire, il team' },
+  { id: 'dashboard', label: 'Analisi', icon: 'chartFill',
     desc: 'Sette letture: locali, valore, utenti, mercato' },
   // Una voce sola per l'anagrafe. Locali, Staff e Utenti App erano tre liste
   // separate, ma chi amministra cerca UNA persona — «di chi è questa mail?» —
@@ -109,99 +119,223 @@ function ImpostazioniPage({ sub, teamTab }) {
   );
 }
 
-// Nav item — attivo = fondo rosa tenue + testo/rosa, icona prominente.
-// Con `figli`, il passaggio del mouse apre il pannello a fianco.
-function AdmNavItem({ item, active, onClick, collapsed, onFly, flyAperto }) {
-  const Icon = BuIcons[item.icon];
+// ─── La barra in alto ───────────────────────────────────────────────────────
+// Dal 20 ottobre 2026 Desk non ha più la colonna a sinistra: le sezioni sono
+// linguette in alto, come si legge una pagina, e quella accesa è una pillola
+// d'inchiostro. Lo spazio guadagnato va tutto al lavoro. Le voci con figli
+// aprono il loro pannello sotto la linguetta, al passaggio del mouse, e dentro
+// la pagina ritornano come una fila di pillole (DeskSottoNav).
+function DeskLinguetta({ item, attiva, onClick, onFly, flyAperto }) {
   const hasBadge = item.badge !== undefined && item.badge > 0;
-  const acceso = active || flyAperto;
+  const [sopra, setSopra] = useStateApp(false);
   return (
-    <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
-      title={collapsed ? item.label : undefined}
-      onMouseEnter={(e) => onFly && onFly(item, e.currentTarget)}
+    <button onClick={onClick} className="desk-linguetta"
+      onMouseEnter={(e) => { setSopra(true); onFly && onFly(item, e.currentTarget); }}
+      onMouseLeave={() => setSopra(false)}
       style={{
-        position:'relative',
-        width:'100%', display:'flex', alignItems:'center',
-        gap: collapsed ? 0 : 11,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '9px' : '8px 10px',
-        background: active ? ADM.PINK_SOFT : flyAperto ? 'rgba(0,0,0,0.04)' : 'transparent',
-        color: active ? ADM.PINK_DARK : ADM.TEXT,
-        border:'none', borderRadius:9,
-        fontSize: 16,
-        fontWeight: active ? 700 : 500,
-        letterSpacing: '-0.01em',
-        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+        position:'relative', display:'inline-flex', alignItems:'center', gap:7,
+        padding:'9px 16px', borderRadius:999, border:'none', cursor:'pointer', fontFamily:'inherit',
+        fontSize:14.6, fontWeight: attiva ? 650 : 560, letterSpacing:'-0.01em', whiteSpace:'nowrap',
+        background: attiva ? ADM.INCHIOSTRO : (sopra || flyAperto) ? 'rgba(255,255,255,0.7)' : 'transparent',
+        color: attiva ? '#fff' : ADM.TEXT,
+        boxShadow: attiva ? '0 10px 22px -12px rgba(29,21,32,0.7)' : 'none',
+        transition:'background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease',
       }}>
-      <span style={{position:'relative', display:'inline-flex'}}>
-        <Icon size={21} color={active ? ADM.PINK : ADM.MUTED}/>
-        {collapsed && hasBadge && (
-          <span style={{position:'absolute', top:-2, right:-3, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #F7F8FA'}}/>
-        )}
-      </span>
-      {!collapsed && <span style={{flex:1}}>{item.label}</span>}
-      {!collapsed && hasBadge && (
+      {item.label}
+      {hasBadge && (
         <span style={{
-          fontSize:12.5, fontWeight:700,
-          background: ADM.PINK, color:'#fff',
-          padding:'2px 7px', borderRadius:99, minWidth:18, textAlign:'center',
-          boxShadow:'0 1px 2px rgba(0,0,0,0.10)',
+          fontSize:11.5, fontWeight:800, background: ADM.PINK, color:'#fff',
+          padding:'1px 6px', borderRadius:99, minWidth:18, textAlign:'center', lineHeight:'16px',
         }}>{item.badge}</span>
       )}
-      {/* Le voci con figli lo dichiarano: un chevron tenue che si accende. Un
-          pannello che appare senza che niente lo annunciasse è un pannello che
-          si scopre per caso. */}
-      {!collapsed && item.figli && !hasBadge && (
-        <span style={{display:'inline-flex', color: acceso ? ADM.PINK : ADM.MUTED_LIGHT, transition:'color 0.14s ease'}}>
-          <BuIcons.chevronRight size={15}/>
+      {item.figli && (
+        <span style={{display:'inline-flex', opacity: attiva ? 0.7 : 0.45, transform: flyAperto ? 'rotate(180deg)' : 'none', transition:'transform 0.16s ease'}}>
+          <BuIcons.chevronDown size={13} strokeWidth={2.4}/>
         </span>
       )}
     </button>
   );
 }
 
-// Il pannello che si apre a fianco della voce. Una card per figlio: icona,
-// nome e la riga che dice a cosa serve.
+// Il pannello che si apre sotto la linguetta. Una riga per figlio: icona in
+// una bolla, nome e la riga che dice a cosa serve.
 function HubFlyout({ voce, x, y, onVai, onEnter, onLeave, rotta }) {
   if (!voce || !voce.figli) return null;
   const tinta = ADM[voce.colore] || ADM.PINK;
   return (
     <div onMouseEnter={onEnter} onMouseLeave={onLeave}
       style={{
-        position:'fixed', left:x, top:y, zIndex:150, width:322,
-        background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:16,
-        boxShadow:'0 28px 64px -18px rgba(15,17,21,0.30), 0 0 0 1px rgba(15,17,21,0.03)',
+        position:'fixed', left:x, top:y, zIndex:150, width:340,
+        background:'rgba(255,255,255,0.94)', border:`1px solid ${ADM.GLASS_BORDO}`, borderRadius:24,
+        backdropFilter:'blur(22px) saturate(160%)', WebkitBackdropFilter:'blur(22px) saturate(160%)',
+        boxShadow:'0 30px 70px -24px rgba(42,26,40,0.42)',
         padding:8, animation:'hubFlyIn 0.15s cubic-bezier(0.34,1.2,0.64,1)',
       }}>
-      <div style={{
-        padding:'8px 10px 9px', display:'flex', alignItems:'center', gap:8,
-        borderBottom:`1px solid ${ADM.BORDER_SOFT}`, marginBottom:5,
-      }}>
-        <span style={{width:5, height:5, borderRadius:2, background:tinta}}/>
-        <span style={{fontSize:11.2, fontWeight:800, letterSpacing:'0.09em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>{voce.label}</span>
-      </div>
       {voce.figli.map(f => {
         const Icona = BuIcons[f.icon];
         const attiva = rotta === f.id;
         return (
           <button key={f.id} onClick={() => onVai(f.id)} className="adm-actionrow"
             style={{
-              display:'flex', alignItems:'flex-start', gap:11, width:'100%', textAlign:'left',
-              padding:'9px 10px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:'inherit',
-              background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+              display:'flex', alignItems:'flex-start', gap:12, width:'100%', textAlign:'left',
+              padding:'10px 11px', borderRadius:16, border:'none', cursor:'pointer', fontFamily:'inherit',
+              background: attiva ? 'rgba(73,40,68,0.06)' : 'transparent',
             }}>
             <span style={{
-              width:32, height:32, borderRadius:9, flexShrink:0, display:'grid', placeItems:'center',
-              background: attiva ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT,
-              color: attiva ? ADM.PINK : tinta,
-            }}><Icona size={17}/></span>
+              width:38, height:38, borderRadius:'50%', flexShrink:0, display:'grid', placeItems:'center',
+              background: attiva ? ADM.INCHIOSTRO : '#fff', color: attiva ? '#fff' : tinta,
+              boxShadow: attiva ? 'none' : '0 6px 14px -9px rgba(73,40,68,0.5)',
+            }}><Icona size={18}/></span>
             <span style={{flex:1, minWidth:0, paddingTop:1}}>
-              <span style={{display:'block', fontSize:14.2, fontWeight:700, color: attiva ? ADM.PINK_DARK : ADM.TEXT, letterSpacing:'-0.01em'}}>{f.label}</span>
-              <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{f.desc}</span>
+              <span style={{display:'block', fontSize:14.4, fontWeight:700, color: ADM.TEXT, letterSpacing:'-0.01em'}}>{f.label}</span>
+              <span style={{display:'block', fontSize:12.4, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{f.desc}</span>
             </span>
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// Le sorelle della pagina corrente, dentro la pagina: Contatti · Elenchi,
+// Mail · SMS · Messaggi all'app · Form.
+function DeskSottoNav({ rotta, onVai }) {
+  const madre = HUB_NAV.find(v => v.figli && v.figli.some(f => f.id === rotta));
+  if (!madre) return null;
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:6, padding:'14px 28px 0', flexWrap:'wrap'}}>
+      {madre.figli.map(f => {
+        const Icona = BuIcons[f.icon];
+        const on = f.id === rotta;
+        return (
+          <button key={f.id} onClick={() => onVai(f.id)} title={f.desc} style={{
+            display:'inline-flex', alignItems:'center', gap:8, padding:'7px 14px 7px 8px', borderRadius:999,
+            border:`1px solid ${on ? 'transparent' : 'rgba(255,255,255,0.8)'}`, cursor:'pointer', fontFamily:'inherit',
+            background: on ? '#fff' : 'rgba(255,255,255,0.45)', color: ADM.TEXT,
+            fontSize:13.6, fontWeight: on ? 700 : 600,
+            boxShadow: on ? '0 10px 24px -14px rgba(73,40,68,0.5)' : 'none',
+          }}>
+            <span style={{width:26, height:26, borderRadius:'50%', display:'grid', placeItems:'center', background: on ? ADM.INCHIOSTRO : 'rgba(255,255,255,0.9)', color: on ? '#fff' : ADM.MUTED}}>
+              <Icona size={14}/>
+            </span>
+            {f.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// La barra degli strumenti: la pillola nera che galleggia a sinistra, a metà
+// altezza. Sono le cose che si fanno da qualunque pagina — cercare, creare,
+// la chat, le attività, le riunioni, chiedere a Byuppino — e non sezioni:
+// per questo non stanno nelle linguette.
+function DeskBinario({ onCerca, onAmbiente, onImpostazioni, rotta }) {
+  const [crea, setCrea] = useStateApp(false);
+  const voci = [
+    { id: 'cerca',    icona: 'search',      label: 'Cerca  ⌘K', fa: onCerca },
+    { id: 'crea',     icona: 'plus',        label: 'Crea',      fa: () => setCrea(c => !c), acceso: crea },
+    { sep: true },
+    { id: 'chat',     icona: 'chatFill',    label: 'Chat del team',    fa: () => onAmbiente('oggi') },
+    { id: 'attivita', icona: 'checkSquare', label: 'Attività',         fa: () => onAmbiente('attivita') },
+    { id: 'riunioni', icona: 'video',       label: 'Riunioni',         fa: () => onAmbiente('riunioni') },
+    { sep: true },
+    { id: 'byuppino', icona: 'sparkles',    label: 'Chiedi a Byuppino  ⌘J', fa: () => window.byuppinoApri && window.byuppinoApri() },
+    { id: 'impost',   icona: 'settings',    label: 'Impostazioni',     fa: onImpostazioni, acceso: rotta === 'impostazioni' },
+  ];
+  const creaVoci = [
+    { icona: 'checkSquare', t: 'Un\'attività', s: 'Byuppino la scrive e la assegna', fa: () => window.byuppinoApri && window.byuppinoApri('Crea un\'attività: ') },
+    { icona: 'video',       t: 'Una riunione', s: 'Con chi, quando, in quale canale', fa: () => window.byuppinoApri && window.byuppinoApri('Fissa una riunione con ') },
+    { icona: 'hash',        t: 'Un messaggio in un canale', s: 'Scrivi senza aprire Ambiente', fa: () => window.byuppinoApri && window.byuppinoApri('Scrivi in #generale: ') },
+    { icona: 'mail',        t: 'Una campagna mail', s: 'Apre Marketing · Mail', fa: () => window.hubVai && window.hubVai('mkt-mail') },
+  ];
+  return (
+    // Niente transform sul contenitore: un antenato trasformato farebbe da
+    // riferimento ai figli `position:fixed`, e il velo che chiude il menu
+    // «Crea» coprirebbe solo la barra invece di tutta la finestra.
+    <div style={{position:'absolute', left:18, top:0, bottom:0, zIndex:60, display:'flex', alignItems:'center', pointerEvents:'none'}}>
+     <div style={{position:'relative', pointerEvents:'auto'}}>
+      <div style={{
+        width:54, padding:'9px 0', borderRadius:999, background:ADM.INCHIOSTRO,
+        boxShadow:'0 24px 50px -20px rgba(29,21,32,0.75), 0 0 0 1px rgba(255,255,255,0.04) inset',
+        display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+      }}>
+        {voci.map((v, i) => v.sep
+          ? <span key={'s' + i} style={{width:22, height:1, background:'rgba(255,255,255,0.14)', margin:'5px 0'}}/>
+          : (
+            <button key={v.id} onClick={v.fa} className="desk-binario-btn" data-label={v.label} aria-label={v.label}
+              style={{
+                width:40, height:40, borderRadius:'50%', border:'none', cursor:'pointer', display:'grid', placeItems:'center',
+                background: v.acceso ? '#fff' : 'transparent', color: v.acceso ? ADM.INCHIOSTRO : 'rgba(255,255,255,0.72)',
+              }}>
+              {v.id === 'byuppino'
+                ? <img src="byuppino-viso.webp" alt="" style={{width:30, height:30, borderRadius:'50%', display:'block', background:'#E9D3E6'}}/>
+                : React.createElement(BuIcons[v.icona], { size: 19, strokeWidth: 1.9 })}
+            </button>
+          ))}
+      </div>
+      {crea && (
+        <React.Fragment>
+          <div onClick={() => setCrea(false)} style={{position:'fixed', inset:0, zIndex:61}}/>
+          <div style={{
+            position:'absolute', left:66, top:0, zIndex:62, width:300, padding:8, borderRadius:24,
+            background:'rgba(255,255,255,0.95)', backdropFilter:'blur(22px)', WebkitBackdropFilter:'blur(22px)',
+            boxShadow:'0 30px 70px -24px rgba(42,26,40,0.42)', border:`1px solid ${ADM.GLASS_BORDO}`,
+            animation:'hubFlyIn 0.15s cubic-bezier(0.34,1.2,0.64,1)',
+          }}>
+            <div style={{padding:'8px 12px 6px', fontSize:12.4, fontWeight:700, color:ADM.MUTED}}>Crea</div>
+            {creaVoci.map(c => (
+              <button key={c.t} className="adm-actionrow" onClick={() => { setCrea(false); c.fa(); }} style={{
+                display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left', padding:'9px 10px',
+                borderRadius:16, border:'none', background:'transparent', cursor:'pointer', fontFamily:'inherit',
+              }}>
+                <span style={{width:36, height:36, borderRadius:'50%', display:'grid', placeItems:'center', background:'#fff', boxShadow:'0 6px 14px -9px rgba(73,40,68,0.5)', color:ADM.TEXT, flexShrink:0}}>
+                  {React.createElement(BuIcons[c.icona], { size: 17 })}
+                </span>
+                <span style={{minWidth:0}}>
+                  <span style={{display:'block', fontSize:14, fontWeight:700, color:ADM.TEXT}}>{c.t}</span>
+                  <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:1}}>{c.s}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+     </div>
+    </div>
+  );
+}
+
+// L'avviso in basso, con «Annulla»: chiunque lo chiama con window.deskAvviso.
+// Le azioni che cambiano i dati — soprattutto quelle che fa Byuppino — lo
+// usano per dire cosa è successo e per tornare indietro con un tocco.
+const DESK_AVVISI = { ascolta: null };
+function deskAvviso(a) { if (DESK_AVVISI.ascolta) DESK_AVVISI.ascolta(Object.assign({ id: Date.now() }, a)); }
+window.deskAvviso = deskAvviso;
+function DeskAvviso() {
+  const [av, setAv] = useStateApp(null);
+  React.useEffect(() => {
+    DESK_AVVISI.ascolta = (a) => setAv(a);
+    return () => { DESK_AVVISI.ascolta = null; };
+  }, []);
+  React.useEffect(() => {
+    if (!av) return;
+    const t = setTimeout(() => setAv(null), av.durata || 5200);
+    return () => clearTimeout(t);
+  }, [av]);
+  if (!av) return null;
+  return (
+    <div key={av.id} style={{
+      position:'absolute', left:'50%', bottom:26, transform:'translateX(-50%)', zIndex:180,
+      display:'flex', alignItems:'center', gap:12, padding:'8px 8px 8px 18px', borderRadius:999,
+      background:ADM.INCHIOSTRO, color:'#fff', boxShadow:'0 24px 50px -18px rgba(29,21,32,0.7)',
+      fontSize:14, fontWeight:600, whiteSpace:'nowrap', animation:'deskAvvisoIn 0.28s cubic-bezier(0.34,1.4,0.64,1)',
+    }}>
+      <BuIcons.check size={16} strokeWidth={2.4}/>
+      <span>{av.testo}</span>
+      {av.annulla
+        ? <button onClick={() => { av.annulla(); setAv(null); }} style={{border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:13.4, fontWeight:800, padding:'7px 14px', borderRadius:999, background:ADM.DESK_LILLA, color:ADM.DESK_PRUGNA}}>Annulla</button>
+        : <span style={{width:6}}/>}
     </div>
   );
 }
@@ -280,8 +414,9 @@ function GlobalSearch({ onClose, go }) {
 function AdminApp({ tweaks }) {
   // ?rotta=ambiente (o un'altra rotta) apre la console direttamente lì: serve
   // a condividere un link alla sezione giusta senza spiegare dove cliccare.
+  // Senza rotta si entra da Oggi, la pagina che dice cosa c'è da fare.
   const [route, setRouteRaw] = useStateApp(() => {
-    try { return new URLSearchParams(window.location.search).get('rotta') || 'contatti'; } catch (e) { return 'contatti'; }
+    try { return new URLSearchParams(window.location.search).get('rotta') || 'oggi'; } catch (e) { return 'oggi'; }
   });
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
@@ -289,16 +424,15 @@ function AdminApp({ tweaks }) {
   const [teamTab, setTeamTab] = useStateApp(null);   // tab di Sicurezza/Piattaforma aperta da un link esterno
   const [impostazioniSub, setImpostazioniSub] = useStateApp('sicurezza'); // parte interna di Impostazioni
   const [searchOpen, setSearchOpen] = useStateApp(false);
-  // Il flyout della nav: {voce, x, y}. Vive qui e non dentro la voce perché
-  // deve stare SOPRA la sidebar (position:fixed), e una sidebar con
-  // overflow:auto taglierebbe qualunque figlio che ne esce.
+  // Il pannello sotto le linguette: {voce, x, y}. Vive qui perché sta sopra a
+  // tutto (position:fixed) e la barra non lo deve tagliare.
   const [fly, setFly] = useStateApp(null);
   const [menuProfilo, setMenuProfilo] = useStateApp(false);
   // «Esci da Desk»: il logout è finto ma l'esito è vero — la shell sparisce
-  // dietro un velo e si rientra da dove si entra sempre, la rubrica.
+  // dietro un velo e si rientra da dove si entra sempre.
   const [uscito, setUscito] = useStateApp(false);
   // Il ritardo di chiusura: senza, il pannello sparisce nel millimetro di
-  // vuoto tra la voce e la card, e non ci si arriva mai col mouse.
+  // vuoto tra la linguetta e la card, e non ci si arriva mai col mouse.
   const flyTimer = React.useRef(null);
   const apriFly = (voce, el) => {
     clearTimeout(flyTimer.current);
@@ -307,9 +441,9 @@ function AdminApp({ tweaks }) {
     // Il frame è scalato con `zoom`: i rect sono pixel VISIVI e il pannello,
     // essendo dentro lo stesso frame, li vuole di LAYOUT. Si divide per lo zoom.
     const z = (() => { const f = document.querySelector('.frame'); const v = f && parseFloat(f.style.zoom); return v > 0 ? v : 1; })();
-    setFly({ voce, x: (r.right / z) + 8, y: Math.max(12, (r.top / z) - 6) });
+    setFly({ voce, x: Math.max(12, (r.left / z) - 10), y: (r.bottom / z) + 8 });
   };
-  const chiudiFly = () => { clearTimeout(flyTimer.current); flyTimer.current = setTimeout(() => setFly(null), 160); };
+  const chiudiFly = () => { clearTimeout(flyTimer.current); flyTimer.current = setTimeout(() => setFly(null), 180); };
   const tieniFly = () => clearTimeout(flyTimer.current);
   React.useEffect(() => () => clearTimeout(flyTimer.current), []);
 
@@ -323,21 +457,6 @@ function AdminApp({ tweaks }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Sidebar comprimi/espandi — stato persistito, come nel gestionale (68px).
-  const [collapsed, setCollapsed] = useStateApp(() => {
-    try { return localStorage.getItem('adm_sidebar_collapsed') === '1'; } catch(e) { return false; }
-  });
-  const toggleCollapsed = () => setCollapsed(c => {
-    const n = !c;
-    try { localStorage.setItem('adm_sidebar_collapsed', n ? '1' : '0'); } catch(e) {}
-    return n;
-  });
-  const sidebarToggleStyle = {
-    width:26, height:26, borderRadius:7, flexShrink:0, padding:0,
-    border:'1px solid rgba(15,17,21,0.10)', background:'#F5F5F7',
-    color: ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center',
-  };
-
   // setRoute esteso: setRoute('locali', { openLocale: l }) apre direttamente
   // il drawer di dettaglio sul locale passato. Navigando altrove o tornando
   // sulla rubrica senza opts, il prefill è azzerato.
@@ -345,18 +464,14 @@ function AdminApp({ tweaks }) {
   // I ticket non hanno più una rotta propria: sono un tab di Assistenza. E
   // locali, camerieri e utenti non hanno più una pagina propria: sono la
   // rubrica Contatti. Qui le rotte vecchie si traducono nelle nuove, così le
-  // notifiche, la striscia della Dashboard e la ricerca globale continuano a
-  // puntare dove puntavano senza doverle riscrivere una per una — e senza
-  // lasciare in giro rotte morte che un domani nessuno saprebbe più perché
-  // esistono.
+  // notifiche, la ricerca globale e Byuppino continuano a puntare dove
+  // puntavano senza doverle riscrivere una per una.
   const setRoute = (nextRaw, opts) => {
     const verso = nextRaw === 'comunicazioni' ? 'assistenza'
       : (nextRaw === 'locali' || nextRaw === 'camerieri' || nextRaw === 'utenti') ? 'contatti'
       // «Marketing» non è una pagina: è una famiglia. Chi ci arriva senza dire
       // quale canale atterra sulla mail, che è quello da cui si parte.
       : nextRaw === 'marketing' ? 'mkt-mail'
-      // Campagne di acquisizione non è più una voce: un link rimasto in giro
-      // atterra sulla famiglia Marketing, non su una pagina fantasma.
       : nextRaw === 'promozioni' ? 'mkt-mail'
       // La governance è una voce sola: le quattro rotte storiche atterrano
       // dentro Impostazioni, sulla loro parte interna.
@@ -364,8 +479,6 @@ function AdminApp({ tweaks }) {
       : nextRaw;
     setFly(null); setMenuProfilo(false);
     const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
-    // Le tre vecchie forme di apertura diretta diventano un {tipo, ref} solo:
-    // la rubrica sceglie da lì quale dei tre drawer montare.
     setContattoOpen(verso !== 'contatti' || !opts ? null
       : opts.openLocale ? { tipo: 'locale', ref: opts.openLocale, tab: opts.tab || null, pratica: opts.pratica || null }
       : opts.openStaff ? { tipo: 'staff', ref: opts.openStaff }
@@ -373,10 +486,6 @@ function AdminApp({ tweaks }) {
       : opts.openContatto || null);
     setCommOpen(verso === 'assistenza' && opts?.openComm ? opts.openComm : null);
     setAssistenzaTab(verso === 'assistenza' ? tab : null);
-    // Anche Sicurezza e sistemi ha i suoi tab: chi ci arriva da un avviso
-    // deve atterrare su quello che l'avviso riguarda, non sul primo. E la
-    // rotta storica dice QUALE parte di Impostazioni aprire: 'team' era
-    // Piattaforma, le altre portano il loro nome.
     if (verso === 'impostazioni') {
       setTeamTab(tab || null);
       setImpostazioniSub(nextRaw === 'team' ? 'piattaforma'
@@ -384,140 +493,97 @@ function AdminApp({ tweaks }) {
         : nextRaw);
     }
     setRouteRaw(verso);
+    // La pagina nuova parte dall'alto.
+    const sc = document.querySelector('.desk-scorre'); if (sc) sc.scrollTop = 0;
   };
   // La rotta si può chiamare da fuori dalla shell (P-172: il ticket apre la pratica nella scheda del locale).
   window.hubVai = setRoute;
-
-  // Una scorciatoia globale per navigare da dentro le pagine senza passare le
-  // callback di mano in mano attraverso cinque livelli di componenti.
+  window.hubRotta = route;
   React.useEffect(() => { window.__hubNav = setRoute; return () => { delete window.__hubNav; }; });
+
+  const apriAmbiente = (vista) => { if (typeof dkApri === 'function') dkApri(vista); setRoute('ambiente'); };
+  const profiloAcceso = menuProfilo || HUB_MENU_PROFILO.some(v => v.id === route);
 
   return (
     <div className="frame" style={{
-      display:'flex', overflow:'hidden',
+      display:'flex', flexDirection:'column', overflow:'hidden',
       fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
-      background: ADM.PANEL_SOFT, color: ADM.TEXT,
+      background: ADM.FONDO_PAGINA, color: ADM.TEXT,
     }}>
       <HubStile/>
-      {/* Sidebar — vetro tenue, logo reale, nav piatta (come il gestionale) */}
-      <aside style={{
-        width: collapsed ? 68 : 272, flexShrink:0,
-        background:'linear-gradient(180deg, rgba(250,251,252,0.92) 0%, rgba(245,245,247,0.92) 100%)',
-        backdropFilter:'saturate(180%) blur(24px)',
-        WebkitBackdropFilter:'saturate(180%) blur(24px)',
-        borderRight:'1px solid rgba(15,17,21,0.06)',
-        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.65)',
-        display:'flex', flexDirection:'column',
-        padding: collapsed ? '20px 10px 56px' : '20px 14px 56px',
-        transition:'width 220ms cubic-bezier(0.4,0,0.2,1), padding 220ms cubic-bezier(0.4,0,0.2,1)',
-      }}>
-        {/* Logo Desk: il lockup intero da espansa, il solo segno da compressa.
-            Prugna su trasparente, preso dal file del logo — niente testo
-            colorato a mano che poi diverge dal logo vero alla prima revisione. */}
-        {!collapsed ? (
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 18px'}}>
-            <img src="desk.png" alt="Desk" style={{height:27, width:'auto', display:'block'}}/>
-            <button onClick={toggleCollapsed} title="Comprimi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-          </div>
-        ) : (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:20}}>
-            <img src="desk-mark.png" alt="Desk" style={{height:27, width:'auto', display:'block'}}/>
-            <button onClick={toggleCollapsed} title="Espandi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-        )}
 
-        {/* La ricerca globale non ha un bottone: si apre SOLO con ⌘K, per chi
-            la conosce — scelta di Fabio. Il listener sta più in basso e
-            funziona da qualunque punto della console. */}
-        {/* Ambiente: il pulsante grande, sopra la nav e fuori dall'elenco.
-            Non è una sezione del CRM, è il posto dove il team sta tutto il
-            giorno — chat, attività, riunioni (desk-ambiente.jsx). */}
-        <DkAmbienteBottone attivo={route === 'ambiente'} compresso={collapsed} onClick={() => setRoute('ambiente')}/>
+      {/* ─── La barra in alto: marchio, linguette, strumenti ─────────────── */}
+      <header style={{display:'flex', alignItems:'center', gap:18, padding:'16px 24px 10px 26px', flexShrink:0, position:'relative', zIndex:70}}>
+        <button onClick={() => setRoute('oggi')} title="Oggi" style={{border:'none', background:'transparent', padding:'4px 6px 4px 0', cursor:'pointer', display:'flex', alignItems:'center'}}>
+          <img src="desk.png" alt="Desk" style={{height:28, width:'auto', display:'block'}}/>
+        </button>
 
-        {!collapsed && (
-          <div style={{padding:'0 10px 6px', fontSize:11, fontWeight:800, letterSpacing:'0.09em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>CRM</div>
-        )}
-        <nav onMouseLeave={chiudiFly}
-          style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:1}}>
+        <nav onMouseLeave={chiudiFly} style={{display:'flex', alignItems:'center', gap:2, padding:4, borderRadius:999, background:'rgba(255,255,255,0.42)', border:'1px solid rgba(255,255,255,0.7)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)'}}>
           {HUB_NAV.map(item => {
             const figlio = item.figli && item.figli.some(f => f.id === route);
             return (
-              <AdmNavItem key={item.id} item={item}
-                active={route === item.id || figlio}
+              <DeskLinguetta key={item.id} item={item}
+                attiva={route === item.id || figlio}
                 flyAperto={!!fly && fly.voce.id === item.id}
                 onClick={() => setRoute(item.figli ? item.figli[0].id : item.id)}
-                onFly={apriFly}
-                collapsed={collapsed}/>
+                onFly={apriFly}/>
             );
           })}
         </nav>
 
-        {/* Profilo — la card apre il MENU, non una pagina. Dentro ci stanno
-            l'account e Impostazioni, che tiene insieme tutta la governance:
-            sicurezza e sistemi, proprietà, recapiti e domini di invio, le leve
-            commerciali. Erano voci di barra, ma sono cose che si toccano una
-            volta al mese: occupavano lo spazio del lavoro quotidiano. */}
-        <div style={{position:'relative', marginTop:10}}>
-          <button onClick={()=>setMenuProfilo(m => !m)} title={collapsed ? "Profilo e impostazioni" : undefined}
-            className="adm-card-interactive"
-            style={{
-              width:'100%', boxSizing:'border-box',
-              padding: collapsed ? '8px 0' : '9px 10px',
-              display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:10,
-              background: (menuProfilo || HUB_MENU_PROFILO.some(v => v.id === route)) ? ADM.PINK_SOFT : '#fff',
-              border:`1px solid ${(menuProfilo || HUB_MENU_PROFILO.some(v => v.id === route)) ? '#FFA9BF' : 'rgba(15,17,21,0.07)'}`,
-              borderRadius:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-              boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
-            }}>
-            <div style={{
-              width:36, height:36, borderRadius:'50%',
-              background: ADM.HUB_GRAD_DIAG,
-              color:'#fff', display:'grid', placeItems:'center',
-              fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
-            }}>MR</div>
-            {!collapsed && (
-              <React.Fragment>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.2}}>Marco Rinaldi</div>
-                  <div style={{fontSize:12, color:ADM.MUTED, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Super Admin · byup</div>
-                </div>
-                <span style={{display:'inline-flex', color:ADM.MUTED, transform: menuProfilo ? 'rotate(180deg)' : 'none', transition:'transform 0.16s ease'}}>
-                  <BuIcons.chevronUp size={15}/>
-                </span>
-              </React.Fragment>
-            )}
-          </button>
+        <div style={{flex:1}}/>
 
+        <button onClick={() => setSearchOpen(true)} className="desk-cerchio" data-tip="Cerca ovunque · ⌘K" data-tip-pos="below" aria-label="Cerca">
+          <BuIcons.search size={18} strokeWidth={2}/>
+        </button>
+        <button onClick={() => window.byuppinoApri && window.byuppinoApri()} className="desk-cerchio" data-tip="Chiedi a Byuppino · ⌘J" data-tip-pos="below" aria-label="Chiedi a Byuppino" style={{padding:0, overflow:'hidden'}}>
+          <img src="byuppino-viso.webp" alt="" style={{width:42, height:42, display:'block', background:'#EBD7E8'}}/>
+        </button>
+        {/* Ambiente: il posto dove il team sta tutto il giorno. Non è una
+            sezione del CRM e non sta tra le linguette: è la pillola lilla,
+            grande, con chi c'è e cosa ti aspetta. */}
+        <DkAmbientePillola attivo={route === 'ambiente'} onClick={() => setRoute('ambiente')}/>
+
+        <div style={{position:'relative'}}>
+          <button onClick={() => setMenuProfilo(m => !m)} title="Profilo e impostazioni" style={{
+            width:44, height:44, borderRadius:'50%', border:'none', cursor:'pointer', padding:0,
+            background: ADM.HUB_GRAD_DIAG, color:'#fff', fontFamily:'inherit', fontWeight:700, fontSize:14.5,
+            boxShadow: profiloAcceso ? `0 0 0 3px #fff, 0 0 0 5px ${ADM.INCHIOSTRO}` : '0 0 0 3px rgba(255,255,255,0.9), 0 10px 20px -12px rgba(73,40,68,0.6)',
+          }}>MR</button>
           {menuProfilo && (
             <React.Fragment>
               <div onClick={()=>setMenuProfilo(false)} style={{position:'fixed', inset:0, zIndex:140}}/>
               <div style={{
-                position:'absolute', bottom:'calc(100% + 8px)', left:0, zIndex:145,
-                width: collapsed ? 288 : '100%', minWidth:262,
-                background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14,
-                boxShadow:'0 24px 60px -18px rgba(15,17,21,0.32)', padding:7,
+                position:'absolute', top:'calc(100% + 10px)', right:0, zIndex:145, width:300,
+                background:'rgba(255,255,255,0.96)', border:`1px solid ${ADM.GLASS_BORDO}`, borderRadius:24,
+                backdropFilter:'blur(22px)', WebkitBackdropFilter:'blur(22px)',
+                boxShadow:'0 30px 70px -24px rgba(42,26,40,0.42)', padding:8,
                 animation:'hubFlyIn 0.15s cubic-bezier(0.34,1.2,0.64,1)',
               }}>
+                <div style={{display:'flex', alignItems:'center', gap:11, padding:'10px 10px 12px'}}>
+                  <span style={{width:40, height:40, borderRadius:'50%', background:ADM.HUB_GRAD_DIAG, color:'#fff', display:'grid', placeItems:'center', fontWeight:700, fontSize:14}}>MR</span>
+                  <span style={{minWidth:0}}>
+                    <span style={{display:'block', fontSize:14.6, fontWeight:700, color:ADM.TEXT}}>Marco Rinaldi</span>
+                    <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:1}}>Super Admin · byup</span>
+                  </span>
+                </div>
                 {HUB_MENU_PROFILO.map(v => {
                   const Icona = BuIcons[v.icon];
                   const attiva = route === v.id;
                   return (
                     <button key={v.id} onClick={()=>setRoute(v.id)} className="adm-actionrow"
                       style={{
-                        display:'flex', alignItems:'flex-start', gap:10, width:'100%', textAlign:'left',
-                        padding:'8px 9px', borderRadius:9, border:'none', cursor:'pointer', fontFamily:'inherit',
-                        background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+                        display:'flex', alignItems:'flex-start', gap:11, width:'100%', textAlign:'left',
+                        padding:'9px 10px', borderRadius:16, border:'none', cursor:'pointer', fontFamily:'inherit',
+                        background: attiva ? 'rgba(73,40,68,0.06)' : 'transparent',
                       }}>
                       <span style={{
-                        width:28, height:28, borderRadius:8, flexShrink:0, display:'grid', placeItems:'center',
-                        background: attiva ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: attiva ? ADM.PINK : ADM.MUTED,
-                      }}><Icona size={15}/></span>
+                        width:34, height:34, borderRadius:'50%', flexShrink:0, display:'grid', placeItems:'center',
+                        background: attiva ? ADM.INCHIOSTRO : '#fff', color: attiva ? '#fff' : ADM.MUTED,
+                        boxShadow: attiva ? 'none' : '0 6px 14px -9px rgba(73,40,68,0.5)',
+                      }}><Icona size={16}/></span>
                       <span style={{flex:1, minWidth:0, paddingTop:1}}>
-                        <span style={{display:'block', fontSize:13.8, fontWeight:700, color: attiva ? ADM.PINK_DARK : ADM.TEXT}}>{v.label}</span>
+                        <span style={{display:'block', fontSize:13.8, fontWeight:700, color: ADM.TEXT}}>{v.label}</span>
                         <span style={{display:'block', fontSize:11.8, color:ADM.MUTED, marginTop:1, lineHeight:1.4}}>{v.desc}</span>
                       </span>
                     </button>
@@ -525,12 +591,12 @@ function AdminApp({ tweaks }) {
                 })}
                 <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, margin:'6px 4px 4px', paddingTop:5}}>
                   <button className="adm-actionrow" onClick={()=>{ setMenuProfilo(false); setUscito(true); }} style={{
-                    display:'flex', alignItems:'center', gap:10, width:'100%', textAlign:'left',
-                    padding:'8px 9px', borderRadius:9, border:'none', cursor:'pointer',
+                    display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left',
+                    padding:'8px 10px', borderRadius:16, border:'none', cursor:'pointer',
                     fontFamily:'inherit', background:'transparent',
                   }}>
-                    <span style={{width:28, height:28, borderRadius:8, display:'grid', placeItems:'center', color:ADM.MUTED}}>
-                      <BuIcons.arrowRight size={15}/>
+                    <span style={{width:34, height:34, borderRadius:'50%', display:'grid', placeItems:'center', color:ADM.MUTED}}>
+                      <BuIcons.arrowRight size={16}/>
                     </span>
                     <span style={{fontSize:13.8, fontWeight:600, color:ADM.MUTED}}>Esci da Desk</span>
                   </button>
@@ -539,49 +605,52 @@ function AdminApp({ tweaks }) {
             </React.Fragment>
           )}
         </div>
-      </aside>
+      </header>
 
-      {/* Il pannello delle sotto-sezioni, sopra a tutto */}
       {fly && <HubFlyout voce={fly.voce} x={fly.x} y={fly.y} rotta={route}
         onVai={(id)=>setRoute(id)} onEnter={tieniFly} onLeave={chiudiFly}/>}
 
-      {/* Main */}
-      {/* Main. L'header non esiste più: la briciola «Desk / sezione»
-          ripeteva quello che sidebar e testate già dicono, e la ricerca è
-          scesa nella barra. Ogni pagina si presenta da sola con HubTestata —
-          Assistenza compresa — e il contenuto guadagna tutta l'altezza.
-          (Qui prima c'era anche la campanella delle notifiche: avvisi finti
-          che duplicavano i badge della sidebar — tolta pure lei.) */}
-      <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <div style={{flex:1, overflow: route === 'ambiente' ? 'hidden' : 'auto'}}>
-          {route === 'ambiente'     && <DkAmbientePage/>}
-          {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
-          {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
-          {route === 'elenchi'      && <HubElenchiPage/>}
-          {route === 'mkt-mail'     && <HubMailPage/>}
-          {route === 'mkt-sms'      && <HubSmsPage/>}
-          {(route === 'mkt-posta' || route === 'mkt-push') && <HubPostaPage/>}
-          {route === 'mkt-form'     && <HubFormPage/>}
-          {route === 'workflow'     && <HubWorkflowPage/>}
-          {route === 'agent'        && <HubAgentPage/>}
-          {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
-          {route === 'impostazioni' && <ImpostazioniPage sub={impostazioniSub} teamTab={teamTab}/>}
-          {route === 'profilo'      && <ProfiloPage/>}
-        </div>
-      </main>
+      {/* ─── Il corpo: la barra nera a sinistra e la pagina ─────────────── */}
+      <div style={{flex:1, minHeight:0, position:'relative', display:'flex'}}>
+        <DeskBinario rotta={route} onCerca={() => setSearchOpen(true)} onAmbiente={apriAmbiente}
+          onImpostazioni={() => setRoute('impostazioni')}/>
+        <main style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden', paddingLeft:72}}>
+          <div className="desk-scorre" style={{flex:1, overflow: route === 'ambiente' ? 'hidden' : 'auto', display:'flex', flexDirection:'column'}}>
+            <DeskSottoNav rotta={route} onVai={setRoute}/>
+            <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
+              {route === 'oggi'         && <DeskOggiPage onNav={setRoute}/>}
+              {route === 'ambiente'     && <div style={{flex:1, minHeight:0, padding:'4px 24px 20px 10px', display:'flex'}}><div className="desk-ambiente-guscio" style={{flex:1, minHeight:0, borderRadius:26, overflow:'hidden', background:'rgba(255,255,255,0.86)', boxShadow:ADM.CARD_SHADOW, border:`1px solid ${ADM.GLASS_BORDO}`, display:'flex'}}><DkAmbientePage/></div></div>}
+              {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
+              {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
+              {route === 'elenchi'      && <HubElenchiPage/>}
+              {route === 'mkt-mail'     && <HubMailPage/>}
+              {route === 'mkt-sms'      && <HubSmsPage/>}
+              {(route === 'mkt-posta' || route === 'mkt-push') && <HubPostaPage/>}
+              {route === 'mkt-form'     && <HubFormPage/>}
+              {route === 'workflow'     && <HubWorkflowPage/>}
+              {route === 'agent'        && <HubAgentPage/>}
+              {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
+              {route === 'impostazioni' && <ImpostazioniPage sub={impostazioniSub} teamTab={teamTab}/>}
+              {route === 'profilo'      && <ProfiloPage/>}
+            </div>
+          </div>
+        </main>
+        <DeskAvviso/>
+      </div>
+
+      {/* Byuppino: l'assistente che risponde e fa le cose (desk-byuppino.jsx). */}
+      <DeskByuppino rotta={route} vai={setRoute}/>
 
       {searchOpen && <GlobalSearch onClose={()=>setSearchOpen(false)} go={(r, opts)=>setRoute(r, opts)}/>}
 
-      {/* La sessione terminata copre tutto: niente login vero nel prototipo,
-          ma il rientro riparte pulito dalla rubrica, come un accesso fresco. */}
       {uscito && (
-        <div style={{position:'fixed', inset:0, zIndex:200, background:'rgba(15,17,21,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'grid', placeItems:'center'}}>
-          <div style={{width:360, background:'#fff', borderRadius:16, boxShadow:'0 32px 80px rgba(15,17,21,0.35)', padding:'30px 28px', textAlign:'center', animation:'admModalIn 0.18s ease'}}>
-            <img src="desk-mark.png" alt="Desk" style={{height:34, width:'auto', margin:'0 auto 14px', display:'block'}}/>
-            <div style={{fontSize:17, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Sessione terminata</div>
-            <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:6, lineHeight:1.5}}>Sei uscito da Desk. Per riprendere il lavoro accedi di nuovo.</div>
-            <div style={{marginTop:18, display:'flex', justifyContent:'center'}}>
-              <AdmButton variant="primary" size="md" onClick={()=>{ setUscito(false); setRoute('contatti'); }}>Accedi di nuovo</AdmButton>
+        <div style={{position:'fixed', inset:0, zIndex:200, background:'rgba(42,26,40,0.45)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'grid', placeItems:'center'}}>
+          <div style={{width:380, background:'#FDFBFA', borderRadius:28, boxShadow:'0 32px 80px rgba(42,26,40,0.4)', padding:'32px 28px', textAlign:'center', animation:'admModalIn 0.18s ease'}}>
+            <img src="desk-mark.png" alt="Desk" style={{height:36, width:'auto', margin:'0 auto 14px', display:'block'}}/>
+            <div style={{fontSize:20, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.03em'}}>Sessione terminata</div>
+            <div style={{fontSize:13.8, color:ADM.MUTED, marginTop:6, lineHeight:1.5}}>Sei uscito da Desk. Per riprendere il lavoro accedi di nuovo.</div>
+            <div style={{marginTop:20, display:'flex', justifyContent:'center'}}>
+              <AdmButton variant="primary" size="md" onClick={()=>{ setUscito(false); setRoute('oggi'); }}>Accedi di nuovo</AdmButton>
             </div>
           </div>
         </div>

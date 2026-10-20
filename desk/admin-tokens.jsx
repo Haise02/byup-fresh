@@ -26,28 +26,42 @@
 // si tocca: il colore lì significa stato, non identità.
 
 const ADM = {
-  // canvas / surfaces  — Apple-style soft warm-grays
-  BG:           '#F5F5F7',
-  CANVAS:       '#F5F5F7',
+  // canvas / surfaces — dal 20 ottobre 2026 caldi, con un velo di lilla: il
+  // fondo della console è una carta tiepida, e le schede ci stanno sopra
+  // come vetro (GLASS). I grigi tirano verso la prugna del marchio.
+  BG:           '#F2EEEC',
+  CANVAS:       '#F2EEEC',
   WHITE:        '#FFFFFF',
   PANEL:        '#FFFFFF',
-  PANEL_SOFT:   '#FAFAFB',
-  // text — true neutrals (Apple system grays)
-  TEXT:         '#16181D',
-  MUTED:        '#6E6E73',
-  MUTED_SOFT:   '#8A8A90',
-  MUTED_LIGHT:  '#C5C5C7',
+  PANEL_SOFT:   '#F8F5F4',
+  GLASS:        'rgba(255,255,255,0.72)',
+  GLASS_FORTE:  'rgba(255,255,255,0.86)',
+  GLASS_BORDO:  'rgba(255,255,255,0.75)',
+  // Il fondo della pagina: carta calda, lilla in alto a sinistra, sabbia a destra.
+  FONDO_PAGINA: 'radial-gradient(1100px 640px at 4% -12%, #E7D6E6 0%, rgba(231,214,230,0) 62%), radial-gradient(900px 620px at 100% -8%, #F2E4D6 0%, rgba(242,228,214,0) 58%), linear-gradient(180deg, #F4F0EE 0%, #EEE9E7 100%)',
+  // L'inchiostro dei pulsanti forti e della voce accesa: un nero di prugna.
+  INCHIOSTRO:   '#1D1520',
+  INCHIOSTRO_2: '#2D2230',
+  // I raggi: schede grandi, controlli a pillola.
+  R_SCHEDA:     22,
+  R_RIQUADRO:   16,
+  R_CAMPO:      12,
+  // text — neutri caldi, verso la prugna
+  TEXT:         '#1D1520',
+  MUTED:        '#6E6470',
+  MUTED_SOFT:   '#8D838F',
+  MUTED_LIGHT:  '#C8BFC6',
   // neutral — base per tile/icone "calm" (il colore NON è decorativo)
-  NEUTRAL:      '#6E6E73',
-  NEUTRAL_SOFT: '#F1F2F4',
+  NEUTRAL:      '#6E6470',
+  NEUTRAL_SOFT: '#F3EEF0',
   // ink — colore delle serie nei grafici (schema "inchiostro + un accento",
   // stile Airbnb): la massa dei dati è quieta, il coral è riservato a hero,
   // confronti Byup-vs-mercato, picchi critici e UI di brand.
-  INK:          '#31353D',
-  INK_SOFT:     '#C9CDD4',
-  // border — softer
-  BORDER:       '#E6E6EB',
-  BORDER_SOFT:  '#F0F0F2',
+  INK:          '#2D2230',
+  INK_SOFT:     '#CBC2C9',
+  // border — caldi e tenui: sul fondo di carta una riga grigia fredda stona
+  BORDER:       '#EAE2E4',
+  BORDER_SOFT:  '#F2ECED',
   // ─── marchio Desk: prugna e lilla, dal file del logo ──────────────────────
   DESK_PRUGNA:       '#492844',   // la scritta e il segno del logo
   DESK_PRUGNA_SCURO: '#351C30',   // la prugna sotto il mouse / premuta
@@ -91,8 +105,8 @@ const ADM = {
   SIDE_BORDER:    '#1F2229',
   SIDE_ACCENT:    '#FF1F5A',
   // table density
-  ROW_HOVER:    '#F7F8FA',
-  ROW_STRIPE:   '#FBFBFC',
+  ROW_HOVER:    '#F8F4F5',
+  ROW_STRIPE:   'transparent',
   // semantic — colore = SIGNIFICATO (stato/severità), soft desaturati per look "calm"
   OK:           '#16A34A',
   OK_SOFT:      '#E4F4EA',
@@ -129,8 +143,8 @@ const ADM = {
   PLAN_BUSINESS:      '#0F1115',
   PLAN_BUSINESS_SOFT: '#E5E7EB',
   // shadows — Apple soft, layered
-  CARD_SHADOW:        '0 1px 2px rgba(15,17,21,0.04), 0 1px 1px rgba(15,17,21,0.03)',
-  CARD_SHADOW_HOVER:  '0 8px 24px -10px rgba(15,17,21,0.10), 0 2px 6px -2px rgba(15,17,21,0.04)',
+  CARD_SHADOW:        '0 1px 0 rgba(255,255,255,0.7) inset, 0 14px 34px -22px rgba(73,40,68,0.28), 0 1px 2px rgba(73,40,68,0.04)',
+  CARD_SHADOW_HOVER:  '0 1px 0 rgba(255,255,255,0.7) inset, 0 22px 44px -22px rgba(73,40,68,0.34), 0 2px 6px -2px rgba(73,40,68,0.06)',
 };
 
 // Mini helpers

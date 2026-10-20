@@ -388,7 +388,8 @@ const DK_CSS = `
 // ═══════════════════════════════════════════════════════════════════════════
 function DkAvatar({ id, size = 34, presenza, bordo }) {
   const p = dkPersona(id);
-  const raggio = Math.round(size * 0.32);
+  // Tonde, come in tutta la console dal 20 ottobre.
+  const raggio = '50%';
   if (!p) {
     const a = dkAgente(id);
     return (
@@ -433,7 +434,7 @@ function DkPila({ ids, size = 22, max = 4, bordo = '#fff' }) {
       ))}
       {ids.length > max && (
         <span style={{
-          marginLeft: -Math.round(size * 0.3), height: size, minWidth: size, padding: '0 5px', borderRadius: Math.round(size * 0.32),
+          marginLeft: -Math.round(size * 0.3), height: size, minWidth: size, padding: '0 5px', borderRadius: 99,
           background: ADM.NEUTRAL_SOFT, color: ADM.MUTED, fontSize: Math.round(size * 0.44), fontWeight: 700,
           display: 'inline-grid', placeItems: 'center', boxShadow: '0 0 0 2px ' + bordo,
         }}>+{ids.length - max}</span>
@@ -2164,6 +2165,45 @@ function DkAmbienteBottone({ attivo, compresso, onClick }) {
     </button>
   );
 }
+
+
+// La pillola di Ambiente nella barra in alto (dal 20 ottobre 2026): lilla,
+// grande, con chi c'è, le menzioni e la riunione in corso. Accesa diventa
+// prugna. È il pulsante «bello grande» di prima, sdraiato nella barra.
+function DkAmbientePillola({ attivo, onClick }) {
+  dkUsaStore();
+  const r = dkRiepilogo();
+  const online = dkPersone().filter(p => !p.io && DK_PRESENZA_DI[p.id] !== 'assente').map(p => p.id);
+  const fondo = attivo ? ADM.DESK_PRUGNA : ADM.DESK_LILLA;
+  return (
+    <button onClick={onClick} className="dk-ambiente-btn" title="Ambiente · chat, attività e riunioni" style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px 5px 5px', height: 46, borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+      background: attivo ? 'linear-gradient(150deg, #5A3352 0%, #492844 55%, #3A1F35 100%)' : ADM.DESK_LILLA,
+      color: attivo ? '#fff' : ADM.DESK_PRUGNA, position: 'relative',
+      boxShadow: attivo ? '0 14px 28px -14px rgba(53,28,48,0.75)' : '0 10px 22px -16px rgba(73,40,68,0.6), inset 0 0 0 1px rgba(255,255,255,0.35)',
+      transition: 'background 0.18s ease, box-shadow 0.18s ease',
+    }}>
+      <span style={{ position: 'relative', width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center', background: attivo ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.7)' }}>
+        <BuIcons.ambienteFill size={20}/>
+        {(r.menzioni > 0 || r.nonLetti > 0) && (
+          <span style={{
+            position: 'absolute', top: -5, right: -7, minWidth: 19, height: 19, padding: '0 5px', borderRadius: 99, boxSizing: 'border-box',
+            background: r.menzioni ? ADM.PINK : ADM.DESK_PRUGNA, color: '#fff', fontSize: 10.8, fontWeight: 800, display: 'grid', placeItems: 'center',
+            boxShadow: '0 0 0 2px ' + (attivo ? '#4E2B48' : ADM.DESK_LILLA),
+          }}>{r.menzioni ? '@' + r.menzioni : r.nonLetti}</span>
+        )}
+      </span>
+      <span style={{ textAlign: 'left', lineHeight: 1.1 }}>
+        <span style={{ display: 'block', fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em' }}>Ambiente</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.4, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', color: attivo ? 'rgba(255,255,255,0.75)' : ADM.DESK_PRUGNA_CHIARO }}>
+          {r.live ? <React.Fragment><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FF4A6E', animation: 'dkLive 1.4s ease-in-out infinite' }}/>Riunione in corso</React.Fragment> : online.length + ' online'}
+        </span>
+      </span>
+      <DkPila ids={online} size={24} max={3} bordo={fondo}/>
+    </button>
+  );
+}
+window.DkAmbientePillola = DkAmbientePillola;
 
 window.DkAmbientePage = DkAmbientePage;
 window.DkAmbienteBottone = DkAmbienteBottone;
