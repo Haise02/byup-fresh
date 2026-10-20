@@ -81,6 +81,10 @@ function LocaleDrawer({ locale: l, onClose, pieno, tabIniziale, pratica }) {
               ? { badge: CERTIFICAZIONI.filter(c=>c.localeId===l.id).length } : {}) },
           { id:'contratti', label:'Contratti e consensi' },
           { id:'fatturazione', label:'Fatturazione' },
+          // Tutto quello che lo fa uscire dal listino, deciso da noi: prezzo
+          // del piano, promozioni, visibilità in app, fedeltà, regali
+          // (desk-condizioni.jsx, 20 ottobre 2026).
+          { id:'condizioni', label:'Condizioni e vantaggi' },
           { id:'account', label:'Account' },
         ]} active={tab} onChange={setTab}/>
 
@@ -93,6 +97,7 @@ function LocaleDrawer({ locale: l, onClose, pieno, tabIniziale, pratica }) {
           {tab==='certificazioni' && <DrwCertificazioni locale={l} onCambia={contaCambio}/>}
           {tab==='contratti' && <DrwContratti locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
+          {tab==='condizioni' && <DrwCondizioni locale={l}/>}
           {tab==='account' && <DrwAccount locale={l} praticaIniziale={pratica}/>}
         </div>
       </div>

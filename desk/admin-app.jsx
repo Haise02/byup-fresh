@@ -537,6 +537,7 @@ function AdminApp({ tweaks }) {
 
         <div style={{flex:1}}/>
 
+        <DeskCampanella/>
         <button onClick={() => setSearchOpen(true)} className="desk-cerchio" data-tip="Cerca ovunque · ⌘K" data-tip-pos="below" aria-label="Cerca">
           <BuIcons.search size={18} strokeWidth={2}/>
         </button>
@@ -641,6 +642,8 @@ function AdminApp({ tweaks }) {
           </div>
         </main>
         <DeskAvviso/>
+        {/* Le notifiche: cartellini in basso a destra (desk-notifiche.jsx). */}
+        <DeskNotifiche/>
       </div>
 
       {/* Byuppino: l'assistente che risponde e fa le cose (desk-byuppino.jsx). */}

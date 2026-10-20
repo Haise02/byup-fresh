@@ -223,6 +223,8 @@ function bpCapisci(testo, rotta) {
   if (/\b(scrivi|manda|invia|posta|pubblica|avvisa|dici|di' a|scrivere)\b/.test(n) && (/#|\bcanale\b|\bin (generale|lancio|assistenza|prodotto|marketing|vendite|direzione)\b/.test(n) || bpPersoneNel(n).length)) {
     return bpIntentoMessaggio(testo, n);
   }
+  if (/\b(regala|regalagli|omaggio|regalo)\b/.test(n) && typeof condRegala === 'function') return bpPropostaRegalo(testo, n);
+  if ((/\b(sconto|scontato|gratis|gratuito|prezzo)\b/.test(n) || /\d+\s*(%|per ?cento)/.test(n)) && /\b(fai|fagli|applica|metti|dai|dagli|assegna)\b/.test(n) && typeof condApplicaPrezzo === 'function') return bpPropostaPrezzo(testo, n);
   if (/\b(segna|chiudi|completa|finisci|spunta)\b/.test(n) && /\b(t-\d+|attivita|task)\b/.test(n)) return bpPropostaChiudiAttivita(testo, n);
   if (/\b(segna|chiudi|risolvi|archivia)\b/.test(n) && /\b(ticket|m\d{3}|richiesta)\b/.test(n)) return bpPropostaTicket(testo, n);
 
@@ -479,6 +481,55 @@ function bpMieAttivita() {
     bpT(`Hai **${mie.length} attività** aperte${scadute ? ', ' + scadute + ' già scaduta' + (scadute > 1 ? 'e' : '') : ''}. Spunta quelle che hai finito:`),
     { tipo: 'compiti', ids: mie.slice(0, 6).map(a => a.id) },
     bpAzioni([{ label: 'Aggiungine una', icona: 'plus', scrivi: 'Crea un\'attività: ' }, { label: 'Apri le attività', icona: 'checkSquare', rotta: 'ambiente', vista: 'attivita' }]),
+  ];
+}
+
+// ─── Condizioni del locale: prezzo e regali ───────────────────────────────
+function bpLocaleNel(testo) {
+  const t = bpCerca(testo).filter(x => x.tipo === 'locale' || x.tipo === 'titolare')[0];
+  return t && t.p >= 5 ? t.ref : null;
+}
+function bpPropostaPrezzo(testo, n) {
+  const l = bpLocaleNel(testo);
+  if (!l) return [bpT('A quale locale? Per esempio: «Fai il 20% per 3 mesi alla Trattoria della Nonna, piano Plus».')];
+  const piano = /\bbusiness\b/.test(n) ? 'business' : /\bplus\b/.test(n) ? 'plus' : /\bstarter\b/.test(n) ? 'starter' : (l.piano === 'free' ? 'starter' : l.piano);
+  const pc = n.match(/(\d{1,3})\s*(%|per ?cento)/);
+  const fisso = n.match(/(\d+(?:[.,]\d+)?)\s*(€|euro)/);
+  const tipo = /\b(gratis|gratuit)/.test(n) ? 'gratis' : pc ? 'sconto' : fisso ? 'fisso' : 'sconto';
+  const valore = tipo === 'sconto' ? (pc ? Number(pc[1]) : 20) : tipo === 'fisso' ? Number(fisso[1].replace(',', '.')) : 0;
+  const mm = n.match(/\bper (\d+|un|uno|due|tre|sei|dodici) (mesi|mese)\b/);
+  const mesi = mm ? ({ un: 1, uno: 1, due: 2, tre: 3, sei: 6, dodici: 12 }[mm[1]] || Number(mm[1])) : 3;
+  const sempre = /\bper sempre\b/.test(n);
+  const p = { piano, tipo, valore, durata: sempre ? 'sempre' : 'mesi', mesi, motivo: 'Accordo commerciale', nota: 'Disposto da Byuppino su richiesta di Marco' };
+  const k = condCalcola(l, p);
+  return [
+    bpT(`Ecco la condizione per **${l.nome}**:`),
+    { tipo: 'proposta', id: bpId(), stato: 'attesa', icona: 'crown', titolo: condDescriviPrezzo(l, p), conferma: k.grossa ? 'Chiedi conferma' : 'Applica',
+      righe: [['Paga', (k.mese === 0 ? 'niente' : bpEuro(k.mese) + '/mese') + ' invece di ' + bpEuro(k.listino)], ['Fino al', sempre ? 'per sempre' : k.al.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })], ['Ci costa', sempre ? '—' : bpEuro(k.concessione)], ['Conferma', k.grossa ? 'serve un altro Super Admin' : 'basta la tua']],
+      esegui: () => {
+        const e = condApplicaPrezzo(l, p);
+        return { testo: e.stato === 'in_attesa' ? 'Fatto: la condizione è **in attesa**, la conferma un altro Super Admin.' : `Applicata a **${l.nome}**. La trovi in Condizioni e vantaggi.`,
+          avviso: e.stato === 'in_attesa' ? 'Condizione in attesa di conferma' : 'Prezzo applicato a ' + l.nome, annulla: e.annulla,
+          dopo: [{ label: 'Apri la scheda', icona: 'store', rotta: 'locali', opts: { openLocale: l, tab: 'condizioni' } }] };
+      } },
+  ];
+}
+function bpPropostaRegalo(testo, n) {
+  const l = bpLocaleNel(testo);
+  if (!l) return [bpT('A quale locale? Per esempio: «Regala un mese gratis a Pizzeria Sorbillo».')];
+  const id = /\bmese\b/.test(n) ? 'mese' : /\b(ordini|unita)\b/.test(n) ? 'unita' : /\b(qr|kit)\b/.test(n) ? 'kitqr' : /\b(configurazione|setup)\b/.test(n) ? 'setup' : /\b(evidenza|visibilita)\b/.test(n) ? 'vis' : 'mese';
+  const g = COND_REGALI.find(x => x.id === id);
+  const dp = testo.indexOf(':');
+  const nota = dp >= 0 ? testo.slice(dp + 1).trim() : '';
+  return [
+    bpT(`Regalo per **${l.nome}**:`),
+    { tipo: 'proposta', id: bpId(), stato: 'attesa', icona: 'gift', titolo: g.t, conferma: 'Regala',
+      righe: [['A', l.nome + ' · ' + l.titolare], ['Motivo', 'Assistenza / disservizio' + (nota ? ' · ' + nota : '')], ['Il locale', 'lo trova nella bacheca del gestionale']],
+      esegui: () => {
+        const e = condRegala(l, id, nota, 'Assistenza / disservizio');
+        return { testo: `Regalato: **${e.titolo}** a ${l.nome}.`, avviso: 'Regalo a ' + l.nome, annulla: e.annulla,
+          dopo: [{ label: 'Apri la scheda', icona: 'store', rotta: 'locali', opts: { openLocale: l, tab: 'condizioni' } }] };
+      } },
   ];
 }
 
@@ -972,7 +1023,7 @@ function BpAssistente({ rotta }) {
       // Byuppino abita sotto la barra nera, nella colonna di sinistra: lì non
       // copre mai un pulsante della pagina (a destra stanno «Chiama», «Invia»…).
       <div className="bp-lanciatore" style={{ position: 'absolute', left: 12, bottom: 62, zIndex: 120, display: 'flex', alignItems: 'flex-end' }}>
-        {benvenuto && (
+        {benvenuto && rotta !== 'ambiente' && (
           <div onClick={() => byuppinoApri()} style={{
             position: 'absolute', left: 70, bottom: 46, width: 236, padding: '12px 14px', borderRadius: '20px 20px 20px 6px', cursor: 'pointer',
             background: '#fff', boxShadow: '0 22px 44px -20px rgba(42,26,40,0.5)', fontSize: 13.2, lineHeight: 1.45, color: ADM.TEXT, animation: 'bpFumetto 0.4s cubic-bezier(0.34,1.5,0.64,1)',
@@ -1096,3 +1147,4 @@ function DeskByuppino({ rotta }) {
 window.DeskByuppino = DeskByuppino;
 window.bpCapisci = bpCapisci;
 window.bpInvia = bpInvia;
+window.bpUsaStore = bpUsaStore;

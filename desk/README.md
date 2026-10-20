@@ -114,6 +114,52 @@ prossimo passo di vendita più vicino; Byuppino legge la pipeline («com'è mess
 la pipeline?») e apre trattative («apri una trattativa con Osteria Bonelli,
 piano Business»).
 
+## Le notifiche
+
+[desk-notifiche.jsx](desk-notifiche.jsx). Quando succede qualcosa che ti
+riguarda — un messaggio o una menzione in Ambiente, un ticket nuovo, un passo
+di vendita che scade, una riunione che sta per iniziare, un agente che trova
+qualcosa — arriva un **cartellino in basso a destra**: si tocca e porta alla
+pagina giusta (la conversazione, il ticket, Sales…), sparisce da solo dopo
+qualche secondo e si ferma se ci passi sopra. Resta nella **campanella** in
+alto con il pallino dei non letti; «Non disturbare» spegne i cartellini.
+
+Il modello è quello che dovrà mandare il backend:
+`{ id, tipo, da, titolo, testo, quando, vai: { rotta, opts, vista } }` — `tipo`
+fra messaggio, menzione, ticket, sales, riunione, agente, sistema; `vai` con le
+stesse rotte di `window.hubVai`. Da codice: `window.deskNotifica({...})`. Una
+notifica di una conversazione che stai già guardando non suona.
+
+Nel prototipo sono **finte**: un copione (`NT_COPIONE`) ne fa arrivare sei nei
+primi tre minuti, e quelle di Ambiente scrivono davvero il messaggio nella
+conversazione (Sara in privato, Paola che ti menziona in #lancio), il ticket
+entra davvero in coda.
+
+## Condizioni e vantaggi del locale
+
+[desk-condizioni.jsx](desk-condizioni.jsx). Una tab della scheda del locale per
+tutto quello che lo fa uscire dal listino, deciso a mano:
+
+- **Piano e prezzo**: un piano con lo sconto, a prezzo fisso o gratis, per N
+  mesi, fino a una data o per sempre; anteprima con quanto paga, fino a quando
+  e quanto ci costa; finito il periodo torna a listino.
+- **Promozioni** dal catalogo, ognuna con la sua scadenza.
+- **Visibilità in app** (in evidenza nella città, primo nella categoria, nella
+  Home): il motore dei posizionamenti arriva dopo il lancio, la scelta si fa
+  già qui. La Vetrina speciale resta in Account.
+- **Fedeltà e premi** (in arrivo): badge «Locale fondatore», partner
+  certificato, mese gratis ogni 12, cashback.
+- **Fai un regalo**, per l'assistenza: un mese gratis, ordini in più (passa dal
+  registro degli accrediti, col suo tetto), configurazione, kit QR… con il
+  motivo e l'avviso al locale.
+- **Storico**: ogni atto con chi, quando e perché; si chiude, non si cancella.
+
+Le concessioni grosse (più di 3 mesi gratis, oltre 500 € di valore, o per
+sempre) nascono **in attesa** e le conferma un Super Admin diverso, come gli
+accrediti; nel prototipo la conferma si simula dallo storico. Byuppino sa farlo
+a parole: «fai il 20% per 3 mesi alla Trattoria della Nonna, piano Plus»,
+«regala un mese gratis a Pizzeria Sorbillo».
+
 ## Le sezioni
 
 La barra è tornata a parlare solo del lavoro di tutti i giorni: la governance
@@ -249,6 +295,8 @@ canale.
 | `hub-agent-ambiente.jsx` | L'Ambiente degli agenti: catene, lavagna, coda, registro, guardie |
 | `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e la pillola della barra in alto (`DkAmbientePillola`) |
 | `desk-oggi.jsx` | Oggi, la pagina d'ingresso |
+| `desk-notifiche.jsx` | Le notifiche: cartellini, campanella, il copione del prototipo (`deskNotifica`) |
+| `desk-condizioni.jsx` | La tab Condizioni e vantaggi della scheda del locale (`condApplicaPrezzo`, `condRegala`) |
 | `desk-sales.jsx` | Sales: fasi, store delle trattative (`slLeggi`, `slCrea`, `slSposta`), bacheca, elenco, pannello |
 | `desk-byuppino.jsx` | Byuppino: il motore che capisce (`bpCapisci`), le proposte con conferma, il pannello della chat, il personaggio |
 | `hub-impostazioni.jsx` | Recapiti e domini di invio (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
