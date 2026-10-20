@@ -150,6 +150,7 @@ const BP_SEZIONI = [
   { rotta: 'oggi',         nome: 'Oggi',            parole: ['oggi', 'home', 'pagina iniziale', 'inizio'] },
   { rotta: 'dashboard',    nome: 'Analisi',         parole: ['analisi', 'analisi dati', 'dashboard', 'statistiche', 'report'] },
   { rotta: 'contatti',     nome: 'Contatti',        parole: ['contatti', 'rubrica', 'clienti'] },
+  { rotta: 'sales',        nome: 'Sales',           parole: ['sales', 'pipeline', 'trattative', 'vendite'] },
   { rotta: 'elenchi',      nome: 'Elenchi',         parole: ['elenchi', 'segmenti', 'liste'] },
   { rotta: 'mkt-mail',     nome: 'Marketing · Mail', parole: ['mail', 'email', 'newsletter', 'marketing', 'campagne'] },
   { rotta: 'mkt-sms',      nome: 'Marketing · SMS', parole: ['sms'] },
@@ -168,6 +169,7 @@ const BP_SPUNTI = {
   oggi:        ['Cosa devo fare oggi?', 'Com\'è andato il mese?', 'Quali locali rischiamo di perdere?'],
   dashboard:   ['Ricavo del mese', 'Quanti locali attivi ci sono?', 'Locali fermi nell\'avvio'],
   contatti:    ['Quanti locali Business a Milano?', 'Apri Trattoria della Nonna', 'Pizzerie a Napoli'],
+  sales:       ['Com\'è messa la pipeline?', 'Apri una trattativa con Osteria Bonelli, piano Business', 'Quali passi sono in ritardo?'],
   elenchi:     ['Quanti locali Plus attivi?', 'Utenti app attivi', 'Apri le mail'],
   'mkt-mail':  ['Com\'è andata l\'ultima mail?', 'Quanti utenti app attivi?', 'Scrivi in #marketing: '],
   'mkt-sms':   ['Com\'è andata l\'ultima mail?', 'Quanti utenti app attivi?'],
@@ -209,6 +211,9 @@ function bpCapisci(testo, rotta) {
   if (/\b(grazie|perfetto|ottimo|grande|top)\b/.test(n) && n.split(' ').length <= 3) return [bpT('Figurati! Se ti serve altro sono qui. 💜')];
 
   // ── Azioni ───────────────────────────────────────────────────────────────
+  if (/\b(crea|creami|apri|aprimi|aggiungi|nuova|nuovo|segna)\b/.test(n) && /\b(trattativ|deal|opportunita)/.test(n) && typeof slCrea === 'function') {
+    return bpPropostaTrattativa(testo, n);
+  }
   if (/\b(ricordami|promemoria)\b/.test(n) || (/\b(crea|creami|aggiungi|nuova|nuovo|fai|metti|assegna)\b/.test(n) && /\b(attivita|task|compito|to ?do|cosa da fare)\b/.test(n))) {
     return bpPropostaAttivita(testo, n);
   }
@@ -240,6 +245,7 @@ function bpCapisci(testo, rotta) {
 
   // ── Domande sui numeri ───────────────────────────────────────────────────
   if (/\b(riassunto|panoramica|come (stiamo|va |andiamo|sta andando)|com'e andat|com'e il mese|andamento|briefing|punto della situazione)/.test(n) && !/\b(mail|campagn|newsletter)\b/.test(n)) return bpRiassunto();
+  if (/\b(pipeline|trattativ|sales|deal|vendit|prossimi passi)/.test(n) && typeof slLeggi === 'function') return bpSales();
   if (/\b(ricav|mrr|fatturat|incass|guadagn|entrate|soldi)/.test(n)) return bpRicavi();
   if (/\b(rischi|perder|perdendo|churn|dormient|non ordin|abbandon|inattiv)/.test(n)) return bpRischio();
   if (/\b(onboarding|avvio|fermi|bloccat|a meta)/.test(n) && /\blocal/.test(n)) return bpFermi();
@@ -476,6 +482,55 @@ function bpMieAttivita() {
   ];
 }
 
+// ─── Sales ─────────────────────────────────────────────────────────────────
+function bpSales() {
+  const l = slLeggi();
+  const n = slNumeri(l);
+  const fasi = [['contatto', 'Primo contatto'], ['demo', 'Demo'], ['proposta', 'Proposta'], ['trattativa', 'Trattativa']];
+  const nome = (t) => { const x = t.localeId && LOCALI.find(y => y.id === t.localeId); return x ? x.nome : t.prospect; };
+  const val = (t) => Math.round(((PIANI.find(p => p.id === t.piano) || {}).price || 0) * 12);
+  const passi = l.filter(t => t.passo && fasi.some(f => f[0] === t.fase)).sort((a, b) => a.passo.quando - b.passo.quando).slice(0, 4);
+  return [
+    { tipo: 'numero', valore: bpEuro(n.pipeline), etichetta: n.aperte + ' trattative aperte, valore all\'anno', pillola: 'ponderata ' + bpEuro(n.ponderata), tono: 'lilla' },
+    { tipo: 'griglia', voci: fasi.map(f => { const v = l.filter(t => t.fase === f[0]); return { v: v.length, l: f[1], s: bpEuro(v.reduce((a, t) => a + val(t), 0)) }; }) },
+    bpT(n.scaduti ? `**${n.scaduti} passi sono in ritardo.** I prossimi da fare:` : 'I prossimi passi:'),
+    { tipo: 'elenco', voci: passi.map(t => ({ titolo: t.passo.testo, sotto: nome(t) + ' · ' + t.id, destra: (t.passo.quando.getTime() < Date.now() - 36e5 ? '⚠︎ ' : '') + t.passo.quando.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }), icona: 'target', apri: { rotta: 'sales' } })) },
+    bpAzioni([{ label: 'Apri Sales', icona: 'target', rotta: 'sales' }, { label: 'Nuova trattativa', icona: 'plus', scrivi: 'Apri una trattativa con ' }]),
+  ];
+}
+
+function bpPropostaTrattativa(testo, n) {
+  const loc = bpCerca(testo).filter(x => x.tipo === 'locale' || x.tipo === 'titolare')[0];
+  const locale = loc && loc.p >= 5 ? loc.ref : null;
+  let prospect = '';
+  if (!locale) {
+    const m = testo.match(/\b(?:con|per|a|di)\s+(?:il |la |lo |l'|i )?([A-ZÀ-Ý][^,.:;]*?)(?=,|\.|:|;|\s+(?:piano|in fase|fase|entro|domani|oggi|per|a |di )|$)/);
+    prospect = m ? m[1].trim() : '';
+  }
+  if (!locale && !prospect) return [bpT('Con quale locale? Per esempio: «Apri una trattativa con Osteria Bonelli, piano Business».')];
+  const piano = /\bbusiness\b/.test(n) ? 'business' : /\bstarter\b/.test(n) ? 'starter' : 'plus';
+  const fase = /\bdemo\b/.test(n) ? 'demo' : /\bpropost/.test(n) ? 'proposta' : 'contatto';
+  const dp = testo.indexOf(':');
+  const passo = dp >= 0 ? bpMaiuscola(BP_RE_DATA.reduce((x, re) => x.replace(re, ' '), testo.slice(dp + 1)).replace(/\s+/g, ' ').trim()) || 'Primo contatto' : fase === 'demo' ? 'Fare la demo' : 'Primo contatto: capire coperti e sale';
+  const quando = bpQuando(n, 11) || (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(11, 0, 0, 0); return d; })();
+  const nomeP = locale ? locale.nome : prospect;
+  const prezzo = Math.round(((PIANI.find(p => p.id === piano) || {}).price || 0) * 12);
+  return [
+    bpT('Apro questa trattativa in Sales:'),
+    { tipo: 'proposta', id: bpId(), stato: 'attesa', icona: 'target', titolo: nomeP, conferma: 'Apri trattativa',
+      righe: [['Locale', locale ? locale.nome + ' · in rubrica' : prospect + ' · prospect'], ['Piano', bpPiano(piano) + ' · ' + bpEuro(prezzo) + '/anno'], ['Fase', { contatto: 'Primo contatto', demo: 'Demo', proposta: 'Proposta' }[fase]], ['Prossimo passo', passo + ' · ' + bpGiornoTesto(quando)]],
+      esegui: () => {
+        const t = slCrea({ localeId: locale ? locale.id : '', prospect, citta: '', piano, fase, fonte: 'Contatto diretto', passo, quando, chi: 'admin0', daByuppino: true });
+        return {
+          testo: `Trattativa **${t.id}** aperta in Sales.`,
+          avviso: 'Trattativa ' + t.id + ' aperta',
+          annulla: () => { if (typeof slLeggi === 'function') { const resto = slLeggi().filter(x => x.id !== t.id); window.__slScrivi ? window.__slScrivi(resto) : null; } },
+          dopo: [{ label: 'Apri Sales', icona: 'target', rotta: 'sales' }],
+        };
+      } },
+  ];
+}
+
 // ─── Le proposte: cosa farò, e il pulsante per farlo ──────────────────────
 function bpPrendiTitolo(testo, n, togli) {
   let t = testo;
@@ -488,7 +543,7 @@ function bpPrendiTitolo(testo, n, togli) {
   t = t.replace(/\s+/g, ' ').replace(/^[\s,:-]+|[\s,.:-]+$/g, '');
   return bpMaiuscola(t);
 }
-const BP_RE_DATA = [/\b(entro )?(oggi|domani|dopodomani|stasera|stamattina|stamani)\b/gi, /\b(entro )?(lunedì|lunedi|martedì|martedi|mercoledì|mercoledi|giovedì|giovedi|venerdì|venerdi|sabato|domenica)\b/gi, /\b(alle|ore|per le|entro le)\s+\d{1,2}([:.]\d{2})?\b/gi, /\btra (\d+|un|una|due|tre) (giorni|giorno|settimane|settimana)\b/gi, /\b(entro )?il \d{1,2}\b/gi, /\b(urgente|priorità alta|priorita alta|bassa priorità)\b/gi];
+const BP_RE_DATA = [/\b(entro )?(oggi|domani|dopodomani|stasera|stamattina|stamani)\b/gi, /\b(entro )?(lunedì|lunedi|martedì|martedi|mercoledì|mercoledi|giovedì|giovedi|venerdì|venerdi|sabato|domenica)(?![a-zà-ù])/gi, /\b(alle|ore|per le|entro le)\s+\d{1,2}([:.]\d{2})?\b/gi, /\btra (\d+|un|una|due|tre) (giorni|giorno|settimane|settimana)\b/gi, /\b(entro )?il \d{1,2}\b/gi, /\b(urgente|priorità alta|priorita alta|bassa priorità)\b/gi];
 
 function bpPropostaAttivita(testo, n) {
   const persone = bpPersoneNel(n);

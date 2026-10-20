@@ -97,6 +97,23 @@ o in privato in Ambiente, fissa riunioni, chiude attività e ticket.
 - Gli asset sono `byuppino.webp` (intero, scontornato) e `byuppino-viso.webp`
   (la faccia, per i cerchi).
 
+## Sales
+
+[desk-sales.jsx](desk-sales.jsx). Le trattative, solo per **tenerne traccia**:
+byup non ha un team commerciale. Quattro fasi aperte (Primo contatto 10% · Demo
+30% · Proposta 50% · Trattativa 75%) e due chiuse (Vinta, Persa con il
+motivo). Il valore è l'**abbonamento di un anno al piano** scelto, letto da
+`PIANI`: si cambia il piano, non si scrive un numero. In alto pipeline aperta,
+ponderata, vinte nel mese e passi in ritardo; poi la **bacheca** (si trascinano
+le schede; Vinta e Persa sono bersagli nella colonna delle chiuse) o
+l'**elenco**. Il pannello della trattativa ha le fasi, il piano, il **prossimo
+passo** con la sua data (rosso se in ritardo; «Fatto» lo scrive nel diario e
+chiede il successivo), chi la segue e il **diario**. Una trattativa è legata a
+un locale della rubrica oppure è un *prospect* col solo nome. Oggi mostra il
+prossimo passo di vendita più vicino; Byuppino legge la pipeline («com'è messa
+la pipeline?») e apre trattative («apri una trattativa con Osteria Bonelli,
+piano Business»).
+
 ## Le sezioni
 
 La barra è tornata a parlare solo del lavoro di tutti i giorni: la governance
@@ -110,6 +127,7 @@ una fila di pillole.
 | **Ambiente** (pillola lilla grande, in alto a destra) | Il posto dove il team lavora insieme: canali, messaggi diretti, thread, attività in lista e in bacheca, riunioni video. Sta fuori dall'elenco del CRM perché non è una sezione del CRM. Si apre anche con `?rotta=ambiente` |
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
 | **Contatti** → | **Contatti** (la rubrica; è stata la pagina d'ingresso fino al 2026-10-20, ora lo è Oggi), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
+| **Sales** | Le trattative: bacheca per fase, elenco, pannello con prossimo passo e diario. Vedi sopra |
 | **Marketing** → | **Mail**, **SMS**, **Messaggi all'app** (Posta e notifica, un canale — D-113), **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente agenti** (quello che fanno insieme; «agenti» per non confonderlo con Ambiente del team) |
@@ -231,6 +249,7 @@ canale.
 | `hub-agent-ambiente.jsx` | L'Ambiente degli agenti: catene, lavagna, coda, registro, guardie |
 | `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e la pillola della barra in alto (`DkAmbientePillola`) |
 | `desk-oggi.jsx` | Oggi, la pagina d'ingresso |
+| `desk-sales.jsx` | Sales: fasi, store delle trattative (`slLeggi`, `slCrea`, `slSposta`), bacheca, elenco, pannello |
 | `desk-byuppino.jsx` | Byuppino: il motore che capisce (`bpCapisci`), le proposte con conferma, il pannello della chat, il personaggio |
 | `hub-impostazioni.jsx` | Recapiti e domini di invio (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |

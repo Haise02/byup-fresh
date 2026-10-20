@@ -40,6 +40,10 @@ const HUB_NAV = [
       { id: 'contatti',  label: 'Contatti',  icon: 'staffFill', desc: 'La rubrica: locali, staff e utenti app insieme' },
       { id: 'elenchi',   label: 'Elenchi',   icon: 'listFill',  desc: 'Segmenti che si aggiornano da soli e liste fisse' },
     ] },
+  // Sales (20 ottobre 2026): le trattative, per tenerne traccia. Niente team
+  // commerciale: una pipeline semplice, il prossimo passo, il diario.
+  { id: 'sales', label: 'Sales', icon: 'target',
+    desc: 'Le trattative: fasi, valore, prossimo passo' },
   // «Promozioni» era una sezione sola con tre tab dentro. Ora i canali sono
   // quattro e ognuno ha il suo storico, le sue statistiche e il suo modo di
   // costruire un materiale: stanno a pari livello, non annidati in una tendina.
@@ -623,6 +627,7 @@ function AdminApp({ tweaks }) {
               {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
               {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
               {route === 'elenchi'      && <HubElenchiPage/>}
+              {route === 'sales'        && <DeskSalesPage/>}
               {route === 'mkt-mail'     && <HubMailPage/>}
               {route === 'mkt-sms'      && <HubSmsPage/>}
               {(route === 'mkt-posta' || route === 'mkt-push') && <HubPostaPage/>}

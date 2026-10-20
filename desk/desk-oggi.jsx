@@ -297,7 +297,18 @@ function ogDaSeguire(n, onNav) {
     valore: (l.completedSteps || []).length + ' passi fatti', nota: 'Piano ' + ((PIANI.find(p => p.id === l.piano) || {}).label || l.piano),
     apri: () => onNav('locali', { openLocale: l }),
   }));
-  return mie.concat(chiamate).concat(fermo).slice(0, 6);
+  // Il prossimo passo di vendita più vicino (Sales), se scade entro domani.
+  const sl = typeof slLeggi === 'function' ? slLeggi().filter(t => t.passo && ['contatto', 'demo', 'proposta', 'trattativa'].includes(t.fase) && t.passo.quando.getTime() < Date.now() + 864e5).sort((a, b) => a.passo.quando - b.passo.quando) : [];
+  const vendita = sl.slice(0, 1).map(t => {
+    const l = t.localeId && LOCALI.find(x => x.id === t.localeId);
+    return {
+      id: t.id, icona: 'target', quando: (t.passo.quando.getTime() < Date.now() ? 'In ritardo · ' : '') + ogQuando(t.passo.quando), caldo: true,
+      titolo: t.passo.testo, sotto: (l ? l.nome : t.prospect) + ' · trattativa ' + t.id,
+      valore: ogEuro(Math.round(((PIANI.find(p => p.id === t.piano) || {}).price || 0) * 12)), nota: 'all\'anno · piano ' + ((PIANI.find(p => p.id === t.piano) || {}).label || ''),
+      chi: [t.chi], apri: () => onNav('sales'),
+    };
+  });
+  return mie.slice(0, vendita.length ? 2 : 3).concat(vendita).concat(chiamate).concat(fermo).slice(0, 6);
 }
 
 // ─── Locali per fase: i blocchi colorati ───────────────────────────────────
@@ -416,7 +427,7 @@ function DeskOggiPage({ onNav }) {
         <OgScheda style={{ gridColumn: 'span 3', padding: '18px 18px 18px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-0.02em', flex: 1 }}>Da seguire oggi</div>
-            <span style={{ fontSize: 12.6, color: ADM.MUTED, fontWeight: 600 }}>le tue attività, le chiamate in coda, i locali fermi</span>
+            <span style={{ fontSize: 12.6, color: ADM.MUTED, fontWeight: 600 }}>le tue attività, le trattative, le chiamate in coda, i locali fermi</span>
             <OgCerchio icona="plus" onClick={() => window.byuppinoApri && window.byuppinoApri('Crea un\'attività: ')} title="Nuova attività"/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
