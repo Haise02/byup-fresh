@@ -801,14 +801,21 @@ const LIVELLI = {
 
 // I preset. Un ruolo È una riga di livelli per area; alla creazione di un
 // account si parte da un preset e si può regolare ogni cella (il risultato è
-// un account «Personalizzato», con i livelli suoi). Il Super Admin governa la
-// piattaforma e GUARDA il lavoro operativo senza toccarlo: è voluto — le
-// scritture operative appartengono ai mestieri. Le azioni pesanti
+// un account «Personalizzato», con i livelli suoi).
+// Dal 21 ottobre 2026 (Desk 2.0) i ruoli di governo sono due:
+//   · SUPER ADMIN: accesso massimo — ogni area in scrittura (Analisi resta
+//     consultazione, perché lì non c'è niente da scrivere), Piattaforma
+//     compresa; è anche il solo che cambia i permessi di chi è già nel team;
+//   · ADMIN: il preset che prima era del Super Admin — governa sistemi,
+//     proprietà, domini e agenti, e GUARDA il lavoro operativo senza
+//     toccarlo. Piattaforma resta riservata al Super Admin. Le azioni pesanti
 // (sospensioni, rimborsi, broadcast) non hanno righe separate: sono Scrittura
 // sull'area, col motivo obbligatorio dove la console già lo chiede.
 const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Governa piattaforma e sistemi; il lavoro operativo lo guarda, non lo tocca', color: 'DANGER',
-    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', conformita: 'lettura', autorita: 'scrittura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
+  super_admin: { label: 'Super Admin', desc: 'Accesso completo a tutto, Piattaforma compresa; cambia i permessi del team', color: 'DANGER',
+    livelli: { analisi: 'lettura', contatti: 'scrittura', moderazione: 'scrittura', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', conformita: 'scrittura', autorita: 'scrittura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
+  admin:       { label: 'Admin', desc: 'Governa sistemi, proprietà, domini e agenti; il lavoro operativo lo guarda, non lo tocca', color: 'INDIGO',
+    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', conformita: 'lettura', autorita: 'scrittura', domini: 'scrittura', sicurezza: 'scrittura' } },
   support:     { label: 'Support',    desc: 'Contatti, assistenza e le liste e automazioni del suo lavoro', color: 'INFO',
     livelli: { analisi: 'lettura', contatti: 'scrittura', moderazione: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', conformita: 'scrittura', autorita: 'lettura', domini: 'nessuno', sicurezza: 'nessuno' } },
   marketing:   { label: 'Marketing',  desc: 'Campagne, elenchi, proprietà e domini di invio; i contatti li consulta', color: 'WARN',
@@ -862,7 +869,7 @@ const TEAM = [
   { id: 'admin1', nome: 'Laura Bianchi', email: 'l.bianchi@byup.it', ruolo: 'custom',
     permessiCustom: { analisi: 'lettura', contatti: 'lettura', moderazione: 'nessuno', elenchi: 'lettura', proprieta: 'nessuno', marketing: 'nessuno', workflow: 'lettura', agent: 'lettura', assistenza: 'scrittura', conformita: 'nessuno', domini: 'nessuno', sicurezza: 'nessuno' },
     avatar: 'LB', avatarBg: '#5B34D6', lastActive: new Date(Date.now() - 1200000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-03-22') },
-  { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'support', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
+  { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'admin', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
   { id: 'support1', nome: 'Sara Conti', email: 's.conti@byup.it', ruolo: 'support', avatar: 'SC', avatarBg: '#16A34A', lastActive: new Date(Date.now() - 180000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-07-04') },
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },

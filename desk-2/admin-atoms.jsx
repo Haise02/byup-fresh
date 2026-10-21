@@ -144,7 +144,7 @@ function AdmEmpty({ icon = 'eye', title, desc }) {
   );
 }
 
-function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, disabled, style = {}, className }) {
+function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, disabled, style = {}, className, title }) {
   const styles = {
     primary:   { bg: ADM.INCHIOSTRO, fg: '#fff', border: 'transparent', shadow:'0 8px 18px -10px rgba(29,21,32,0.6), 0 1px 0 rgba(255,255,255,0.08) inset' },
     cta:       { bg: 'linear-gradient(180deg, #FF4A78 0%, #C40B45 100%)', fg: '#fff', border: 'transparent', shadow:'0 4px 12px -4px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.20) inset' },
@@ -160,7 +160,7 @@ function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, 
   const radius = 999;
   const Icon = icon ? BuIcons[icon] : null;
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled} title={title}
       className={`adm-btn adm-btn-${variant} ${className||''}`.trim()}
       style={{
         display:'inline-flex', alignItems:'center', justifyContent:'center', gap:7,

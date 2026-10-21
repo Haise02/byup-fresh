@@ -211,11 +211,14 @@ function InviteMemberModal({ open, onClose, onInvite }) {
 
           <div>
             <div style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, marginBottom:8}}>Ruolo di partenza</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8}}>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
               {Object.entries(RUOLI).filter(([, r]) => !r.personalizzato).map(([id, r]) => {
                 const sel = ruolo === id;
+                // Un Super Admin lo nomina solo un Super Admin.
+                const vietato = id === 'super_admin' && hubUtenteCorrente().ruolo !== 'super_admin';
                 return (
-                  <button key={id} onClick={()=>scegliPreset(id)} style={{
+                  <button key={id} onClick={()=>!vietato && scegliPreset(id)} disabled={vietato} title={vietato ? 'Solo un Super Admin può nominarne un altro' : undefined} style={{
+                    opacity: vietato ? 0.45 : 1,
                     textAlign:'left', padding:'10px 12px', cursor:'pointer', fontFamily:'inherit',
                     background: sel ? ADM.PINK_BG_SOFT : '#fff',
                     border:`1.5px solid ${sel ? ADM.PINK : ADM.BORDER}`,
@@ -1681,6 +1684,13 @@ function AccessiList() {
   const IO = (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
   const membri = TEAM.filter(m => m.attivo !== false && !m.pending && !revocati[m.id]);
   const puoRevocare = hubPuo('sicurezza', 'scrittura');
+  // Cambiare i permessi di chi è già nel team è del solo Super Admin (Desk
+  // 2.0, 21 ottobre 2026): chi scrive su Sicurezza invita e revoca, ma il
+  // perimetro di un collega già dentro lo sposta solo chi ha l'accesso
+  // completo. Il proprio non si tocca: lo cambia un altro Super Admin.
+  const puoModificare = me.ruolo === 'super_admin';
+  const [modifica, setModifica] = useStateTeam(null);
+  const [, ridisegna] = useStateTeam(0);
 
   const confermaRevoca = () => {
     if (!revoca || !motivo.trim()) return;
@@ -1803,14 +1813,27 @@ function AccessiList() {
                     title={puoRevocare ? undefined : 'Serve Scrittura su Sicurezza e sistemi'}
                     onClick={() => { setRevoca(m); setMotivo(''); }}>Revoca l'accesso</AdmButton>
                 )}
-                {m.isYou && <span style={{fontSize:12.5, color:ADM.MUTED}}>Il tuo accesso viene dal ruolo: si cambia fuori da qui.</span>}
+                {m.isYou && <span style={{fontSize:12.5, color:ADM.MUTED}}>I tuoi permessi li cambia un altro Super Admin.</span>}
                 <div style={{flex:1}}/>
+                {!m.isYou && (
+                  <AdmButton variant="primary" size="sm" icon="sliders" disabled={!puoModificare}
+                    title={puoModificare ? undefined : 'Solo un Super Admin cambia i permessi di chi è già nel team'}
+                    onClick={() => setModifica(m)}>Modifica permessi</AdmButton>
+                )}
                 <AdmButton variant="secondary" size="sm" onClick={() => setDettaglio(null)}>Chiudi</AdmButton>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {modifica && (
+        <ModificaPermessi membro={modifica} onClose={() => setModifica(null)} onSalvato={(m, annulla) => {
+          setModifica(null); setDettaglio(m); ridisegna(x => x + 1);
+          if (window.deskAvviso) window.deskAvviso({ testo: 'Permessi di ' + (m.nomeCompleto || m.nome) + ' aggiornati · ' + admLabelRuolo(m.ruolo),
+            annulla: () => { annulla(); ridisegna(x => x + 1); } });
+        }}/>
+      )}
 
       {revoca && (
         <div onClick={() => setRevoca(null)} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)', display:'flex', alignItems:'center', justifyContent:'center', padding:24}}>
@@ -1826,6 +1849,132 @@ function AccessiList() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Modifica permessi di un membro già nel team ───────────────────────────
+// Si sceglie il preset di partenza e si regolano le aree, come all'invito. Se
+// le celle coincidono con un preset il membro prende quel ruolo; se ne
+// differiscono diventa Personalizzato. Il motivo è obbligatorio e finisce
+// nell'audit log con le differenze, area per area: allargare o stringere il
+// perimetro di qualcuno è un atto, e un atto senza motivo non è evidenza.
+// Piattaforma non è una cella: si ha col ruolo Super Admin, e basta.
+function ModificaPermessi({ membro: m, onClose, onSalvato }) {
+  const aree = AREE.filter(a => !a.riservata);
+  const prima = admLivelliDi(m.ruolo, m);
+  const presetIniziale = m.ruolo === 'custom' ? 'support' : m.ruolo;
+  const [preset, setPreset] = useStateTeam(presetIniziale);
+  const [celle, setCelle] = useStateTeam(() => Object.assign({}, prima));
+  const [motivo, setMotivo] = useStateTeam('');
+  const presetDi = (id) => (RUOLI[id] && RUOLI[id].livelli) || {};
+  const uguali = (a, b) => aree.every(x => (a[x.id] || 'nessuno') === (b[x.id] || 'nessuno'));
+  // Il ruolo che ne esce: il preset scelto se le celle coincidono, altrimenti
+  // un preset qualsiasi che coincida, altrimenti Personalizzato.
+  const ruoloNuovo = uguali(celle, presetDi(preset)) ? preset
+    : (Object.keys(RUOLI).find(id => !RUOLI[id].personalizzato && uguali(celle, presetDi(id))) || 'custom');
+  const diff = aree.filter(a => (celle[a.id] || 'nessuno') !== (prima[a.id] || 'nessuno'));
+  const cambiaRuolo = ruoloNuovo !== m.ruolo;
+  const cambia = cambiaRuolo || diff.length > 0;
+  const scegliPreset = (id) => { setPreset(id); setCelle(Object.assign({}, presetDi(id))); };
+  const salva = () => {
+    if (!cambia || !motivo.trim()) return;
+    const IO = (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
+    const dett = diff.map(a => a.label + ' ' + LIVELLI[prima[a.id] || 'nessuno'].label.toLowerCase() + ' → ' + LIVELLI[celle[a.id] || 'nessuno'].label.toLowerCase()).join(', ');
+    const vecchioRuolo = m.ruolo, vecchiCustom = m.permessiCustom;
+    m.ruolo = ruoloNuovo;
+    m.permessiCustom = ruoloNuovo === 'custom' ? Object.assign({}, celle) : undefined;
+    const evento = { who: IO, action: 'ha modificato i permessi di',
+      target: `${m.nomeCompleto || m.nome} · ${admLabelRuolo(vecchioRuolo)} → ${admLabelRuolo(ruoloNuovo)}${dett ? ' · ' + dett : ''} · ${motivo.trim()}`,
+      icon: 'sliders', color: 'WARN', tipo: 'accessi', when: new Date() };
+    AUDIT_EVENTS.unshift(evento);
+    onSalvato(m, () => {
+      // Annulla: il membro torna com'era e l'evento esce dal log, perché il
+      // cambio non è mai arrivato a valere (si applica al prossimo caricamento).
+      m.ruolo = vecchioRuolo; m.permessiCustom = vecchiCustom;
+      const i = AUDIT_EVENTS.indexOf(evento); if (i >= 0) AUDIT_EVENTS.splice(i, 1);
+    });
+  };
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, zIndex:62, background:'rgba(42,26,40,0.34)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:24}}>
+      <div onClick={e => e.stopPropagation()} style={{width:640, maxWidth:'94%', maxHeight:'90%', display:'flex', flexDirection:'column', background:'#FDFBFA', borderRadius:28, boxShadow:'0 40px 90px -24px rgba(42,26,40,0.5)', animation:'admModalIn 0.18s ease', overflow:'hidden'}}>
+        <div style={{padding:'20px 24px 14px', display:'flex', alignItems:'center', gap:12, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <AdmAvatar name={m.nome} bg={m.avatarBg} size={42}/>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:19, fontWeight:700, letterSpacing:'-0.03em', color:ADM.TEXT}}>Permessi di {m.nomeCompleto || m.nome}</div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>Oggi: <b>{admLabelRuolo(m.ruolo)}</b>. Le modifiche valgono dal prossimo caricamento di Desk.</div>
+          </div>
+          <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>
+        </div>
+        <div className="hub-scroll" style={{flex:1, minHeight:0, padding:'16px 24px'}}>
+          <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, marginBottom:8}}>Parti da un ruolo</div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:8}}>
+            {Object.entries(RUOLI).filter(([, r]) => !r.personalizzato).map(([id, r]) => {
+              const sel = preset === id && ruoloNuovo !== 'custom';
+              return (
+                <button key={id} onClick={() => scegliPreset(id)} style={{
+                  textAlign:'left', padding:'10px 11px', cursor:'pointer', fontFamily:'inherit', borderRadius:16,
+                  background: sel ? '#fff' : 'rgba(255,255,255,0.6)', border:`1.5px solid ${sel ? ADM.INCHIOSTRO : 'rgba(73,40,68,0.10)'}`,
+                }}>
+                  <span style={{display:'flex', alignItems:'center', gap:6}}>
+                    <span style={{width:8, height:8, borderRadius:'50%', background:ADM[r.color]}}/>
+                    <span style={{fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>{r.label}</span>
+                  </span>
+                  <span style={{display:'block', fontSize:11.4, color:ADM.MUTED, marginTop:3, lineHeight:1.35}}>{r.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:8, margin:'16px 0 8px'}}>
+            <span style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, flex:1}}>Regola le aree</span>
+            <span style={{fontSize:12.2, color:ADM.MUTED}}>Risultato:</span>
+            <AdmBadge color={(RUOLI[ruoloNuovo] || {}).color || 'PLAN_FREE'} size="xs">{admLabelRuolo(ruoloNuovo)}</AdmBadge>
+          </div>
+          <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:18, overflow:'hidden', background:'#fff'}}>
+            {aree.map((a, i) => {
+              const val = celle[a.id] || 'nessuno';
+              const opzioni = a.soloLettura ? ['nessuno', 'lettura'] : ['nessuno', 'lettura', 'scrittura'];
+              const cambiata = val !== (prima[a.id] || 'nessuno');
+              return (
+                <div key={a.id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i === aree.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`, background: cambiata ? '#FFF6F8' : '#fff'}}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <span style={{fontSize:13.4, fontWeight:600, color:ADM.TEXT}}>{a.label}</span>
+                    {a.predisposta && <span style={{fontSize:11, fontWeight:700, color:ADM.WARN, marginLeft:6}}>predisposta</span>}
+                    {cambiata && <span style={{fontSize:11.2, fontWeight:700, color:ADM.PINK_DARK, marginLeft:7}}>era {LIVELLI[prima[a.id] || 'nessuno'].label.toLowerCase()}</span>}
+                  </div>
+                  <div style={{display:'flex', gap:4}}>
+                    {opzioni.map(op => {
+                      const sel = val === op; const c = LIVELLI[op];
+                      return (
+                        <button key={op} onClick={() => setCelle(Object.assign({}, celle, { [a.id]: op }))} style={{
+                          padding:'4px 10px', borderRadius:999, cursor:'pointer', fontFamily:'inherit', fontSize:12.3, fontWeight:700,
+                          background: sel ? (ADM[c.color + '_SOFT'] || ADM.PANEL_SOFT) : 'transparent', color: sel ? ADM[c.color] : ADM.MUTED_SOFT,
+                          border:`1.5px solid ${sel ? ADM[c.color] : 'transparent'}`,
+                        }}>{c.label}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:12, color:ADM.MUTED, marginTop:8, lineHeight:1.5}}>
+            Piattaforma (piani, prezzi, peso degli ordini) non è un'area da regolare: ce l'ha solo chi è Super Admin.
+            {ruoloNuovo === 'super_admin' && m.ruolo !== 'super_admin' && <b style={{color:ADM.DANGER}}> Stai dando l'accesso completo, Piattaforma compresa.</b>}
+          </div>
+          <div style={{marginTop:14}}>
+            <div style={{fontSize:13.3, fontWeight:700, color:ADM.TEXT, marginBottom:6}}>Motivo <span style={{fontWeight:500, color:ADM.MUTED}}>· finisce nell'audit log</span></div>
+            <HubInput valore={motivo} onCambia={setMotivo} placeholder="Es. passa al marketing da novembre; copre le ferie di Sara"/>
+          </div>
+        </div>
+        <div style={{padding:'12px 24px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:10}}>
+          <span style={{fontSize:12.6, color:ADM.MUTED, flex:1}}>
+            {cambia ? (diff.length ? diff.length + (diff.length === 1 ? ' area cambiata' : ' aree cambiate') : 'Cambia il ruolo') + (cambiaRuolo ? ' · ' + admLabelRuolo(m.ruolo) + ' → ' + admLabelRuolo(ruoloNuovo) : '') : 'Nessuna modifica'}
+          </span>
+          <AdmButton variant="secondary" size="sm" onClick={onClose}>Annulla</AdmButton>
+          <AdmButton variant="primary" size="sm" icon="check" disabled={!cambia || !motivo.trim()} onClick={salva}>Salva permessi</AdmButton>
+        </div>
+      </div>
     </div>
   );
 }

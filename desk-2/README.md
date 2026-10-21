@@ -223,7 +223,7 @@ giusta.
 ### Ruoli e permessi
 
 I permessi si chiedono con una funzione sola, `hubPuo(area, livello)`, e
-`?ruolo=support|marketing` impersona un profilo per vedere lo stato negato;
+`?ruolo=admin|support|marketing` impersona un profilo per vedere lo stato negato;
 aree, livelli e profili stanno in `admin-data.jsx` (`AREE`, `LIVELLI`, `RUOLI`,
 `admLivelliDi`), la matrice si apre da Impostazioni → Sicurezza e sistemi →
 Accessi. Il riesame degli accessi non è nel prodotto (D-44): resta la scheda
@@ -519,6 +519,23 @@ Le quattordici aree, i tre profili e ciò che ciascuno scrive stanno nel DPT
 Sicurezza e sistemi → Accessi. Una scelta resta scritta anche qui perché guida
 il mock: **le impostazioni della piattaforma restano al solo Super Admin**, sono
 leve commerciali (prezzi, piani, soglie).
+
+Dal 21 ottobre 2026 Desk 2.0 ha quattro preset più il Personalizzato. **Super
+Admin** ha l'accesso completo: scrive su ogni area, Piattaforma compresa, ed è
+l'unico che cambia i permessi di chi è già nel team. **Admin** è il preset che
+prima si chiamava Super Admin: governa sistemi, proprietà, domini e agenti, il
+lavoro operativo lo legge e basta, e non vede Piattaforma. Poi Assistenza e
+Marketing, invariati. Un Super Admin lo nomina solo un Super Admin, anche
+all'invito.
+
+Il cambio dei permessi si apre dalla scheda di un membro in Accessi →
+«Modifica permessi» (spento, col perché, per chi non è Super Admin; assente sui
+propri permessi, che cambia un altro Super Admin). Si parte da un preset e si
+regolano le aree; se le celle coincidono con un preset il membro prende quel
+ruolo, altrimenti diventa Personalizzato. Il motivo è obbligatorio e finisce
+nell'audit log con le aree cambiate; l'avviso in basso permette di annullare.
+Componente: `ModificaPermessi` in `admin-team.jsx`. Da riportare nel DPT 12.2,
+che oggi conosce tre profili.
 
 ---
 
