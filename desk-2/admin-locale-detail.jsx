@@ -543,6 +543,9 @@ const drwLab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'u
 // cose distinte — questo fascicolo riguarda QUESTO locale, ma chi lo
 // amministra può averne altri. Derivazione stabile: un titolare su quattro.
 function drwLocaliAssociati(l) {
+  // Desk 2.0: gli account dei titolari vivono in desk-locali.jsx, e la
+  // scheda legge da lì — così «Sposta a un altro titolare» si vede anche qui.
+  if (typeof window.lcLocaliDelTitolare === 'function') return window.lcLocaliDelTitolare(l);
   const out = [{ id: l.id, nome: l.nome, citta: l.citta }];
   const s = hubSeme('grp-' + l.id);
   if (s % 4 === 0) {

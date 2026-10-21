@@ -478,6 +478,16 @@ function DrwCondizioni({ locale: l }) {
   );
 }
 
+// Una riga per la scheda della vista Locali: cosa ha di diverso dal listino.
+function condRiassunto(l) {
+  const c = COND_STORE.per[l.id] || (l.id === 'L1028' || l.id === 'L1021' ? condDi(l) : null);
+  if (!c) return null;
+  if (c.prezzo) return c.prezzo.tipo === 'sconto' ? '−' + c.prezzo.valore + '%' : c.prezzo.tipo === 'gratis' ? 'Gratis' : c.prezzo.tipo === 'fisso' ? 'Prezzo fisso' : null;
+  if (c.promo.length) return c.promo.length === 1 ? 'Promozione' : c.promo.length + ' promozioni';
+  if (c.visibilita) return 'In evidenza';
+  return null;
+}
+window.condRiassunto = condRiassunto;
 window.DrwCondizioni = DrwCondizioni;
 window.condApplicaPrezzo = condApplicaPrezzo;
 window.condRegala = condRegala;

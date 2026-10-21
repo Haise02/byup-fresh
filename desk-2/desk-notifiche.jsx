@@ -37,7 +37,7 @@ const NT_TIPI = {
 
 // ═══ Lo store ══════════════════════════════════════════════════════════════
 const NT_STORE = {
-  s: { tutte: [], visibili: [], nonDisturbare: false, aperto: false },
+  s: { tutte: [], visibili: [], nonDisturbare: false, aperto: false, suono: (() => { try { return localStorage.getItem('desk_notifiche_suono') !== '0'; } catch (e) { return true; } })() },
   ascolta: new Set(),
 };
 function ntAggiorna(fn) { NT_STORE.s = Object.assign({}, NT_STORE.s, fn(NT_STORE.s)); NT_STORE.ascolta.forEach(f => f()); }
@@ -47,10 +47,52 @@ function ntUsa() {
   return NT_STORE.s;
 }
 let NT_CONTA = 0;
+// ═══ Il suono ══════════════════════════════════════════════════════════════
+// Un rintocco breve e morbido, sintetizzato (niente file da scaricare): due
+// note che salgono (Sol → Do, una quinta sopra un'ottava), seno con un filo di
+// triangolo per dare corpo, attacco di pochi millisecondi e coda che sfuma in
+// mezzo secondo. Si sente senza far sobbalzare. Le menzioni e i ticket di
+// priorità alta aggiungono una terza nota, più alta.
+// Il browser non suona finché la pagina non è stata toccata: il contesto
+// audio si sblocca al primo clic o tasto, e da lì in poi suona.
+const NT_AUDIO = { ctx: null };
+function ntSbloccaAudio() {
+  try {
+    if (!NT_AUDIO.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) NT_AUDIO.ctx = new C(); }
+    if (NT_AUDIO.ctx && NT_AUDIO.ctx.state === 'suspended') NT_AUDIO.ctx.resume();
+  } catch (e) {}
+}
+window.addEventListener('pointerdown', ntSbloccaAudio, { passive: true });
+window.addEventListener('keydown', ntSbloccaAudio);
+function ntSuona(forte) {
+  const ctx = NT_AUDIO.ctx;
+  if (!ctx || ctx.state !== 'running') return;
+  try {
+    const t0 = ctx.currentTime + 0.02;
+    const master = ctx.createGain(); master.gain.value = 0.16;
+    const filtro = ctx.createBiquadFilter(); filtro.type = 'lowpass'; filtro.frequency.value = 4200;
+    master.connect(filtro); filtro.connect(ctx.destination);
+    const note = forte ? [[783.99, 0], [1046.5, 0.11], [1318.5, 0.22]] : [[783.99, 0], [1046.5, 0.12]];
+    note.forEach(([f, dt], i) => {
+      [['sine', 1], ['triangle', 0.18]].forEach(([tipo, vol]) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = tipo; o.frequency.value = f;
+        const t = t0 + dt; const coda = i === note.length - 1 ? 0.62 : 0.34;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + coda);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t + coda + 0.05);
+      });
+    });
+  } catch (e) {}
+}
+window.deskSuonoNotifica = ntSuona;
+
 function deskNotifica(n) {
   const nota = Object.assign({ id: 'nt' + (++NT_CONTA), quando: new Date(), letta: false, tipo: 'sistema' }, n);
   // Se stai già guardando quello di cui parla, niente cartellino: è già lì.
   const stessaVista = nota.vai && nota.vai.rotta === window.hubRotta && (!nota.vai.vista || (typeof dkLeggi === 'function' && dkLeggi().vista === nota.vai.vista));
+  if (!stessaVista && !NT_STORE.s.nonDisturbare && NT_STORE.s.suono) ntSuona(nota.tipo === 'menzione' || nota.forte);
   ntAggiorna(s => ({
     tutte: [Object.assign({}, nota, { letta: stessaVista })].concat(s.tutte).slice(0, 40),
     visibili: s.nonDisturbare || stessaVista ? s.visibili : [nota].concat(s.visibili).slice(0, 3),
@@ -93,7 +135,7 @@ const NT_COPIONE = [
       oggetto: 'Il QR del tavolo 4 apre il menu di un altro locale', desc: 'Buonasera,\n\nstasera due clienti al tavolo 4 hanno scansionato il QR e si sono trovati il menu di un altro ristorante. Gli altri tavoli funzionano. Potete controllare subito? Abbiamo la sala piena.\n\nLuca Conti\nPizzeria Brandi',
       allegati: [], data: new Date(), stato: 'nuova', priorita: 'alta', tags: [], assignedTo: null,
     });
-    return { tipo: 'ticket', titolo: 'Nuovo ticket · priorità alta', testo: 'Pizzeria Brandi: «Il QR del tavolo 4 apre il menu di un altro locale»', vai: { rotta: 'comunicazioni', opts: { openComm: id } } };
+    return { tipo: 'ticket', forte: true, titolo: 'Nuovo ticket · priorità alta', testo: 'Pizzeria Brandi: «Il QR del tavolo 4 apre il menu di un altro locale»', vai: { rotta: 'comunicazioni', opts: { openComm: id } } };
   } },
   { dopo: 62, fai: () => {
     ntScriviIn('lancio', 'mkt1', 'E @[admin0] la landing è pronta per la tua rilettura: mancano solo i prezzi annuali. Te la lascio qui.', true);
@@ -240,6 +282,14 @@ function DeskCampanella() {
                 <span style={{ display: 'block', fontSize: 11.8, color: ADM.MUTED }}>Niente cartellini: le notifiche restano solo qui</span>
               </span>
               <AdmSwitch checked={s.nonDisturbare} onChange={(v) => ntAggiorna(() => ({ nonDisturbare: v, visibili: v ? [] : NT_STORE.s.visibili }))} size="sm"/>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px 14px' }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13.2, fontWeight: 700 }}>Suono</span>
+                <span style={{ display: 'block', fontSize: 11.8, color: ADM.MUTED }}>Un rintocco breve quando arriva qualcosa</span>
+              </span>
+              <button onClick={() => { ntSbloccaAudio(); setTimeout(() => ntSuona(false), 60); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.4, fontWeight: 700, color: ADM.MUTED }}>Prova</button>
+              <AdmSwitch checked={s.suono} onChange={(v) => { try { localStorage.setItem('desk_notifiche_suono', v ? '1' : '0'); } catch (e) {} ntAggiorna(() => ({ suono: v })); if (v) { ntSbloccaAudio(); setTimeout(() => ntSuona(false), 60); } }} size="sm"/>
             </div>
           </div>
         </React.Fragment>

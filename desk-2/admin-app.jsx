@@ -38,6 +38,8 @@ const HUB_NAV = [
   { id: 'contatti', label: 'Contatti', icon: 'staffFill', colore: 'PINK',
     figli: [
       { id: 'contatti',  label: 'Contatti',  icon: 'staffFill', desc: 'La rubrica: locali, staff e utenti app insieme' },
+      // I locali come schede, con il titolare e i segnali (desk-locali.jsx).
+      { id: 'cnt-locali', label: 'Locali',   icon: 'storeFill', desc: 'I locali come schede: titolari, segnali, azioni rapide' },
       { id: 'elenchi',   label: 'Elenchi',   icon: 'listFill',  desc: 'Segmenti che si aggiornano da soli e liste fisse' },
     ] },
   // Sales (20 ottobre 2026): le trattative, per tenerne traccia. Niente team
@@ -541,9 +543,6 @@ function AdminApp({ tweaks }) {
         <button onClick={() => setSearchOpen(true)} className="desk-cerchio" data-tip="Cerca ovunque · ⌘K" data-tip-pos="below" aria-label="Cerca">
           <BuIcons.search size={18} strokeWidth={2}/>
         </button>
-        <button onClick={() => window.byuppinoApri && window.byuppinoApri()} className="desk-cerchio" data-tip="Chiedi a Byuppino · ⌘J" data-tip-pos="below" aria-label="Chiedi a Byuppino" style={{padding:0, overflow:'hidden'}}>
-          <img src="byuppino-viso.webp" alt="" style={{width:42, height:42, display:'block', background:'#EBD7E8'}}/>
-        </button>
         {/* Ambiente: il posto dove il team sta tutto il giorno. Non è una
             sezione del CRM e non sta tra le linguette: è la pillola lilla,
             grande, con chi c'è e cosa ti aspetta. */}
@@ -627,6 +626,7 @@ function AdminApp({ tweaks }) {
               {route === 'ambiente'     && <div style={{flex:1, minHeight:0, padding:'4px 24px 20px 10px', display:'flex'}}><div className="desk-ambiente-guscio" style={{flex:1, minHeight:0, borderRadius:26, overflow:'hidden', background:'rgba(255,255,255,0.86)', boxShadow:ADM.CARD_SHADOW, border:`1px solid ${ADM.GLASS_BORDO}`, display:'flex'}}><DkAmbientePage/></div></div>}
               {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
               {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
+              {route === 'cnt-locali'   && <DeskLocaliPage/>}
               {route === 'elenchi'      && <HubElenchiPage/>}
               {route === 'sales'        && <DeskSalesPage/>}
               {route === 'mkt-mail'     && <HubMailPage/>}

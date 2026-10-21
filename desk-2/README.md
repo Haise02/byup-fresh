@@ -121,6 +121,22 @@ prossimo passo di vendita più vicino; Byuppino legge la pipeline («com'è mess
 la pipeline?») e apre trattative («apri una trattativa con Osteria Bonelli,
 piano Business»).
 
+## Contatti · Locali
+
+[desk-locali.jsx](desk-locali.jsx). Una linguetta di Contatti, fra la rubrica e
+gli Elenchi: i locali come **schede con la foto**, ognuna legata all'**account
+del titolare** (un titolare può averne più d'uno). Sulla scheda: stato e piano,
+ordini, canone, ultimo accesso, il **motivo per guardarlo** (addebito fallito,
+ticket di priorità alta, dormiente, fermo nell'avvio) e i **segnali** incrociati
+(ticket, trattativa in Sales, condizioni speciali, vetrina). Azioni rapide:
+copia il telefono del titolare, crea un'attività con Byuppino, apri le
+condizioni, apri una trattativa, **sposta a un altro titolare**. L'ordine di
+default è «Da guardare prima». La vista **Per titolare** raggruppa i locali per
+account con il valore totale e «Aggiungi locale». La **selezione multipla**
+crea un elenco statico, assegna i locali a un titolare o crea un'attività.
+Gli account dei titolari vivono in `LC_STORE`; la scheda del locale legge da lì
+i «locali associati».
+
 ## Le notifiche
 
 [desk-notifiche.jsx](desk-notifiche.jsx). Quando succede qualcosa che ti
@@ -141,6 +157,11 @@ Nel prototipo sono **finte**: un copione (`NT_COPIONE`) ne fa arrivare sei nei
 primi tre minuti, e quelle di Ambiente scrivono davvero il messaggio nella
 conversazione (Sara in privato, Paola che ti menziona in #lancio), il ticket
 entra davvero in coda.
+
+Il **suono**: un rintocco breve e morbido sintetizzato nel browser (due note che
+salgono, tre per menzioni e ticket di priorità alta); si spegne dalla
+campanella (interruttore «Suono», con «Prova») e tace con «Non disturbare». Il
+browser lo lascia suonare solo dopo il primo clic sulla pagina.
 
 ## Condizioni e vantaggi del locale
 
@@ -302,6 +323,7 @@ canale.
 | `hub-agent-ambiente.jsx` | L'Ambiente degli agenti: catene, lavagna, coda, registro, guardie |
 | `desk-ambiente.jsx` | Ambiente del team: chat, attività, riunioni, e la pillola della barra in alto (`DkAmbientePillola`) |
 | `desk-oggi.jsx` | Oggi, la pagina d'ingresso |
+| `desk-locali.jsx` | Contatti · Locali: schede, account dei titolari (`LC_STORE`, `lcLocaliDelTitolare`), sposta e aggiungi, selezione |
 | `desk-notifiche.jsx` | Le notifiche: cartellini, campanella, il copione del prototipo (`deskNotifica`) |
 | `desk-condizioni.jsx` | La tab Condizioni e vantaggi della scheda del locale (`condApplicaPrezzo`, `condRegala`) |
 | `desk-sales.jsx` | Sales: fasi, store delle trattative (`slLeggi`, `slCrea`, `slSposta`), bacheca, elenco, pannello |

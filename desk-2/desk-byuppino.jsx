@@ -990,7 +990,6 @@ function BpVuoto({ rotta }) {
 
 function BpAssistente({ rotta }) {
   const s = bpUsaStore();
-  const [benvenuto, setBenvenuto] = useStateBp(false);
   const lista = useRefBp(null);
   const input = useRefBp(null);
 
@@ -1003,13 +1002,6 @@ function BpAssistente({ rotta }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  // Il fumetto di benvenuto, una volta: compare dopo un attimo e se ne va.
-  useEffectBp(() => {
-    if (bpStato().salutato) return;
-    const a = setTimeout(() => setBenvenuto(true), 1400);
-    const b = setTimeout(() => { setBenvenuto(false); bpAggiorna({ salutato: true }); }, 9000);
-    return () => { clearTimeout(a); clearTimeout(b); };
-  }, []);
   useEffectBp(() => { if (lista.current) lista.current.scrollTop = lista.current.scrollHeight; }, [s.messaggi.length, s.pensando, s.aperto]);
   useEffectBp(() => {
     const t = input.current; if (!t) return;
@@ -1018,25 +1010,10 @@ function BpAssistente({ rotta }) {
 
   const spunti = BP_SPUNTI[rotta] || BP_SPUNTI.oggi;
 
-  if (!s.aperto) {
-    return (
-      // Byuppino abita sotto la barra nera, nella colonna di sinistra: lì non
-      // copre mai un pulsante della pagina (a destra stanno «Chiama», «Invia»…).
-      <div className="bp-lanciatore" style={{ position: 'absolute', left: 12, bottom: 62, zIndex: 120, display: 'flex', alignItems: 'flex-end' }}>
-        {benvenuto && rotta !== 'ambiente' && (
-          <div onClick={() => byuppinoApri()} style={{
-            position: 'absolute', left: 70, bottom: 46, width: 236, padding: '12px 14px', borderRadius: '20px 20px 20px 6px', cursor: 'pointer',
-            background: '#fff', boxShadow: '0 22px 44px -20px rgba(42,26,40,0.5)', fontSize: 13.2, lineHeight: 1.45, color: ADM.TEXT, animation: 'bpFumetto 0.4s cubic-bezier(0.34,1.5,0.64,1)',
-          }}>
-            <b style={{ fontWeight: 750 }}>Ciao Marco!</b> Sono Byuppino. Chiedimi dei numeri, o dimmi cosa fare: ci penso io.
-          </div>
-        )}
-        <button onClick={() => byuppinoApri()} aria-label="Apri Byuppino" className="bp-personaggio" style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', display: 'block' }}>
-          <img src="byuppino.webp" alt="Byuppino" style={{ height: 92, display: 'block', filter: 'drop-shadow(0 12px 14px rgba(42,26,40,0.3))' }}/>
-        </button>
-      </div>
-    );
-  }
+  // Chiuso, Byuppino non occupa niente: si apre dalla barra nera, dal
+  // riquadro di Oggi, dalle azioni delle pagine e con ⌘J (21 ottobre 2026:
+  // il personaggio in basso e la faccia nella barra in alto erano di troppo).
+  if (!s.aperto) return null;
 
   return (
     <div className="bp-pannello" style={{
