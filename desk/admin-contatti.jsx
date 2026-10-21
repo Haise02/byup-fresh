@@ -773,9 +773,9 @@ function CntIntestazione({ campo, label, sort, onSort, onDragStart, onDragEnd })
       style={{
         justifySelf: 'start', minWidth: 0,
         background: 'transparent', border: 'none', padding: 0,
-        fontSize: 13, fontWeight: attiva ? 750 : 650,
-        color: attiva ? ADM.TEXT : ADM.MUTED_SOFT,
-        letterSpacing: '-0.005em',
+        fontSize: 12.6, fontWeight: 700,
+        color: attiva ? ADM.PINK_DARK : ADM.MUTED,
+        textTransform: 'uppercase', letterSpacing: '0.06em',
         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       }}>
       {parole.length > 0 ? parole.join(' ') + ' ' : ''}
@@ -783,7 +783,7 @@ function CntIntestazione({ campo, label, sort, onSort, onDragStart, onDragEnd })
       {ultima}
       {attiva ? (
         <span style={Object.assign({}, icona, {
-          color: ADM.TEXT,
+          color: ADM.PINK,
           transform: sort.verso === 'asc' ? 'rotate(180deg)' : 'none',
           transition: 'transform 0.15s ease',
         })}><BuIcons.chevronDown size={14}/></span>

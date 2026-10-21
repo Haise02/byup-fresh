@@ -122,15 +122,15 @@ function AnBarraFiltri({ filtri, onChange, attivo, periodoAttivo = false }) {
   const attivoQualcosa = filtri.piano !== 'tutti' || filtri.regione !== 'tutte';
   return (
     <div style={{
-      display:'flex', alignItems:'center', gap:10, padding:'9px 14px 9px 18px', flexWrap:'wrap', margin:'4px 28px 0',
-      borderRadius:999, background: attivoQualcosa ? ADM.PINK_BG_SOFT : 'rgba(255,255,255,0.5)',
-      border:'1px solid rgba(255,255,255,0.8)',
+      display:'flex', alignItems:'center', gap:10, padding:'9px 28px', flexWrap:'wrap',
+      background: attivoQualcosa ? ADM.PINK_BG_SOFT : ADM.PANEL_SOFT,
+      borderBottom:`1px solid ${ADM.BORDER}`,
     }}>
       <span style={{fontSize:11.8, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Filtra</span>
-      <div style={{display:'flex', gap:4, background:'#fff', border:`1px solid rgba(73,40,68,0.10)`, borderRadius:999, padding:3}}>
+      <div style={{display:'flex', gap:4, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:8, padding:2}}>
         {AN_PERIODI.map(p => (
           <button key={p.id} onClick={()=>onChange({ ...filtri, periodo:p.id })} className="adm-btn" style={{
-            padding:'5px 12px', borderRadius:999, border:'none', cursor:'pointer', fontFamily:'inherit',
+            padding:'5px 10px', borderRadius:6, border:'none', cursor:'pointer', fontFamily:'inherit',
             fontSize:12.6, fontWeight:700,
             background: filtri.periodo === p.id ? ADM.INK : 'transparent',
             color: filtri.periodo === p.id ? '#fff' : ADM.MUTED,

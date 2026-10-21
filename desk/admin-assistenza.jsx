@@ -321,21 +321,18 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
   const aDuePannelli = tab === 'richiamate' || tab === 'ticket' || tab === 'guide';
 
   return (
-    <div style={{height:'100%', display:'flex', flexDirection:'column'}}>
+    <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
       {/* La testata alla maniera di Desk: da quando la shell non ha più
-          l'header coi titoli, anche Assistenza si presenta da sola. Dal 20
-          ottobre testata e linguette stanno sulla carta, e il lavoro (code e
-          dettaglio) dentro una scheda di vetro. */}
-      <div style={{padding:'18px 28px 0', flexShrink:0}}>
+          l'header coi titoli, anche Assistenza si presenta da sola. */}
+      <div style={{padding:'18px 28px 0', background:'#fff', flexShrink:0}}>
         <HubTestata titolo="Assistenza"
           sotto="Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale."/>
       </div>
-      <div style={{padding:'10px 28px 12px',
+      <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
         display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
         <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
       </div>
-      <div className="desk-vetro" style={{flex:1, minHeight:0, display:'flex', flexDirection:'column', margin:'0 24px 20px 28px',
-        borderRadius:26, background:'rgba(255,255,255,0.82)', border:`1px solid ${ADM.GLASS_BORDO}`, boxShadow:ADM.CARD_SHADOW,
+      <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column',
         overflow: aDuePannelli ? 'hidden' : 'auto'}}>
         {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
         {tab === 'ticket'     && <AdmComunicazioniPage openId={openTicket}/>}

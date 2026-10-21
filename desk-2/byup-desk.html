@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<link rel="icon" type="image/png" href="/assets/byup-icon.png?v=2"/>
+<link rel="apple-touch-icon" href="/assets/apple-touch-byup.png?v=2"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1440"/>
+<title>Desk 2.0 · byup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700;1,800&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: #E6DFDD;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'ss01', 'cv11';
+    letter-spacing: -0.005em;
+  }
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  @media (min-width: 760px) { html, body { overflow-y: hidden; } }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(60,60,67,0.18); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(60,60,67,0.32); background-clip: padding-box; border: 2px solid transparent; }
+  input, textarea, select, button { font-family: inherit; }
+  /* Frame desktop 1440×900 — zoomata proporzionalmente alla finestra (script a
+     fondo pagina), come il gestionale: la UI scala con lo schermo, non resta a 1:1. */
+  .frame {
+    width: 1440px; height: 900px;
+    margin: 24px auto;
+    background: #F2EEEC;
+    border-radius: 22px;
+    box-shadow: 0 30px 80px -40px rgba(42,26,40,0.45), 0 0 0 1px rgba(255,255,255,0.6) inset;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  /* Apple-style focus ring */
+  *:focus { outline: none; }
+  button:focus-visible, a:focus-visible, [role="button"]:focus-visible,
+  input:focus-visible, textarea:focus-visible, select:focus-visible, label:focus-visible {
+    outline: 3px solid rgba(255,31,90,0.35);
+    outline-offset: 1px;
+    border-radius: 8px;
+    transition: outline-offset 0.12s ease;
+  }
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: none;
+    border-color: #FF1F5A !important;
+    box-shadow: 0 0 0 4px rgba(255,31,90,0.18) !important;
+  }
+
+  /* Selection */
+  ::selection { background: rgba(255,31,90,0.20); color: #0F1115; }
+
+  /* Tab button — Apple segmented control feel */
+  .adm-tab-btn {
+    transition: background 0.18s ease, color 0.18s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+  .adm-tab-btn:hover:not(.is-active) {
+    background: rgba(0,0,0,0.035) !important;
+    color: #0F1115 !important;
+  }
+  .adm-tab-btn:active { transform: scale(0.96); }
+  .adm-tab-btn.is-active {
+    box-shadow: 0 -1px 0 rgba(255,31,90,0.0) inset, 0 2px 12px -4px rgba(255,31,90,0.18);
+  }
+
+  /* Apple-style button micro-interactions */
+  .adm-btn {
+    transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s ease, background 0.15s ease, border-color 0.15s ease !important;
+    position: relative;
+  }
+  .adm-btn:not(:disabled):hover { transform: translateY(-0.5px); }
+  .adm-btn:not(:disabled):active { transform: translateY(0) scale(0.97); transition-duration: 0.05s !important; }
+  .adm-btn-primary:not(:disabled):hover { box-shadow: 0 6px 18px -6px rgba(15,17,21,0.35), 0 1px 0 rgba(255,255,255,0.08) inset !important; }
+  .adm-btn-secondary:not(:disabled):hover { background: #FBFBFC !important; border-color: #D8DADE !important; box-shadow: 0 1px 3px rgba(15,17,21,0.04) !important; }
+  .adm-btn-ghost:not(:disabled):hover { background: rgba(0,0,0,0.04) !important; }
+  .adm-btn-danger:not(:disabled):hover { box-shadow: 0 6px 18px -6px rgba(220,38,38,0.45) !important; }
+  .adm-btn-success:not(:disabled):hover { box-shadow: 0 6px 18px -6px rgba(22,163,74,0.45) !important; }
+  .adm-btn-cta:not(:disabled):hover { box-shadow: 0 10px 28px -8px rgba(255,31,90,0.6), 0 1px 0 rgba(255,255,255,0.3) inset !important; }
+
+  /* "Invita membro" — primary CTA con respiro coral idle + "+" che ruota e cresce all'hover */
+  .adm-btn-invite { animation: inviteBreath 2.8s ease-in-out infinite; }
+  .adm-btn-invite:hover { animation-play-state: paused; }
+  .adm-btn-invite svg { transition: transform 0.34s cubic-bezier(0.34,1.56,0.64,1); }
+  .adm-btn-invite:not(:disabled):hover svg { transform: rotate(90deg) scale(1.14); }
+  @keyframes inviteBreath {
+    0%, 100% { box-shadow: 0 1px 2px rgba(15,17,21,0.20), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 0 rgba(255,31,90,0); }
+    50%      { box-shadow: 0 1px 2px rgba(15,17,21,0.20), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 5px rgba(255,31,90,0.18); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .adm-btn-invite { animation: none; }
+    .adm-btn-invite svg { transition: none; }
+  }
+
+  /* Icon button hover refinement */
+  .adm-iconbtn { transition: background 0.14s ease, transform 0.12s cubic-bezier(0.34,1.56,0.64,1) !important; }
+  .adm-iconbtn:active { transform: scale(0.92); }
+
+  /* Sidebar nav item — Apple sidebar feel */
+  .adm-nav-item {
+    transition: background 0.14s ease, color 0.14s ease, transform 0.12s cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+  .adm-nav-item:hover:not(.is-active) { background: rgba(0,0,0,0.04) !important; }
+  .adm-nav-item:active { transform: scale(0.985); }
+
+  /* iOS switch */
+  .adm-switch { transition: background 0.22s ease, box-shadow 0.22s ease; }
+  .adm-switch-thumb { transition: left 0.26s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, width 0.18s ease; }
+  .adm-switch:active .adm-switch-thumb { width: 24px; }
+
+  /* Action queue row (Dashboard · Da fare oggi) */
+  .adm-actionrow { transition: background 0.13s ease; }
+  .adm-actionrow:hover { background: rgba(0,0,0,0.025); }
+  .adm-actionrow:active { background: rgba(0,0,0,0.05); }
+
+  /* Card hover lift */
+  /* ═══ Stati di interazione — affordance sistematiche ═══════════════════
+     Ogni elemento cliccabile deve dichiararsi in 3 stati: rest (segnale
+     visibile: chip/freccia), hover (la superficie risponde: lift + coral),
+     active (feedback di pressione). Vale per card, righe e bottoni. */
+
+  /* Pressione: ogni bottone si comprime al click (come nel gestionale) */
+  button { transition: transform 90ms ease-out; }
+  button:active:not(:disabled) { transform: scale(0.96); }
+
+  /* Card cliccabile: cursore + lift con tinta brand + pressione */
+  .adm-card-interactive { cursor: pointer; transition: box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.34,1.2,0.64,1), border-color 0.18s ease; }
+  .adm-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: rgba(73,40,68,0.16) !important;
+    box-shadow: 0 22px 40px -22px rgba(73,40,68,0.38), 0 2px 6px -2px rgba(73,40,68,0.06) !important;
+  }
+  .adm-card-interactive:active { transform: translateY(0) scale(0.99); }
+
+  /* Chip di apertura: cerchietto con freccia sulle card cliccabili.
+     A riposo è grigio tenue; in hover si riempie di coral e scivola → */
+  .adm-open-chip {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #F1F2F4; color: #8A8A90;
+    display: inline-grid; place-items: center; flex-shrink: 0;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  }
+  .adm-card-interactive:hover .adm-open-chip { background: #1D1520; color: #fff; transform: translateX(2px); }
+
+  /* Modale centrale — ingresso morbido (dettaglio entità: locali/staff/utenti) */
+  @keyframes admModalIn { from { opacity:0; transform: translateY(10px) scale(0.97); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+  /* Pill/chip/toggle: hover universale — leggero scurimento di qualunque fondo */
+  .adm-pill { transition: filter 0.14s ease, background 0.14s ease, border-color 0.14s ease, color 0.14s ease; }
+  .adm-pill:hover { filter: brightness(0.95); }
+
+  /* Link testuali d'azione */
+  .adm-textlink { transition: opacity 0.12s ease; }
+  .adm-textlink:hover { opacity: 0.65; }
+
+  /* Righe di lista cliccabili: la freccia si accende e scivola in hover, e la
+     riga stessa si vela e si preme. La velatura è un background-IMAGE, non un
+     background-color: le righe portano il colore di stato nello stile inline
+     (rosso tenue per una scadenza mancata, giallo per un non applicabile) e
+     sostituirlo cancellerebbe il segnale. Un gradiente uniforme si sovrappone
+     al colore che c'è, qualunque sia, e sta SOTTO ai figli — pastiglie e badge
+     restano pieni invece di essere velati anche loro.
+     Serve !important perché lo shorthand `background` inline azzera
+     background-image, e solo una dichiarazione !important dell'autore batte
+     lo stile inline. */
+  .adm-row-chev { transition: color 0.15s ease, transform 0.15s ease; display: inline-flex; }
+  .adm-row-open { cursor: pointer; transition: background-image 0.12s ease; }
+  .adm-row-open:hover .adm-row-chev { color: #1D1520; transform: translateX(3px); }
+  .adm-row-open:hover {
+    background-image: linear-gradient(rgba(15,17,21,0.038), rgba(15,17,21,0.038)) !important;
+  }
+  .adm-row-open:active {
+    background-image: linear-gradient(rgba(15,17,21,0.085), rgba(15,17,21,0.085)) !important;
+    transition-duration: 0s;
+  }
+
+  /* ═══ Desk, 20 ottobre 2026: vetro su carta calda ═════════════════════
+     Le schede sono vetro: bianco al 72% con la sfocatura di quello che c'è
+     dietro. I cerchi della barra in alto, le etichette della barra nera, gli
+     avvisi. */
+  .desk-vetro { -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); }
+  .desk-cerchio {
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.72); color: #1D1520; cursor: pointer; display: grid; place-items: center;
+    box-shadow: 0 10px 22px -16px rgba(73,40,68,0.6);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+  }
+  .desk-cerchio:hover { background: #fff; box-shadow: 0 14px 26px -14px rgba(73,40,68,0.6); }
+  .desk-binario-btn { position: relative; transition: background 0.14s ease, color 0.14s ease; }
+  .desk-binario-btn:hover { background: rgba(255,255,255,0.12) !important; color: #fff !important; }
+  .desk-binario-btn:hover::after {
+    content: attr(data-label); position: absolute; left: calc(100% + 14px); top: 50%; transform: translateY(-50%);
+    background: #1D1520; color: #fff; font-size: 12.6px; font-weight: 600; white-space: pre; padding: 7px 12px;
+    border-radius: 999px; pointer-events: none; box-shadow: 0 12px 26px -12px rgba(29,21,32,0.6);
+    animation: deskEtichettaIn 0.14s ease; z-index: 70;
+  }
+  @keyframes deskEtichettaIn { from { opacity: 0; transform: translate(-4px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+  @keyframes deskAvvisoIn { from { opacity: 0; transform: translate(-50%, 14px) scale(0.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+  @keyframes dkLive { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+  .desk-scorre { scrollbar-width: thin; }
+  /* Ambiente riempie tutta la sua scheda: la pagina è il figlio di un
+     contenitore flex e, senza crescere, restava larga quanto il contenuto —
+     su schermi ampi lasciava un blocco vuoto a destra. */
+  .desk-ambiente-guscio > div { flex: 1 1 auto; min-width: 0; width: 100%; }
+
+  /* Inputs */
+  input, textarea, select {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  /* Tooltip atom */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after,
+  [data-tip]:focus::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(29,21,32,0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: #fff;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 12.6px;
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: pre-line;
+    max-width: 260px;
+    width: max-content;
+    text-align: left;
+    box-shadow: 0 10px 28px -10px rgba(0,0,0,0.35);
+    z-index: 100;
+    pointer-events: none;
+    animation: tipIn 0.16s ease;
+  }
+  [data-tip]:hover::before,
+  [data-tip]:focus::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px;
+    background: rgba(29,21,32,0.94);
+    z-index: 100;
+    pointer-events: none;
+    animation: tipIn 0.16s ease;
+  }
+  [data-tip-pos="below"]:hover::after,
+  [data-tip-pos="below"]:focus::after { bottom: auto; top: calc(100% + 8px); }
+  [data-tip-pos="below"]:hover::before,
+  [data-tip-pos="below"]:focus::before { bottom: auto; top: calc(100% + 2px); }
+  @keyframes tipIn { from { opacity:0; transform: translateX(-50%) translateY(2px);} to { opacity:1; transform: translateX(-50%) translateY(0);} }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     RESPONSIVE — Apple-style
+     ─────────────────────────────────────────────────────────────────────
+     Strategia: NIENTE optical scaling globale (rompe layout con widths in vw).
+     Approccio corretto: cappare la larghezza massima del contenuto, così
+     le card e le griglie non si stirano oltre una misura confortevole su
+     monitor grandi. La sidebar resta full-height, il main si centra.
+     Apple lo fa così in App Store Connect, Mail e Messages.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* === Contenuto a piena finestra ===
+     Il primo figlio del wrapper-scroll di <main> è il root di ogni pagina:
+     occupa sempre il 100% della larghezza disponibile, senza cap. */
+  main > div > * {
+    max-width: none;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100%;
+  }
+
+  /* === Tablet (760-1199px) ===
+     Sidebar più stretta, padding header ridotti, niente cap (non serve). */
+  @media (max-width: 1199px) {
+    aside[style*="width: 288"] { width: 240px !important; }
+    main > header { padding: 14px 22px !important; }
+  }
+
+  /* === Mobile (<760px): splash gentile ===
+     Un admin con sidebar + lista + dettaglio non si comprime su 375px senza
+     un redesign separato. Diciamo all'utente di usare uno schermo più grande. */
+  @media (max-width: 759px) {
+    body { overflow: auto; }
+    #root > div { display: none !important; }
+    #root::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: linear-gradient(180deg, #FFF1F4 0%, #F5F5F7 100%);
+      z-index: 9998;
+    }
+    #root::before {
+      content: 'Desk \A è ottimizzato per tablet, desktop e schermi più grandi. \A \A Per usare la console, apri questa pagina su un dispositivo con almeno 760px di larghezza.';
+      white-space: pre-line;
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      padding: 32px 24px;
+      text-align: center;
+      font-family: inherit;
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.55;
+      letter-spacing: -0.01em;
+      color: #0F1115;
+      z-index: 9999;
+    }
+  }
+</style>
+</head>
+<body>
+<a id="byup-hub-btn" href="/" aria-label="Torna alla home byup">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF1F5A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/></svg>
+  <span>Home byup</span>
+</a>
+<style>
+#byup-hub-btn{position:fixed;left:16px;bottom:16px;z-index:2147483000;display:inline-flex;align-items:center;gap:7px;padding:9px 14px 9px 11px;font:600 13px/1 'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;color:#fff;text-decoration:none;background:rgba(20,20,24,.72);border:1px solid rgba(255,255,255,.16);border-radius:999px;backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);box-shadow:0 8px 24px -8px rgba(0,0,0,.5);transition:transform .18s ease,background .18s ease}
+#byup-hub-btn:hover{background:rgba(20,20,24,.92);transform:translateY(-2px)}
+#byup-hub-btn svg{flex:none}
+@media print{#byup-hub-btn{display:none}}
+</style>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="admin-tokens.jsx?v=342"></script>
+<script type="text/babel" src="admin-icons.jsx?v=343"></script>
+<script src="../byup-costanti.js?v=1"></script>
+<script type="text/babel" src="admin-data.jsx?v=357"></script>
+<!-- Desk: il vocabolario del CRM (proprietà, operatori, elenchi, materiali) -->
+<script type="text/babel" src="hub-data.jsx?v=346"></script>
+<script type="text/babel" src="admin-parametri.jsx?v=341"></script>
+<script type="text/babel" src="admin-atoms.jsx?v=342"></script>
+<!-- Desk: modale, pannello laterale, filtri, colonne, tabelle -->
+<script type="text/babel" src="hub-ui.jsx?v=344"></script>
+<script type="text/babel" src="admin-restrizioni.jsx?v=343"></script>
+<script type="text/babel" src="admin-dashboard.jsx?v=344"></script>
+<script type="text/babel" src="admin-mercato-data.jsx?v=343"></script>
+<script type="text/babel" src="admin-valore-data.jsx?v=341"></script>
+<script type="text/babel" src="admin-valore.jsx?v=341"></script>
+<script type="text/babel" src="admin-mercato.jsx?v=343"></script>
+<script type="text/babel" src="admin-locale-detail.jsx?v=353"></script>
+<script type="text/babel" src="admin-utenti.jsx?v=344"></script>
+<script type="text/babel" src="admin-camerieri.jsx?v=343"></script>
+<!-- Contatti legge STAFF e i drawer (locale, staff, utente) dai file qui sopra: va dopo di loro -->
+<script type="text/babel" src="admin-contatti.jsx?v=343"></script>
+<script type="text/babel" src="admin-comunicazioni.jsx?v=343"></script>
+<script type="text/babel" src="admin-assistenza-data.jsx?v=342"></script>
+<script type="text/babel" src="admin-assistenza.jsx?v=344"></script>
+<script type="text/babel" src="admin-analisi-data.jsx?v=341"></script>
+<script type="text/babel" src="admin-analisi.jsx?v=342"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script type="text/babel" src="admin-mappa-data.jsx?v=341"></script>
+<script type="text/babel" src="admin-mappa.jsx?v=341"></script>
+<script type="text/babel" src="admin-team.jsx?v=347"></script>
+<script type="text/babel" src="hub-documenti.jsx?v=9"></script>
+<!-- Desk: le sezioni nuove -->
+<script type="text/babel" src="hub-elenchi.jsx?v=343"></script>
+<!-- Desk: i caratteri dei materiali — prima del costruttore delle mail, che li usa -->
+<script type="text/babel" src="hub-font.jsx?v=1"></script>
+<script type="text/babel" src="hub-mail-builder.jsx?v=343"></script>
+<script type="text/babel" src="hub-marketing.jsx?v=345"></script>
+<script type="text/babel" src="hub-workflow-regole.jsx?v=341"></script>
+<script type="text/babel" src="hub-workflow-canvas.jsx?v=341"></script>
+<script type="text/babel" src="hub-workflow.jsx?v=342"></script>
+<script type="text/babel" src="hub-agent-ambiente.jsx?v=341"></script>
+<script type="text/babel" src="hub-impostazioni.jsx?v=344"></script>
+<!-- Desk: Ambiente — chat, attività e riunioni del team -->
+<script type="text/babel" src="desk-ambiente.jsx?v=3"></script>
+<!-- Desk: Oggi, la pagina d'ingresso, e Byuppino, l'assistente -->
+<script type="text/babel" src="desk-sales.jsx?v=1"></script>
+<script type="text/babel" src="desk-condizioni.jsx?v=1"></script>
+<script type="text/babel" src="desk-notifiche.jsx?v=1"></script>
+<script type="text/babel" src="desk-oggi.jsx?v=2"></script>
+<script type="text/babel" src="desk-byuppino.jsx?v=5"></script>
+<script type="text/babel" src="admin-app.jsx?v=346"></script>
+
+<script type="text/babel">
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<AdminApp/>);
+</script>
+
+<script>
+(function () {
+  var DESIGN_H = 900, MARGIN = 24, MIN_W = 1280;
+  var cur = { frame: null, zoom: null, width: null };
+  function fit() {
+    var frame = document.querySelector('.frame');
+    if (!frame) return;
+    // Il margine del frame (24px sopra e sotto, 24 ai lati) è dentro lo zoom:
+    // si conta zoomato, o il frame sfora la finestra di qualche pixel e la
+    // pagina scorre — un fuoco su un campo (la chat di Ambiente) la faceva
+    // salire e la barra in alto spariva sotto il bordo.
+    var s = window.innerHeight / (DESIGN_H + 2 * MARGIN);
+    s = Math.max(0.4, Math.min(2.2, s));
+    var w = Math.max(MIN_W, window.innerWidth / s - 2 * MARGIN);
+    if (frame !== cur.frame || s !== cur.zoom) frame.style.zoom = s;
+    if (frame !== cur.frame || w !== cur.width) frame.style.width = w + 'px';
+    cur = { frame: frame, zoom: s, width: w };
+  }
+  window.addEventListener('resize', fit);
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+  fit();
+})();
+</script>
+
+</body>
+</html>

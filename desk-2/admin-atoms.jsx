@@ -1,0 +1,409 @@
+// Atoms condivisi per Admin: Badge, Pill, Card, KPI, Tooltip, Avatar, ProgressBar
+
+function AdmBadge({ children, color = 'PLAN_FREE', soft = true, size = 'sm' }) {
+  const c = ADM[color] || color;
+  const bg = soft ? (ADM[color + '_SOFT'] || c + '20') : c;
+  const fg = soft ? c : '#fff';
+  const px = size === 'xs' ? '2px 7px' : size === 'sm' ? '3px 9px' : '5px 11px';
+  const fs = size === 'xs' ? 12 : size === 'sm' ? 12.8 : 13.6;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:5,
+      background: bg, color: fg,
+      padding: px,
+      borderRadius: 999,
+      fontSize: fs, fontWeight: 600,
+      letterSpacing:'-0.005em',
+      whiteSpace:'nowrap',
+    }}>{children}</span>
+  );
+}
+
+function AdmPlanBadge({ piano }) {
+  const p = PIANI.find(x => x.id === piano);
+  if (!p) return null;
+  return <AdmBadge color={p.color} size="xs">{p.label}</AdmBadge>;
+}
+
+
+function AdmCard({ children, padding = 20, interactive = false, style = {}, className, ...rest }) {
+  return (
+    <div className={`desk-vetro ${interactive ? 'adm-card-interactive' : ''} ${className||''}`.trim()} style={{
+      background: ADM.GLASS,
+      border: `1px solid ${ADM.GLASS_BORDO}`,
+      borderRadius: ADM.R_SCHEDA,
+      padding,
+      boxShadow: ADM.CARD_SHADOW,
+      ...style,
+    }} {...rest}>{children}</div>
+  );
+}
+
+function AdmAvatar({ name, bg, size = 32 }) {
+  const ini = name ? name.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase() : '?';
+  const bgFinal = bg || `hsl(${(name||'').charCodeAt(0)*7 % 360}, 50%, 55%)`;
+  return (
+    <div style={{
+      width:size, height:size, borderRadius:'50%',
+      background: bgFinal, color:'#fff',
+      display:'grid', placeItems:'center',
+      fontWeight:700, fontSize: size*0.4,
+      flexShrink:0,
+    }}>{ini}</div>
+  );
+}
+
+function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
+  // segmented = iOS-style pill segmented control
+  if (variant === 'segmented') {
+    return (
+      <div style={{
+        display:'inline-flex', gap:2, padding:4,
+        background:'rgba(73,40,68,0.07)',
+        borderRadius:999,
+      }}>
+        {tabs.map(t => {
+          const isActive = active === t.id;
+          return (
+            <button key={t.id} onClick={()=>onChange(t.id)} style={{
+              padding:'6px 15px',
+              background: isActive ? '#fff' : 'transparent',
+              border:'none', borderRadius:999,
+              color: isActive ? ADM.TEXT : ADM.MUTED,
+              fontWeight: 600, fontSize:14,
+              cursor:'pointer', fontFamily:'inherit',
+              boxShadow: isActive ? '0 1px 3px rgba(15,17,21,0.10), 0 1px 0 rgba(255,255,255,0.5) inset' : 'none',
+              transition:'background 0.2s, color 0.2s, box-shadow 0.2s',
+              display:'inline-flex', alignItems:'center', gap:6,
+            }}>
+              {t.label}
+              {t.badge != null && t.badge > 0 && (
+                <span style={{
+                  fontSize:12.2, fontWeight:700,
+                  background: isActive ? ADM.PINK : 'rgba(120,120,128,0.2)',
+                  color: isActive ? '#fff' : ADM.MUTED,
+                  padding:'1px 6px', borderRadius:99, minWidth:14, textAlign:'center',
+                }}>{t.badge}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+  return (
+    // flexWrap: una scheda con molte tab (il dettaglio locale ne ha undici)
+    // manda le ultime a capo invece di tagliarle fuori dallo schermo.
+    <div style={{display:'flex', gap:4, padding:'4px 0', flexWrap:'wrap', alignItems:'center'}}>
+      {tabs.map(t => {
+        const isActive = active === t.id;
+        return (
+          <button
+            key={t.id}
+            className={`adm-tab-btn${isActive ? ' is-active' : ''}`}
+            onClick={()=>onChange(t.id)}
+            style={{
+              padding:'8px 16px',
+              background: isActive ? ADM.INCHIOSTRO : 'transparent',
+              border:'none',
+              borderRadius:999,
+              color: isActive ? '#fff' : ADM.MUTED,
+              fontWeight: isActive ? 650 : 550,
+              fontSize:14.4,
+              letterSpacing:'-0.005em',
+              cursor:'pointer',
+              fontFamily:'inherit',
+              display:'flex', alignItems:'center', gap:7,
+            }}>
+            {t.label}
+            {t.badge != null && t.badge > 0 && (
+              <span style={{
+                fontSize:12.2, fontWeight:700,
+                background: isActive ? ADM.PINK : 'rgba(73,40,68,0.10)',
+                color: isActive ? '#fff' : ADM.MUTED,
+                padding:'1px 7px', borderRadius:999, minWidth:16, textAlign:'center',
+              }}>{t.badge}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AdmEmpty({ icon = 'eye', title, desc }) {
+  const Icon = BuIcons[icon];
+  return (
+    <div style={{padding:'48px 32px', textAlign:'center', color:ADM.MUTED}}>
+      <div style={{display:'inline-grid', placeItems:'center', width:52, height:52, background:'rgba(255,255,255,0.8)', borderRadius:'50%', marginBottom:14, boxShadow:'0 8px 20px -12px rgba(73,40,68,0.35)'}}>
+        <Icon size={27}/>
+      </div>
+      <div style={{fontSize:15.8, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>{title}</div>
+      <div style={{fontSize:14.4, color:ADM.MUTED}}>{desc}</div>
+    </div>
+  );
+}
+
+function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, disabled, style = {}, className }) {
+  const styles = {
+    primary:   { bg: ADM.INCHIOSTRO, fg: '#fff', border: 'transparent', shadow:'0 8px 18px -10px rgba(29,21,32,0.6), 0 1px 0 rgba(255,255,255,0.08) inset' },
+    cta:       { bg: 'linear-gradient(180deg, #FF4A78 0%, #C40B45 100%)', fg: '#fff', border: 'transparent', shadow:'0 4px 12px -4px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.20) inset' },
+    ghost:     { bg: 'rgba(255,255,255,0.55)', fg: ADM.TEXT, border: 'rgba(73,40,68,0.12)' },
+    secondary: { bg: '#fff', fg: ADM.TEXT, border: 'rgba(73,40,68,0.10)', shadow:'0 4px 12px -8px rgba(73,40,68,0.3)' },
+    danger:    { bg: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(220,38,38,0.30)' },
+    success:   { bg: 'linear-gradient(180deg, #22C55E 0%, #16A34A 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(22,163,74,0.30)' },
+    quiet:     { bg: 'transparent', fg: ADM.MUTED, border: 'transparent' },
+  };
+  const s = styles[variant];
+  const pad = size === 'sm' ? '6px 13px' : size === 'lg' ? '12px 22px' : '9px 18px';
+  const fs = size === 'sm' ? 13.2 : size === 'lg' ? 15.5 : 14;
+  const radius = 999;
+  const Icon = icon ? BuIcons[icon] : null;
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`adm-btn adm-btn-${variant} ${className||''}`.trim()}
+      style={{
+        display:'inline-flex', alignItems:'center', justifyContent:'center', gap:7,
+        padding: pad,
+        background: s.bg, color: s.fg,
+        border: `1px solid ${s.border}`,
+        borderRadius: radius,
+        fontSize: fs, fontWeight: 600,
+        letterSpacing:'-0.005em',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily:'inherit',
+        opacity: disabled ? 0.45 : 1,
+        boxShadow: s.shadow || 'none',
+        ...style,
+      }}>
+      {Icon && <Icon size={size==='sm'?13:14}/>}
+      {children}
+    </button>
+  );
+}
+
+function AdmIconBtn({ icon, onClick, label, color = ADM.MUTED, size = 30 }) {
+  const Icon = BuIcons[icon];
+  const [h, setH] = React.useState(false);
+  return (
+    <button onClick={onClick} title={label}
+      className="adm-iconbtn"
+      onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{
+        display:'grid', placeItems:'center',
+        width:size, height:size, borderRadius: '50%',
+        background: h ? 'rgba(73,40,68,0.08)' : 'transparent',
+        border:'none', cursor:'pointer', color,
+      }}>
+      <Icon size={Math.round(size * 0.5)}/>
+    </button>
+  );
+}
+
+// BarChart semplice
+function AdmBarChart({ data = [], labels = [], color, height = 160 }) {
+  // Schema "inchiostro + un accento": barre snelle, periodi passati attenuati,
+  // l'ultimo pieno. Il colore di default è l'ink dei grafici.
+  const c = color || ADM.INK;
+  const max = Math.max(...data, 1);
+  return (
+    <div style={{display:'flex', alignItems:'flex-end', gap:8, height, padding:'0 4px'}}>
+      {data.map((v, i) => {
+        const last = i === data.length - 1;
+        return (
+          <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%', minWidth:0}}>
+            <div style={{flex:1, width:'100%', maxWidth:34, display:'flex', alignItems:'flex-end', opacity: last ? 1 : 0.55, margin:'0 auto'}}>
+              <div style={{
+                width:'100%',
+                height: `${(v/max)*100}%`,
+                background: c,
+                borderRadius:'4px 4px 0 0',
+                minHeight: 2,
+              }}/>
+            </div>
+            {labels[i] && <div style={{fontSize:12, color: last ? ADM.TEXT : ADM.MUTED_SOFT, fontWeight: last ? 700 : 500}}>{labels[i]}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Stacked horizontal bar (per breakdown piani, ecc.)
+function AdmStackedBar({ segments = [], height = 8 }) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  return (
+    <div style={{display:'flex', width:'100%', height, borderRadius:99, overflow:'hidden', background:'#F0F1F3'}}>
+      {segments.map((s, i) => (
+        <div key={i} title={s.label}
+          style={{width:`${(s.value/total)*100}%`, background: s.color}}/>
+      ))}
+    </div>
+  );
+}
+
+// iOS-style switch
+function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
+  const dim = size === 'sm'
+    ? { w: 38, h: 22, thumb: 18, off: 2 }
+    : { w: 48, h: 28, thumb: 24, off: 2 };
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange && onChange(!checked)}
+      className="adm-switch"
+      style={{
+        position:'relative', width:dim.w, height:dim.h, borderRadius:99,
+        background: checked ? ADM.OK : 'rgba(120,120,128,0.22)',
+        border:'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        padding:0, flexShrink:0,
+        boxShadow: checked ? '0 0 0 1px rgba(22,163,74,0.10) inset' : '0 0 0 1px rgba(0,0,0,0.04) inset',
+        opacity: disabled ? 0.5 : 1,
+      }}>
+      <span className="adm-switch-thumb" style={{
+        position:'absolute', top:dim.off,
+        left: checked ? dim.w - dim.thumb - dim.off : dim.off,
+        width:dim.thumb, height:dim.thumb, borderRadius:'50%', background:'#fff',
+        boxShadow:'0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.04)',
+      }}/>
+    </button>
+  );
+}
+
+// ─── Select con popover ─────────────────────────────────────────────────────
+// Il <select> nativo apre il menu del SISTEMA OPERATIVO: font di sistema,
+// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Desk. Questo
+// componente tiene il guscio di chi lo monta (via `buttonStyle`) e apre un
+// pannello nostro: stessa carta bianca dei popover di Desk, voce attiva in
+// pesca come la nav, spunta sulla scelta corrente.
+//   · options: [{value, label}] oppure stringhe semplici
+//   · block: il select riempie la riga (per i form nei drawer)
+//   · align: da che bordo del bottone si apre il pannello
+function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, align = 'left', maxHeight = 320, title }) {
+  const [open, setOpen] = React.useState(false);
+  // Hover gestito QUI e non da una classe CSS: le voci portano il fondo in
+  // stile inline (serve per la voce attiva), e uno stile inline vince sempre
+  // su una regola :hover del foglio — la classe c'era e non si vedeva mai.
+  const [sopra, setSopra] = React.useState(null);
+  // Verso d'apertura: vicino al fondo della finestra il pannello si apre
+  // VERSO L'ALTO — aperto in giù finiva sotto la piega dello scroll (o sotto
+  // il bordo di una card che clippa) e le voci restavano invisibili.
+  const [verso, setVerso] = React.useState('giu');
+  const box = React.useRef(null);
+  const opts = (options || []).map(o => (o && typeof o === 'object') ? o : { value: o, label: String(o) });
+  const current = opts.find(o => String(o.value) === String(value));
+  const commuta = () => {
+    if (!open && box.current) {
+      const r = box.current.getBoundingClientRect();
+      const serve = Math.min(maxHeight, opts.length * 38 + 14) + 10;
+      const spazioSotto = window.innerHeight - r.bottom;
+      setVerso(spazioSotto < serve && r.top > spazioSotto ? 'su' : 'giu');
+    }
+    setOpen(o => !o);
+  };
+
+  React.useEffect(() => {
+    if (!open) return;
+    const chiudi = () => setOpen(false);
+    // Esc chiude SOLO la tendina, non il pannello o la modale che la ospitano:
+    // anche loro ascoltano keydown su window, e il fermo va dato in capture —
+    // tra due listener in bolla stopPropagation non ferma niente (stessa
+    // regola di HubScelteMultiple in hub-ui).
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    window.addEventListener('pointerdown', chiudi);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('pointerdown', chiudi);
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
+  return (
+    <div ref={box} style={{position:'relative', display: block ? 'block' : 'inline-flex', width: block ? '100%' : undefined}}
+      onPointerDown={e => e.stopPropagation()}>
+      <button type="button" onClick={commuta} title={title}
+        style={{
+          display:'inline-flex', alignItems:'center', justifyContent:'space-between', gap:8,
+          width: block ? '100%' : undefined, minWidth:0, boxSizing:'border-box',
+          padding:'7px 11px 7px 14px',
+          border:`1px solid rgba(73,40,68,0.12)`, borderRadius:999,
+          fontSize:13.7, fontWeight:500, color:ADM.TEXT,
+          background:'#fff', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+          ...buttonStyle,
+        }}>
+        <span style={{minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{current ? current.label : '—'}</span>
+        <span style={{display:'inline-flex', flexShrink:0, color:ADM.MUTED,
+          transform: open ? 'rotate(180deg)' : 'none', transition:'transform 0.15s ease'}}>
+          <BuIcons.chevronDown size={16}/>
+        </span>
+      </button>
+
+      {open && (
+        <div className="adm-select-pop" onMouseLeave={() => setSopra(null)} style={{
+          position:'absolute', zIndex:120,
+          top: verso === 'su' ? 'auto' : 'calc(100% + 6px)',
+          bottom: verso === 'su' ? 'calc(100% + 6px)' : 'auto',
+          left: align === 'right' ? 'auto' : 0,
+          right: align === 'right' ? 0 : 'auto',
+          minWidth:'100%', maxWidth:340, padding:6, borderRadius:18,
+          background:'rgba(255,255,255,0.96)', border:`1px solid ${ADM.BORDER}`,
+          backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
+          boxShadow:'0 24px 54px -16px rgba(73,40,68,0.32)',
+          maxHeight, overflowY:'auto',
+        }}>
+          {opts.map((o, i) => {
+            const attiva = String(o.value) === String(value);
+            const hover = sopra === i;
+            return (
+              <button key={String(o.value)} type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                onMouseEnter={() => setSopra(i)}
+                style={{
+                  display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
+                  padding:'8px 11px', borderRadius:12, border:'none',
+                  // Il passaggio del mouse SI VEDE: grigio pieno sulle voci a
+                  // riposo, pesca più carico su quella già attiva.
+                  background: attiva ? (hover ? '#FFCBD8' : ADM.PINK_SOFT)
+                    : hover ? ADM.NEUTRAL_SOFT : 'transparent',
+                  color: attiva ? ADM.PINK_DARK : ADM.TEXT,
+                  fontSize:13.5, fontWeight: attiva ? 700 : 500,
+                  cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                  transition:'background 0.1s ease',
+                }}>
+                <span style={{flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis'}}>{o.label}</span>
+                {attiva && <BuIcons.check size={14}/>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Il select coi panni da barra filtri: larghezza minima e titolo. Viveva in
+// admin-locali; la pagina è morta, il vestito serve ancora (modale messaggi,
+// team).
+function FilterDropdown({ label, value, onChange, options }) {
+  return (
+    <AdmSelect value={value} onChange={onChange} options={options}
+      title={label} buttonStyle={{minWidth: 140}}/>
+  );
+}
+
+window.AdmBadge = AdmBadge;
+window.AdmSelect = AdmSelect;
+window.FilterDropdown = FilterDropdown;
+window.AdmPlanBadge = AdmPlanBadge;
+window.AdmCard = AdmCard;
+window.AdmAvatar = AdmAvatar;
+window.AdmTabBar = AdmTabBar;
+window.AdmEmpty = AdmEmpty;
+window.AdmButton = AdmButton;
+window.AdmIconBtn = AdmIconBtn;
+window.AdmBarChart = AdmBarChart;
+window.AdmStackedBar = AdmStackedBar;
+window.AdmSwitch = AdmSwitch;

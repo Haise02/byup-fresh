@@ -33,11 +33,11 @@ const HUB_CSS = `
 .hub-riga:hover { background-image: linear-gradient(rgba(15,17,21,0.036), rgba(15,17,21,0.036)) !important; }
 .hub-riga:active { background-image: linear-gradient(rgba(15,17,21,0.08), rgba(15,17,21,0.08)) !important; transition-duration: 0s; }
 .hub-riga .hub-chev { transition: color 0.15s ease, transform 0.15s ease; display: inline-flex; }
-.hub-riga:hover .hub-chev { color: #1D1520; transform: translateX(3px); }
+.hub-riga:hover .hub-chev { color: #FF1F5A; transform: translateX(3px); }
 
 /* Card cliccabile con il lift rosa. */
 .hub-card { transition: box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.34,1.2,0.64,1), border-color 0.18s ease; cursor: pointer; }
-.hub-card:hover { transform: translateY(-2px); border-color: rgba(73,40,68,0.16) !important; box-shadow: 0 22px 40px -22px rgba(73,40,68,0.38), 0 2px 6px -2px rgba(73,40,68,0.06) !important; }
+.hub-card:hover { transform: translateY(-2px); border-color: #FFA9BF !important; box-shadow: 0 14px 30px -14px rgba(255,31,90,0.30), 0 2px 6px -2px rgba(15,17,21,0.05) !important; }
 .hub-card:active { transform: translateY(0) scale(0.993); }
 
 /* La maniglia di trascinamento compare al passaggio del mouse. */
@@ -69,7 +69,7 @@ function HubPillola({ color = 'PLAN_FREE', children, forte, size = 'md' }) {
   return (
     <span style={{
       alignItems: 'center', gap: 5,
-      padding: size === 'sm' ? '2px 8px' : '3px 10px', borderRadius: 999,
+      padding: size === 'sm' ? '2px 7px' : '3px 9px', borderRadius: 5,
       background: forte ? c : soft, color: forte ? '#fff' : c,
       fontSize: size === 'sm' ? 12 : 13, fontWeight: 700, whiteSpace: 'nowrap',
       // Una pillola dentro una cella stretta deve accorciarsi, non sfondare
@@ -109,22 +109,22 @@ function HubStrumento({ icona, acceso, badge, onClick, children, forte, title, s
       onMouseDown={() => { if (!spento) setPremuto(true); }} onMouseUp={() => setPremuto(false)}
       style={{
         position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 7,
-        padding: '8px 15px', borderRadius: 999,
-        border: `1px solid ${forte ? 'transparent' : acceso ? ADM.INCHIOSTRO : sopra ? 'rgba(73,40,68,0.22)' : 'rgba(73,40,68,0.10)'}`,
+        padding: '8px 13px', borderRadius: 8,
+        border: `1px solid ${forte ? 'transparent' : acceso ? ADM.PINK : sopra ? ADM.INK_SOFT : ADM.BORDER}`,
         fontSize: 13.7, fontWeight: 600,
-        color: forte ? '#fff' : acceso ? '#fff' : ADM.TEXT,
-        background: forte ? (sopra ? '#FF3A6C' : ADM.PINK)
-          : acceso ? (sopra ? ADM.INCHIOSTRO_2 : ADM.INCHIOSTRO)
-          : (sopra ? '#fff' : 'rgba(255,255,255,0.78)'),
+        color: forte ? '#fff' : acceso ? ADM.PINK_DARK : ADM.TEXT,
+        background: forte ? (sopra ? 'linear-gradient(180deg,#FF3A6C 0%,#E2144E 100%)' : 'linear-gradient(180deg,#FF1F5A 0%,#D4104A 100%)')
+          : acceso ? (sopra ? ADM.PINK_HOVER : ADM.PINK_BG_SOFT)
+          : (sopra ? '#F5F6F8' : '#fff'),
         boxShadow: premuto ? 'none'
-          : forte ? '0 10px 22px -10px rgba(255,31,90,0.7), 0 1px 0 rgba(255,255,255,0.22) inset'
-          : sopra ? '0 8px 18px -10px rgba(73,40,68,0.35)' : '0 1px 2px rgba(73,40,68,0.05)',
+          : forte ? '0 4px 14px -5px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.22) inset'
+          : sopra ? '0 2px 8px rgba(15,17,21,0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
         transform: premuto ? 'translateY(1px)' : 'none',
         cursor: spento ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
         transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease',
         ...(spento ? { opacity: 0.5, boxShadow: 'none', transform: 'none' } : {}),
       }}>
-      {Icona && <Icona size={15} color={forte || acceso ? '#fff' : sopra ? ADM.TEXT : ADM.MUTED}/>}
+      {Icona && <Icona size={15} color={forte ? '#fff' : acceso ? ADM.PINK : sopra ? ADM.TEXT : ADM.MUTED}/>}
       {children}
       {badge > 0 && (
         <span style={{
@@ -141,14 +141,14 @@ function HubStrumento({ icona, acceso, badge, onClick, children, forte, title, s
 function HubRicerca({ valore, onCambia, placeholder = 'Cerca…', larghezza = 280 }) {
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      <span style={{ position: 'absolute', left: 13, color: ADM.MUTED, pointerEvents: 'none', display: 'inline-flex' }}>
+      <span style={{ position: 'absolute', left: 10, color: ADM.MUTED, pointerEvents: 'none', display: 'inline-flex' }}>
         <BuIcons.search size={17}/>
       </span>
       <input value={valore} onChange={e => onCambia(e.target.value)} placeholder={placeholder}
         style={{
-          padding: '8px 30px 8px 36px', border: `1px solid rgba(73,40,68,0.10)`, borderRadius: 999,
+          padding: '7px 28px 7px 31px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8,
           fontSize: 14, fontFamily: 'inherit', width: larghezza, color: ADM.TEXT,
-          background: 'rgba(255,255,255,0.8)', outline: 'none', boxSizing: 'border-box',
+          background: '#fff', outline: 'none', boxSizing: 'border-box',
         }}/>
       {valore && (
         <button onClick={() => onCambia('')} title="Svuota" style={{
@@ -169,8 +169,8 @@ function HubTestata({ titolo, sotto, azioni }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ flex: 1, minWidth: 240 }}>
-        <div className="desk-titolo" style={{ fontSize: 34, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.04em', lineHeight: 1.05 }}>{titolo}</div>
-        {sotto && <div style={{ fontSize: 14.4, color: ADM.MUTED, marginTop: 8, maxWidth: 720, lineHeight: 1.5 }}>{sotto}</div>}
+        <div style={{ fontSize: 24, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.025em', lineHeight: 1.15 }}>{titolo}</div>
+        {sotto && <div style={{ fontSize: 14.2, color: ADM.MUTED, marginTop: 5, maxWidth: 720, lineHeight: 1.5 }}>{sotto}</div>}
       </div>
       {azioni && <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0, paddingTop: 4 }}>{azioni}</div>}
     </div>
@@ -182,21 +182,16 @@ function HubTestata({ titolo, sotto, azioni }) {
 function HubTile({ etichetta, valore, sotto, tono, icona, onClick }) {
   const Icona = icona ? BuIcons[icona] : null;
   return (
-    <div className={'desk-vetro' + (onClick ? ' hub-card' : '')} onClick={onClick} style={{
-      background: ADM.GLASS, border: `1px solid ${ADM.GLASS_BORDO}`, borderRadius: ADM.R_SCHEDA,
-      padding: '16px 18px', boxShadow: ADM.CARD_SHADOW, minWidth: 0,
-      display: 'flex', alignItems: 'flex-start', gap: 12,
+    <div className={onClick ? 'hub-card' : undefined} onClick={onClick} style={{
+      background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 12,
+      padding: '14px 16px', boxShadow: ADM.CARD_SHADOW, minWidth: 0,
     }}>
-      {Icona && (
-        <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.9)', boxShadow: '0 6px 16px -10px rgba(73,40,68,0.45)', color: ADM.TEXT }}>
-          <Icona size={18}/>
-        </span>
-      )}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.035em', color: tono ? (ADM[tono] || tono) : ADM.TEXT, lineHeight: 1.05 }}>{valore}</div>
-        <div style={{ fontSize: 12.8, fontWeight: 600, color: ADM.MUTED, marginTop: 5, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{etichetta}</div>
-        {sotto && <div style={{ fontSize: 12.4, color: ADM.MUTED_SOFT, marginTop: 3, lineHeight: 1.4 }}>{sotto}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+        {Icona && <Icona size={14} color={ADM.MUTED_SOFT}/>}
+        <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{etichetta}</div>
       </div>
+      <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', color: tono ? (ADM[tono] || tono) : ADM.TEXT, lineHeight: 1.05 }}>{valore}</div>
+      {sotto && <div style={{ fontSize: 12.8, color: ADM.MUTED, marginTop: 5, lineHeight: 1.4 }}>{sotto}</div>}
     </div>
   );
 }
@@ -206,9 +201,8 @@ function HubVuoto({ icona = 'search', titolo, desc, azione }) {
   return (
     <div style={{ padding: '52px 32px', textAlign: 'center' }}>
       <div style={{
-        display: 'inline-grid', placeItems: 'center', width: 56, height: 56, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.9)', color: ADM.DESK_PRUGNA, marginBottom: 14,
-        boxShadow: '0 10px 24px -14px rgba(73,40,68,0.5)',
+        display: 'inline-grid', placeItems: 'center', width: 52, height: 52, borderRadius: 14,
+        background: ADM.HUB_GRAD_SOFT, color: ADM.HUB_MAGENTA_DARK, marginBottom: 14,
       }}><Icona size={26}/></div>
       <div style={{ fontSize: 16, fontWeight: 700, color: ADM.TEXT, marginBottom: 5 }}>{titolo}</div>
       <div style={{ fontSize: 14, color: ADM.MUTED, maxWidth: 420, margin: '0 auto', lineHeight: 1.5 }}>{desc}</div>
@@ -220,15 +214,15 @@ function HubVuoto({ icona = 'search', titolo, desc, azione }) {
 // Controllo segmentato: due o tre viste della stessa lista.
 function HubSegmenti({ voci, attivo, onCambia }) {
   return (
-    <div style={{ display: 'inline-flex', gap: 2, padding: 4, background: 'rgba(73,40,68,0.07)', borderRadius: 999 }}>
+    <div style={{ display: 'inline-flex', gap: 2, padding: 3, background: 'rgba(120,120,128,0.12)', borderRadius: 10 }}>
       {voci.map(v => {
         const on = attivo === v.id;
         return (
           <button key={v.id} onClick={() => onCambia(v.id)} style={{
-            padding: '6px 14px', background: on ? '#fff' : 'transparent', border: 'none', borderRadius: 999,
+            padding: '6px 13px', background: on ? '#fff' : 'transparent', border: 'none', borderRadius: 8,
             color: on ? ADM.TEXT : ADM.MUTED, fontWeight: 600, fontSize: 13.6, cursor: 'pointer',
             fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
-            boxShadow: on ? '0 4px 12px -6px rgba(73,40,68,0.35)' : 'none',
+            boxShadow: on ? '0 1px 3px rgba(15,17,21,0.10), 0 1px 0 rgba(255,255,255,0.5) inset' : 'none',
             transition: 'background 0.18s, color 0.18s, box-shadow 0.18s',
           }}>
             {v.label}
@@ -259,27 +253,27 @@ function HubModale({ open, onClose, titolo, sotto, larghezza = 720, altezza, foo
   if (!open) return null;
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(42,26,40,0.34)',
-      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(15,17,21,0.42)',
+      backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32,
       animation: 'hubVeloIn 0.14s ease',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: larghezza, maxWidth: '100%', maxHeight: '86vh', height: altezza,
-        background: '#FDFBFA', borderRadius: 28, overflow: 'hidden',
-        boxShadow: '0 40px 90px -24px rgba(42,26,40,0.5), 0 0 0 1px rgba(73,40,68,0.06)',
+        background: '#fff', borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 40px 90px -20px rgba(15,17,21,0.42), 0 0 0 1px rgba(15,17,21,0.06)',
         display: 'flex', flexDirection: 'column', animation: 'hubModaleIn 0.2s cubic-bezier(0.34,1.24,0.64,1)',
       }}>
         <div style={{
-          padding: '20px 24px 16px', borderBottom: `1px solid ${ADM.BORDER_SOFT}`,
+          padding: '17px 22px', borderBottom: `1px solid ${ADM.BORDER}`,
           display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 21, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.03em' }}>{titolo}</div>
+            <div style={{ fontSize: 17.5, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.015em' }}>{titolo}</div>
             {sotto && <div style={{ fontSize: 13.4, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>{sotto}</div>}
           </div>
           <button onClick={onClose} title="Chiudi" className="adm-iconbtn" style={{
-            width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(73,40,68,0.10)', background: '#fff',
+            width: 30, height: 30, borderRadius: 8, border: 'none', background: ADM.NEUTRAL_SOFT,
             color: ADM.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0,
           }}><BuIcons.x size={17}/></button>
         </div>
@@ -310,27 +304,27 @@ function HubPannello({ open, onClose, titolo, sotto, larghezza = 400, footer, ch
   const Icona = icona ? BuIcons[icona] : null;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 190, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(42,26,40,0.26)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', animation: 'hubVeloIn 0.14s ease' }}/>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,17,21,0.32)', animation: 'hubVeloIn 0.14s ease' }}/>
       <div style={{
-        position: 'relative', width: larghezza, maxWidth: '92vw', height: 'calc(100% - 24px)', margin: 12,
-        background: '#FDFBFA', borderRadius: 26, overflow: 'hidden',
-        boxShadow: '0 30px 80px -24px rgba(42,26,40,0.45), 0 0 0 1px rgba(73,40,68,0.06)',
+        position: 'relative', width: larghezza, maxWidth: '92vw', height: '100%',
+        background: '#fff', borderLeft: `1px solid ${ADM.BORDER}`,
+        boxShadow: '-24px 0 60px -20px rgba(15,17,21,0.28)',
         display: 'flex', flexDirection: 'column',
         animation: 'hubPannelloIn 0.22s cubic-bezier(0.32,0.72,0,1)',
       }}>
-        <div style={{ padding: '18px 18px 14px 20px', borderBottom: `1px solid ${ADM.BORDER_SOFT}`, display: 'flex', alignItems: 'flex-start', gap: 12, flexShrink: 0 }}>
+        <div style={{ padding: '16px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'flex-start', gap: 12, flexShrink: 0 }}>
           {Icona && (
             <span style={{
-              width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+              width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center',
               background: ADM[colore + '_SOFT'] || ADM.PINK_SOFT, color: ADM[colore] || ADM.PINK,
             }}><Icona size={17}/></span>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 19, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.03em' }}>{titolo}</div>
+            <div style={{ fontSize: 16.5, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.015em' }}>{titolo}</div>
             {sotto && <div style={{ fontSize: 13, color: ADM.MUTED, marginTop: 2, lineHeight: 1.45 }}>{sotto}</div>}
           </div>
           <button onClick={onClose} title="Chiudi" className="adm-iconbtn" style={{
-            width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(73,40,68,0.10)', background: '#fff',
+            width: 30, height: 30, borderRadius: 8, border: 'none', background: ADM.NEUTRAL_SOFT,
             color: ADM.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0,
           }}><BuIcons.x size={17}/></button>
         </div>
@@ -348,8 +342,8 @@ function HubPannello({ open, onClose, titolo, sotto, larghezza = 400, footer, ch
 // ═══════════════════════════════════════════════════════════════════════════
 
 const HUB_INPUT = {
-  width: '100%', boxSizing: 'border-box', padding: '9px 13px',
-  border: `1px solid rgba(73,40,68,0.12)`, borderRadius: 12, background: '#fff',
+  width: '100%', boxSizing: 'border-box', padding: '8px 11px',
+  border: `1px solid ${ADM.BORDER}`, borderRadius: 8, background: '#fff',
   fontSize: 13.8, fontFamily: 'inherit', color: ADM.TEXT, outline: 'none',
 };
 
@@ -869,8 +863,8 @@ function HubTabella({ colonne, righe, chiave, cella, onRiga, vuoto, sort, onSort
   return (
     <div>
       <div style={{
-        display: 'grid', gridTemplateColumns: griglia, columnGap: 16, padding: '12px 18px 10px',
-        borderBottom: `1px solid ${ADM.BORDER}`, alignItems: 'center', background: 'transparent',
+        display: 'grid', gridTemplateColumns: griglia, columnGap: 16, padding: '10px 18px',
+        borderBottom: `1px solid ${ADM.BORDER}`, alignItems: 'center', background: ADM.PANEL_SOFT,
       }}>
         {colonne.map(c => {
           const attiva = sort && sort.campo === c.id;
@@ -880,8 +874,8 @@ function HubTabella({ colonne, righe, chiave, cella, onRiga, vuoto, sort, onSort
               <button type="button" disabled={!cliccabile} onClick={() => cliccabile && onSort(c.id)}
                 style={{
                   background: 'transparent', border: 'none', padding: 0, fontFamily: 'inherit',
-                  fontSize: 12.4, fontWeight: 650, letterSpacing: '-0.005em',
-                  color: attiva ? ADM.TEXT : ADM.MUTED_SOFT,
+                  fontSize: 11.6, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
+                  color: attiva ? ADM.PINK_DARK : ADM.MUTED_SOFT,
                   cursor: cliccabile ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4,
                 }}>
                 {c.label}
@@ -934,7 +928,7 @@ function HubSezione({ titolo, sotto, azioni, children }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginBottom: 11 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.025em', color: ADM.TEXT }}>{titolo}</div>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>{titolo}</div>
           {sotto && <div style={{ fontSize: 13.4, color: ADM.MUTED, marginTop: 4 }}>{sotto}</div>}
         </div>
         {azioni}
