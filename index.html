@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-  /* Home del prototipo, scura (24 ottobre 2026). I marchi in assets/marchi/
+  /* Home del prototipo, scura (24 ottobre 2026): solo le schede, niente testo sopra. I marchi in assets/marchi/
      sono i file originali, byte per byte: qui si dà solo la larghezza e
      l'altezza segue da sé, quindi le proporzioni non si toccano mai. */
   :root{
@@ -38,19 +38,11 @@
   .amb::after{content:"";position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-  .wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:26px max(20px,env(safe-area-inset-right,0px)) 60px max(20px,env(safe-area-inset-left,0px))}
-  .bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .bar img{width:96px;height:auto;display:block}
-  .proto{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;background:var(--surf2);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--dim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-  .proto i{width:8px;height:8px;border-radius:999px;background:#3DDC7F;box-shadow:0 0 10px #3DDC7F}
+  .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:48px max(20px,env(safe-area-inset-right,0px)) 48px max(20px,env(safe-area-inset-left,0px))}
 
-  .hero{margin:64px 0 38px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap}
-  .hero h1{font-family:var(--display);font-weight:600;font-size:clamp(40px,6vw,72px);line-height:.98;letter-spacing:-.035em;margin:0;max-width:11ch}
-  .hero h1 em{font-style:normal;background:linear-gradient(100deg,#FF4D7A,#FF8AA8 50%,#C9A8FF);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero p{margin:0;font-size:16.5px;line-height:1.55;color:var(--dim);max-width:40ch}
 
   .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
-  .tile{grid-column:span 4;position:relative;display:flex;flex-direction:column;border-radius:30px;background:var(--surf);border:1px solid var(--line);overflow:hidden;
+  .tile{grid-column:span 6;position:relative;display:flex;flex-direction:column;border-radius:30px;background:var(--surf);border:1px solid var(--line);overflow:hidden;
     transition:transform .4s var(--spring),border-color .3s,background .3s}
   .tile.big{grid-column:span 6}
   .tile:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
@@ -84,11 +76,10 @@
   .go[aria-disabled="true"]{background:var(--surf2);color:var(--faint);box-shadow:none;cursor:default;pointer-events:none;border:1px solid var(--line)}
   .path{font-size:12px;color:var(--faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 
-  .note{margin-top:36px;text-align:center;font-size:13px;color:var(--faint)}
 
-  @media (max-width:980px){.tile,.tile.big{grid-column:span 6}.tile.last{grid-column:span 12}}
+  
   @media (max-width:640px){
-    .hero{margin:40px 0 26px}
+    .wrap{padding-top:20px;padding-bottom:28px}
     .tile,.tile.big,.tile.last{grid-column:span 12}
     .stage,.big .stage{height:170px}
     .seg{align-self:stretch;min-width:0}
@@ -101,18 +92,7 @@
 <body>
 <div class="amb"><i></i><i></i><i></i></div>
 <div class="wrap">
-  <header class="bar">
-    <img src="assets/marchi/byup.png" alt="byup"/>
-    <span class="proto"><i></i>Prototipo · dati di prova</span>
-  </header>
-
-  <section class="hero">
-    <h1>L'ecosistema <em>byup</em></h1>
-    <p>Le app per chi mangia, gli strumenti per chi lavora nel locale e la console del team. Dove ci sono più versioni, scegli quale aprire dentro la scheda.</p>
-  </section>
-
   <main class="grid" id="grid"></main>
-  <p class="note">Ogni schermata è un prototipo: i dati sono finti e servono solo a far vedere come si usa.</p>
 </div>
 
 <script>
@@ -127,19 +107,22 @@ const PRODOTTI = [
   { id:'fresh', big:true, logo:'fresh', lw:'300px', aud:'Per i locali', c:'#FF505B', g:'rgba(255,80,91,.38)', modi:[
     { btn:'Apri il gestionale', href:'gestionale/byup%20Login.html',
       desc:'Il gestionale del locale: sala e prenotazioni, cucina, menù, conti e incassi, statistiche e impostazioni.' } ] },
-  { id:'staff', logo:'staff', lw:'250px', aud:'Per lo staff', c:'#EE6A86', g:'rgba(240,110,130,.36)', modi:[
+  { id:'staff', logo:'staff', lw:'280px', aud:'Per lo staff', c:'#EE6A86', g:'rgba(240,110,130,.36)', modi:[
     { k:'Incasso', btn:'Apri Staff', href:'staff/index.html',
       desc:'Per incassare al tavolo con il telefono: Tap to Pay su iPhone e Android, pagamenti con carta tramite Stripe Terminal.' },
     { k:'Cameriere', btn:'Apri Cameriere', href:'cameriere/cameriereweb.html',
       desc:'La presa ordini in sala dal palmare: piantina dei tavoli, comande, conto e pagamento.' } ] },
-  { id:'desk', logo:'desk', lw:'230px', aud:'Team byup', c:'#DCB8D8', ct:'#2A1426', g:'rgba(220,184,216,.30)', modi:[
+  { id:'desk', logo:'desk', lw:'270px', aud:'Team byup', c:'#DCB8D8', ct:'#2A1426', g:'rgba(220,184,216,.30)', modi:[
     { k:'1', btn:'Apri Desk', href:'desk/byup-desk.html',
       desc:'La console interna com\'era al 17 ottobre: il team, i contatti dei locali, gli elenchi, il marketing, i workflow e gli agenti.' },
     { k:'2.0', btn:'Apri Desk 2.0', href:'desk-2/byup-desk.html',
       desc:'La console ridisegnata: la pagina Oggi, Byuppino l\'assistente, Sales per le trattative, le notifiche e i ruoli del team.' } ] },
-  { id:'panorama', last:true, logo:'panorama', lw:'290px', aud:'In arrivo', soon:true, c:'#fff', g:'rgba(200,150,255,.30)', modi:[
+  { id:'panorama', logo:'panorama', lw:'320px', aud:'In arrivo', soon:true, c:'#fff', g:'rgba(200,150,255,.30)', modi:[
     { btn:'Non ancora disponibile', href:null,
       desc:'Il business manager di byup: i locali selezionati acquistano spazi promozionali in app, dai consigliati agli eventi. Accesso su invito.' } ] },
+  { id:'hubble', logo:'hubble', lw:'300px', aud:'In arrivo', soon:true, c:'#fff', g:'rgba(230,70,170,.32)', modi:[
+    { btn:'Non ancora disponibile', href:null,
+      desc:'Il marketplace dei fornitori di byup, per i locali. È in sviluppo.' } ] },
 ];
 const ricorda = (k, v) => { try { if (v === undefined) return localStorage.getItem('byup_home_' + k); localStorage.setItem('byup_home_' + k, v); } catch (e) { return null; } };
 
