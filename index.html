@@ -61,12 +61,13 @@
   .aud.soon{background:#fff;color:#09090C;border-color:#fff}
 
   .body{display:flex;flex-direction:column;gap:14px;padding:20px 22px 22px;flex:1}
-  .seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:4px;border-radius:999px;background:var(--surf2);border:1px solid var(--line);align-self:flex-start;min-width:210px}
+  .seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:4px;border-radius:999px;background:var(--surf2);border:1px solid var(--line);min-width:180px}
   .seg button{position:relative;z-index:1;height:34px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:700;color:var(--faint);transition:color .25s;white-space:nowrap}
   .seg button[aria-selected="true"]{color:var(--text)}
   .seg .pill{position:absolute;top:4px;bottom:4px;left:4px;border-radius:999px;background:rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .45s var(--spring)}
   .desc{margin:0;font-size:15px;line-height:1.55;color:var(--dim);transition:opacity .18s}
-  .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
+  .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .foot .go:only-child{margin-right:auto}
   .go{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px 0 20px;border-radius:999px;background:var(--c);color:var(--ct,#fff);font-size:14.5px;font-weight:800;text-decoration:none;
     box-shadow:0 12px 28px -14px var(--c);transition:transform .25s var(--spring),filter .2s;white-space:nowrap}
   .go:hover{filter:brightness(1.08)}
@@ -78,11 +79,28 @@
 
 
   
+
+  /* desktop: tutte e sei le schede in una schermata, 3 × 2, senza scorrere.
+     Il palco prende lo spazio che resta e il marchio si adatta: larghezza
+     limitata anche dall'altezza del palco moltiplicata per le proporzioni
+     del file (--r), così non si deforma mai. */
+  @media (min-width:900px) and (min-height:520px){
+    body{overflow:hidden}
+    .wrap{max-width:1360px;height:100vh;min-height:0;padding:22px 24px;justify-content:stretch}
+    .grid{flex:1;min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:16px}
+    .tile,.tile.big{grid-column:auto;min-height:0}
+    .stage,.big .stage{flex:1 1 auto;height:auto;min-height:0;container-type:size;padding-top:26px}
+    .stage img{width:min(var(--lw),70cqw,calc(62cqh * var(--r,2.5)))}
+    .body{flex:0 0 auto;gap:12px;padding:16px 18px 18px}
+    .desc{font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.5em}
+    .go{height:40px;font-size:14px;padding:0 16px 0 18px}
+    .seg button{height:30px;font-size:13px;padding:0 12px}
+  }
   @media (max-width:640px){
     .wrap{padding-top:20px;padding-bottom:28px}
     .tile,.tile.big,.tile.last{grid-column:span 12}
     .stage,.big .stage{height:170px}
-    .seg{align-self:stretch;min-width:0}
+    .seg{flex:1 1 100%;min-width:0}
     .path{display:none}
     .go{width:100%;justify-content:center}
   }
@@ -129,17 +147,16 @@ const ricorda = (k, v) => { try { if (v === undefined) return localStorage.getIt
 const grid = document.getElementById('grid');
 grid.innerHTML = PRODOTTI.map(p => `
   <article class="tile ${p.big ? 'big' : ''} ${p.last ? 'last' : ''}" data-id="${p.id}" style="--c:${p.c};--g:${p.g};${p.ct ? '--ct:' + p.ct + ';' : ''}--lw:${p.lw}">
-    <div class="stage"><span class="aud ${p.soon ? 'soon' : ''}">${p.aud}</span><img src="assets/marchi/${p.logo}.png" alt="${p.id}" /></div>
+    <div class="stage"><span class="aud ${p.soon ? 'soon' : ''}">${p.aud}</span><img src="assets/marchi/${p.logo}.png" alt="${p.id}" onload="this.style.setProperty('--r', this.naturalWidth / this.naturalHeight)"/></div>
     <div class="body">
-      ${p.modi.length > 1 ? `<div class="seg" role="tablist" aria-label="Versione">${p.modi.map((m, i) => `<button role="tab" data-i="${i}" aria-selected="false">${m.k}</button>`).join('')}<span class="pill"></span></div>` : ''}
       <p class="desc"></p>
-      <div class="foot"><a class="go"></a><span class="path"></span></div>
+      <div class="foot">${p.modi.length > 1 ? `<div class="seg" role="tablist" aria-label="Versione">${p.modi.map((m, i) => `<button role="tab" data-i="${i}" aria-selected="false">${m.k}</button>`).join('')}<span class="pill"></span></div>` : ''}<a class="go"></a></div>
     </div>
   </article>`).join('');
 
 grid.querySelectorAll('.tile').forEach(tile => {
   const p = PRODOTTI.find(x => x.id === tile.dataset.id);
-  const desc = tile.querySelector('.desc'), go = tile.querySelector('.go'), path = tile.querySelector('.path'), seg = tile.querySelector('.seg');
+  const desc = tile.querySelector('.desc'), go = tile.querySelector('.go'), path = { set textContent(v) {} }, seg = tile.querySelector('.seg');
   const scegli = (i, anim) => {
     const m = p.modi[i];
     const metti = () => { desc.textContent = m.desc; desc.style.opacity = 1; };
