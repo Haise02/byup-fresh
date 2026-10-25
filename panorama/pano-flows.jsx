@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 // Panorama · flussi: Promuovi in un tap, procedura guidata (anche in
-// modalità «correggi»), ricarica, dettaglio campagna, posto nel digest,
-// primo accesso, avvisi. Condivisi dalle tre varianti.
+// modalità «correggi»), ricarica, dettaglio campagna, asta della push,
+// posto nella notifica in app, benvenuto e regole, avvisi.
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
   const Pano = window.Pano;
@@ -13,7 +13,7 @@
   // ─── Promuovi in un tap ─────────────────────────────────────────────────
   // È una scorciatoia, non una campagna: mette un piatto o un evento in cima
   // alla tua vetrina, a prezzo fisso. Gli spazi dell'app dove i locali si
-  // contendono la visibilità (ricerca, eventi, offerte, digest) passano sempre
+  // contendono la visibilità (ricerca, eventi, offerte, notifiche) passano sempre
   // dalla procedura completa, «Nuova campagna».
   function QuickPromote({ kind: k0 = 'piatto', pickId, days: d0 }) {
     const wallet = Pano.useStore((s) => s.wallet);
@@ -244,7 +244,7 @@
               );
             })}
           </div>
-          <Note tone="iride" icon="push"><b>Notifiche:</b> le manda solo byup. I posti nella push di zona si vincono all’asta e quelli nella lista in app si prenotano a prezzo fisso, in <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('notifiche')}>Notifiche</button>.</Note>
+          <Note tone="iride" icon="push"><b>Le notifiche non stanno qui.</b> La push sul telefono si vince all’asta in <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('push')}>Push</button>; il messaggio nella Posta dell’app si prenota a prezzo fisso in <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('inapp')}>In app</button>.</Note>
         </>
       );
       if (S.id === 'pubblico') {
@@ -634,20 +634,17 @@
     );
   }
 
-  // ─── Digest di zona: l'asta della push e la lista in app ────────────────
-  // I tre posti scritti nella push si vincono all'asta (busta chiusa, offerta ×
-  // qualità, secondo prezzo, chiusura 15 minuti prima dell'invio); il 4° e il 5°
-  // stanno nella lista in app, a prezzo fisso. Nel prototipo la chiusura si simula.
+  // ─── Push: l'asta di una casella ────────────────────────────────────────
+  // I tre posti della push si vincono all'asta (busta chiusa, offerta × qualità,
+  // secondo prezzo, chiusura 15 minuti prima dell'invio). Nel prototipo la chiusura
+  // si simula. La notifica in app ha il suo cassetto (PostaDrawer, sotto).
   const weekOf = (c) => (c.day <= 1 ? 0 : 1); // oggi è sabato: sabato e domenica sono questa settimana
   // le push della stessa settimana già vinte o in gara (il tetto è 2 a locale)
   Pano.pushWeek = (all, cell) => all.filter((c) => c.id !== cell.id && weekOf(c) === weekOf(cell) && (c.auction.status === 'chiusa' ? !!(c.auction.result && c.auction.result.me) : !!c.auction.my));
-  function SlotDrawer({ cellId, tab: t0 }) {
+  function SlotDrawer({ cellId }) {
     const cell = Pano.useStore((s) => s.digest.find((c) => c.id === cellId));
     const all = Pano.useStore((s) => s.digest);
     const wallet = Pano.useStore((s) => s.wallet);
-    const [tab, setTab] = useState(t0 || 'push');
-    const [pos, setPos] = useState(null);
-    const [aud, setAud] = useState('vicini');
     const [view, setView] = useState('push');
     const [bid, setBid] = useState(null);
     if (!cell) return null;
@@ -655,7 +652,7 @@
     const F = DATA.FASCE.find((f) => f.id === cell.fascia);
     const x = Pano.cellState(cell);
     const closed = x.closed;
-    const title = `Digest ${F.label} · ${Pano.fmtDay(cell.d)} · ${cell.time}`;
+    const title = `Push ${F.label} · ${Pano.fmtDay(cell.d)} · ${cell.time}`;
     // tetto: ogni locale vince al massimo 2 push a settimana (vinte o in gara)
     const week = Pano.pushWeek(all, cell);
     const capped = !a.my && week.length >= DATA.TETTO_PUSH;
@@ -671,137 +668,178 @@
     };
     const withdraw = () => { const had = a.my.max; act.withdrawBid(cell.id); setBid(null); Pano.toast('Offerta ritirata · importo sbloccato', { undo: () => act.placeBid(cell.id, had) }); };
     const simulate = () => { const r = act.closeAuction(cell.id); Pano.toast(r.me ? `Asta chiusa: ${r.me.pos}° posto, pagati ${Pano.eur(r.me.paid, true)}` : 'Asta chiusa: questa volta non sei entrato'); };
-    // lista in app (4° e 5°)
-    const mineList = cell.slots.find((s) => s.mine);
-    const inPush = !!x.me;
-    const free = cell.slots.filter((s) => !s.sold);
-    const chosen = pos || (free[0] && free[0].pos);
-    const slot = cell.slots.find((s) => s.pos === chosen);
-    const book = () => {
-      const price = act.bookSlot(cell.id, chosen, aud);
-      Pano.toast(`Prenotato il ${chosen}° posto in app · ${Pano.eur(price)}`, { undo: () => act.unbookSlot(cell.id, chosen) });
-    };
     const winners = closed && a.result ? a.result.win : null;
     return (
-      <Drawer onClose={act.close} title={title} sub={`Trastevere · raggio 1,2 km · ≈ ${Pano.n(cell.reach)} persone · lo manda byup`}>
-        <Seg value={tab} onChange={setTab} options={[{ id: 'push', label: 'Push all’asta', icon: 'bell' }, { id: 'lista', label: 'Lista in app · prezzo fisso', icon: 'phone' }]} label="Cosa compri" />
-        {tab === 'push' ? (
+      <Drawer onClose={act.close} title={title} sub={`Trastevere · raggio 1,2 km · ≈ ${Pano.n(cell.reach)} persone · la manda byup`}>
+        <div className={cx('auc-st', closed ? 'closed' : 'open')}>
+          <i />
+          <b>{closed ? `Asta chiusa · push inviata alle ${cell.time}` : `Asta aperta · chiude alle ${a.closeAt}`}</b>
+          <span>{a.rivals.length + (a.my ? 1 : 0)} offerte{closed ? '' : ' · 15 minuti prima dell’invio'}</span>
+        </div>
+        <div className="card soft" style={{ padding: 16 }}>
+          <div className="col" style={{ gap: 8 }}>
+            <KV k="Posti nella push" v="3, uno per categoria" />
+            <KV k="Prezzo minimo" v={`${Pano.eur(a.reserve)} · ${Pano.eur(DATA.PER_MILLE, true)} ogni 1.000 persone`} />
+            <KV k="Di solito il 1° posto" v={`${Pano.eur(a.range[0])}–${Pano.eur(a.range[1])}`} />
+            <KV k="La qualità del tuo locale" v={`×${Pano.n2(DATA.QUALITA)} · voto 4,6, foto, tocchi`} />
+          </div>
+        </div>
+        {closed ? (
           <>
-            <div className={cx('auc-st', closed ? 'closed' : 'open')}>
-              <i />
-              <b>{closed ? `Asta chiusa · push inviata alle ${cell.time}` : `Asta aperta · chiude alle ${a.closeAt}`}</b>
-              <span>{a.rivals.length + (a.my ? 1 : 0)} offerte{closed ? '' : ' · 15 minuti prima dell’invio'}</span>
-            </div>
-            <div className="card soft" style={{ padding: 16 }}>
-              <div className="col" style={{ gap: 8 }}>
-                <KV k="Posti nella push" v="3, uno per categoria" />
-                <KV k="Prezzo minimo" v={`${Pano.eur(a.reserve)} · ${Pano.eur(DATA.PER_MILLE, true)} ogni 1.000 persone`} />
-                <KV k="Di solito il 1° posto" v={`${Pano.eur(a.range[0])}–${Pano.eur(a.range[1])}`} />
-                <KV k="La qualità del tuo locale" v={`×${Pano.n2(DATA.QUALITA)} · voto 4,6, foto, tocchi`} />
-              </div>
-            </div>
-            {closed ? (
-              <>
-                {x.me
-                  ? <Note tone="good" icon="checkCircle"><b>Vinto il {x.me.pos}° posto</b> · pagati {Pano.eur(x.me.paid, true)} con il secondo prezzo{a.my ? `; la tua offerta massima era ${Pano.eur(a.my.max)} e il resto è tornato nel wallet` : ''}.</Note>
-                  : a.my ? <Note tone="warn" icon="alert"><b>Questa volta non sei entrato.</b> {a.result && a.result.cut ? `Il primo escluso aveva offerta × qualità più alta della tua.` : ''} L’offerta massima è tornata nel wallet.</Note>
-                    : <Note icon="info">Asta chiusa senza la tua offerta.</Note>}
-                {winners && (
-                  <div className="col" style={{ gap: 6 }} aria-label="Chi è nella push">
-                    {winners.map((w) => (
-                      <div key={w.pos} className={cx('slot-row', 'static', w.me && 'me')}>
-                        <span className={cx('pos', w.me && 'av-ring')}>{w.pos}</span>
-                        <span className="col" style={{ gap: 1, textAlign: 'left' }}><b>{w.me ? 'Tu · Cacio e Pepe' : w.who}</b><span className="t-small">{w.cat} · nel testo della push</span></span>
-                        <span className="pr">{w.me ? Pano.eur(w.paid, true) : ''}</span>
-                      </div>
-                    ))}
+            {x.me
+              ? <Note tone="good" icon="checkCircle"><b>Vinto il {x.me.pos}° posto</b> · pagati {Pano.eur(x.me.paid, true)} con il secondo prezzo{a.my ? `; la tua offerta massima era ${Pano.eur(a.my.max)} e il resto è tornato nel wallet` : ''}.</Note>
+              : a.my ? <Note tone="warn" icon="alert"><b>Questa volta non sei entrato.</b> {a.result && a.result.cut ? `Il primo escluso aveva offerta × qualità più alta della tua.` : ''} L’offerta massima è tornata nel wallet.</Note>
+                : <Note icon="info">Asta chiusa senza la tua offerta.</Note>}
+            {winners && (
+              <div className="col" style={{ gap: 6 }} aria-label="Chi è nella push">
+                {winners.map((w) => (
+                  <div key={w.pos} className={cx('slot-row', 'static', w.me && 'me')}>
+                    <span className={cx('pos', w.me && 'av-ring')}>{w.pos}</span>
+                    <span className="col" style={{ gap: 1, textAlign: 'left' }}><b>{w.me ? 'Tu · Cacio e Pepe' : w.who}</b><span className="t-small">{w.cat} · nel testo della push</span></span>
+                    <span className="pr">{w.me ? Pano.eur(w.paid, true) : ''}</span>
                   </div>
-                )}
-              </>
-            ) : capped ? (
-              <Note tone="warn" icon="ban"><b>Tetto raggiunto.</b> Questa settimana hai già {week.length} push tra vinte e in gara: ogni locale ne vince al massimo {DATA.TETTO_PUSH}, così le notifiche restano varie. Da lunedì puoi offrire di nuovo.</Note>
-            ) : a.my && bid == null ? (
-              <div className="auc-mine">
-                <div className="row between"><span className="t-small">La tua offerta massima</span><b className="num auc-big">{Pano.eur(a.my.max)}</b></div>
-                <div className={cx('auc-est', x.me ? 'ok' : 'ko')}>
-                  {x.me ? <>Oggi saresti <b>{x.me.pos}°</b> e pagheresti <b>{Pano.eur(x.me.paid, true)}</b>: paghi solo quanto basta per superare chi ti segue.</>
-                    : <>Oggi resteresti fuori: servono almeno <b>{Pano.eur(x.res.need)}</b>{x.res.rivalTrattoria ? ', perché gareggia anche un’altra trattoria' : ''}.</>}
-                </div>
-                <div className="row wrap" style={{ gap: 8 }}>
-                  <Btn kind="secondary" size="sm" icon="edit" onClick={() => setBid(a.my.max)}>Cambia offerta</Btn>
-                  <Btn kind="ghost" size="sm" icon="x" onClick={withdraw}>Ritira</Btn>
-                  <span className="spacer" />
-                  <Btn kind="ghost" size="sm" icon="clock" onClick={simulate}>Simula la chiusura</Btn>
-                </div>
-              </div>
-            ) : (
-              <div className="auc-edit">
-                <span className="lbl">La tua offerta massima</span>
-                <div className="auc-step">
-                  <IconBtn icon="minus" label="Meno 50 centesimi" size="sm" onClick={() => setBid(Math.max(a.reserve, Math.round((val - 0.5) * 2) / 2))} />
-                  <b className="num auc-big">{Pano.eur(val)}</b>
-                  <IconBtn icon="plus" label="Più 50 centesimi" size="sm" onClick={() => setBid(Math.round((val + 0.5) * 2) / 2)} />
-                </div>
-                <Chips value={val} onChange={setBid} options={[...new Set([Math.max(base.need, a.reserve), 10, 15, 20, 25])].filter((v) => v >= a.reserve).sort((p, q) => p - q).slice(0, 5).map((v) => ({ id: v, label: v === Math.max(base.need, a.reserve) ? `${Pano.eur(v)} · per entrare` : Pano.eur(v) }))} />
-                <div className={cx('auc-est', est.me ? 'ok' : 'ko')}>
-                  {est.me ? <>Stima di Byuppino: saresti <b>{est.me.pos}°</b> e pagheresti circa <b>{Pano.eur(est.me.paid, true)}</b>, mai più di {Pano.eur(val)}.</>
-                    : <>Con {Pano.eur(val)} resteresti fuori: servono almeno <b>{Pano.eur(est.need)}</b>{est.rivalTrattoria ? ' (gareggia anche un’altra trattoria)' : ''}.</>}
-                </div>
-                <div className="row wrap" style={{ gap: 8 }}>
-                  <Btn kind="primary" icon="bell" disabled={!canPay} onClick={place}>{a.my ? `Aggiorna · massimo ${Pano.eur(val)}` : `Fai l’offerta · massimo ${Pano.eur(val)}`}</Btn>
-                  {bid != null && a.my && <Btn kind="ghost" onClick={() => setBid(null)}>Annulla</Btn>}
-                </div>
-                <span className="t-small">{canPay ? `L’offerta massima resta bloccata nel wallet fino alle ${a.closeAt}; se non entri torna subito disponibile.` : 'Il saldo del wallet non basta per questa offerta.'}</span>
+                ))}
               </div>
             )}
-            <div className="auc-how">
-              <span><Icon n="lock" size={14} />Busta chiusa: nessuno vede le offerte degli altri</span>
-              <span><Icon n="sparkle" size={14} />Conta offerta × qualità del locale</span>
-              <span><Icon n="euro" size={14} />Paghi il secondo prezzo, mai più della tua offerta</span>
-              <span><Icon n="store" size={14} />Una trattoria per push · massimo {DATA.TETTO_PUSH} vinte a settimana</span>
+          </>
+        ) : capped ? (
+          <Note tone="warn" icon="ban"><b>Tetto raggiunto.</b> Questa settimana hai già {week.length} push tra vinte e in gara: ogni locale ne vince al massimo {DATA.TETTO_PUSH}, così le push restano varie. Da lunedì puoi offrire di nuovo; intanto c’è la <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('inapp')}>notifica in app</button>, a prezzo fisso.</Note>
+        ) : a.my && bid == null ? (
+          <div className="auc-mine">
+            <div className="row between"><span className="t-small">La tua offerta massima</span><b className="num auc-big">{Pano.eur(a.my.max)}</b></div>
+            <div className={cx('auc-est', x.me ? 'ok' : 'ko')}>
+              {x.me ? <>Oggi saresti <b>{x.me.pos}°</b> e pagheresti <b>{Pano.eur(x.me.paid, true)}</b>: paghi solo quanto basta per superare chi ti segue.</>
+                : <>Oggi resteresti fuori: servono almeno <b>{Pano.eur(x.res.need)}</b>{x.res.rivalTrattoria ? ', perché gareggia anche un’altra trattoria' : ''}.</>}
+            </div>
+            <div className="row wrap" style={{ gap: 8 }}>
+              <Btn kind="secondary" size="sm" icon="edit" onClick={() => setBid(a.my.max)}>Cambia offerta</Btn>
+              <Btn kind="ghost" size="sm" icon="x" onClick={withdraw}>Ritira</Btn>
+              <span className="spacer" />
+              <Btn kind="ghost" size="sm" icon="clock" onClick={simulate}>Simula la chiusura</Btn>
+            </div>
+          </div>
+        ) : (
+          <div className="auc-edit">
+            <span className="lbl">La tua offerta massima</span>
+            <div className="auc-step">
+              <IconBtn icon="minus" label="Meno 50 centesimi" size="sm" onClick={() => setBid(Math.max(a.reserve, Math.round((val - 0.5) * 2) / 2))} />
+              <b className="num auc-big">{Pano.eur(val)}</b>
+              <IconBtn icon="plus" label="Più 50 centesimi" size="sm" onClick={() => setBid(Math.round((val + 0.5) * 2) / 2)} />
+            </div>
+            <Chips value={val} onChange={setBid} options={[...new Set([Math.max(base.need, a.reserve), 10, 15, 20, 25])].filter((v) => v >= a.reserve).sort((p, q) => p - q).slice(0, 5).map((v) => ({ id: v, label: v === Math.max(base.need, a.reserve) ? `${Pano.eur(v)} · per entrare` : Pano.eur(v) }))} />
+            <div className={cx('auc-est', est.me ? 'ok' : 'ko')}>
+              {est.me ? <>Stima di Byuppino: saresti <b>{est.me.pos}°</b> e pagheresti circa <b>{Pano.eur(est.me.paid, true)}</b>, mai più di {Pano.eur(val)}.</>
+                : <>Con {Pano.eur(val)} resteresti fuori: servono almeno <b>{Pano.eur(est.need)}</b>{est.rivalTrattoria ? ' (gareggia anche un’altra trattoria)' : ''}.</>}
+            </div>
+            <div className="row wrap" style={{ gap: 8 }}>
+              <Btn kind="primary" icon="push" disabled={!canPay} onClick={place}>{a.my ? `Aggiorna · massimo ${Pano.eur(val)}` : `Fai l’offerta · massimo ${Pano.eur(val)}`}</Btn>
+              {bid != null && a.my && <Btn kind="ghost" onClick={() => setBid(null)}>Annulla</Btn>}
+            </div>
+            <span className="t-small">{canPay ? `L’offerta massima resta bloccata nel wallet fino alle ${a.closeAt}; se non entri torna subito disponibile.` : 'Il saldo del wallet non basta per questa offerta.'}</span>
+          </div>
+        )}
+        <div className="auc-how">
+          <span><Icon n="lock" size={14} />Busta chiusa: nessuno vede le offerte degli altri</span>
+          <span><Icon n="sparkle" size={14} />Conta offerta × qualità del locale</span>
+          <span><Icon n="euro" size={14} />Paghi il secondo prezzo, mai più della tua offerta</span>
+          <span><Icon n="store" size={14} />Una trattoria per push · massimo {DATA.TETTO_PUSH} vinte a settimana</span>
+        </div>
+        <Seg value={view} onChange={setView} options={[{ id: 'push', label: 'La notifica', icon: 'push' }, { id: 'lista', label: 'Aperta', icon: 'phone' }]} label="Anteprima della push" />
+        {view === 'push'
+          ? <Pano.PhoneCrop key="push" screen="push" from={430} h={414} fade="top" label="La push sullo schermo bloccato, da vicino" />
+          : <Pano.PhoneCrop key="lista" screen="lista" from={-11} h={560} fade="bottom" label="La lista che si apre dalla push, da vicino" />}
+        <Note icon="info">Tu non mandi la push: la manda byup, una per zona e per fascia. Le notifiche editoriali di byup sono a parte e non si comprano.</Note>
+      </Drawer>
+    );
+  }
+
+  // ─── Notifica in app: un posto nella Posta, a prezzo fisso ──────────────
+  // Il messaggio è del locale (due righe, controllate come le altre creatività);
+  // arriva alle 11:00 o alle 17:00 nella Posta di chi è in zona, linguetta «Promo
+  // per te». Un posto al giorno per locale.
+  const POSTA_MSG = [
+    { id: 'm1', label: 'Carbonara stasera', text: 'Stasera carbonara tirata a mano e un tavolo per te alle 21. Prenota in due tocchi.' },
+    { id: 'm2', label: 'Pranzo a 12 €', text: 'Pranzo a 12 €: cacio e pepe e acqua, a 350 m da te. Prenota in due tocchi.' },
+    { id: 'm3', label: 'Halloween', text: 'Sabato 31 Halloween in trattoria: menù a 35 € e dolcetto per chi viene in maschera.' },
+  ];
+  const AUD_POSTA = [
+    { id: 'zona', label: 'Tutta la zona', icon: 'pin', k: 1 },
+    { id: 'nuovi', label: 'Mai venuti', icon: 'userPlus', k: 0.72 },
+    { id: 'clienti', label: 'Già clienti', icon: 'repeat', k: 0.17, prof: true },
+    { id: 'gusti', label: 'Per gusti', icon: 'heart', k: 0.44, prof: true },
+  ];
+  Pano.AUD_POSTA = AUD_POSTA;
+  function PostaDrawer({ dayId, pos: p0 }) {
+    const day = Pano.useStore((s) => s.posta.find((x) => x.id === dayId));
+    const wallet = Pano.useStore((s) => s.wallet);
+    const freeFirst = day ? day.places.find((p) => !p.sold) : null;
+    const [pos, setPos] = useState(day && p0 && !day.places[p0 - 1].sold ? p0 : freeFirst ? freeFirst.pos : null);
+    const [msg, setMsg] = useState(POSTA_MSG[0].text);
+    const [when, setWhen] = useState('sera');
+    const [aud, setAud] = useState('zona');
+    if (!day) return null;
+    const mine = day.places.find((p) => p.mine);
+    const place = day.places.find((p) => p.pos === pos);
+    const A = AUD_POSTA.find((x) => x.id === (mine ? mine.aud : aud)) || AUD_POSTA[0];
+    const O = DATA.POSTA_ORE.find((o) => o.id === (mine ? mine.when : when)) || DATA.POSTA_ORE[0];
+    const reach = Math.round((day.reach * A.k) / 10) * 10;
+    const text = mine ? mine.msg : msg;
+    const canPay = place && place.price <= wallet.balance;
+    const book = () => {
+      const price = act.bookPosta(day.id, pos, { msg: msg.trim(), when, aud });
+      Pano.toast(`Prenotato il ${pos}° posto nella Posta · ${Pano.eur(price)}`, { undo: () => act.unbookPosta(day.id, pos, true) });
+    };
+    return (
+      <Drawer onClose={act.close} title={`Notifica in app · ${Pano.fmtDay(day.d)}`} sub={`Trastevere · ≈ ${Pano.n(Math.round(day.reach / 10) * 10)} persone in zona con le promo accese · nella Posta, «Promo per te»`}>
+        {mine ? (
+          <>
+            <Note tone="iride" icon="inbox"><b>Il tuo posto: {mine.pos}°, alle {O.time}</b> · {Pano.eur(mine.price)} bloccati nel wallet, addebitati all’invio. Puoi annullare fino al giorno prima.</Note>
+            <div className="card soft" style={{ padding: 16 }}>
+              <div className="col" style={{ gap: 8 }}>
+                <span className="t-small">Il messaggio</span>
+                <b style={{ fontSize: 15, lineHeight: 1.4 }}>«{mine.msg}»</b>
+                <KV k="A chi arriva" v={`${A.label} · ≈ ${Pano.n(reach)} persone`} />
+              </div>
             </div>
           </>
         ) : (
           <>
-            {mineList && !cell.past && <Note tone="iride" icon="push"><b>Il tuo posto in app: {mineList.pos}°</b> · {Pano.eur(mineList.price)} bloccati nel wallet, addebitati all'invio. Puoi annullare fino a 2 ore prima.</Note>}
-            {!mineList && inPush && !closed && <Note icon="info">Con la tua offerta oggi saresti già nella push: la lista in app non serve, ci sei comunque.</Note>}
-            <div className="col" style={{ gap: 8 }} role="radiogroup" aria-label="Posizione nella lista in app">
-              {cell.slots.map((s) => {
-                const dis = s.sold || closed || !!mineList;
-                return (
-                  <button key={s.pos} type="button" role="radio" aria-checked={chosen === s.pos && !dis} className={cx('slot-row', chosen === s.pos && !dis && 'on')} disabled={dis && !s.mine} onClick={() => setPos(s.pos)}>
-                    <span className={cx('pos', s.mine && 'av-ring')}>{s.pos}</span>
-                    <span className="col" style={{ gap: 1, textAlign: 'left' }}>
-                      <b>{s.mine ? 'Tu · Cacio e Pepe' : s.sold ? `Preso · ${s.name || s.cat}` : 'Libero'}</b>
-                      <span className="t-small">Nella lista dentro l’app, dopo i tre della push</span>
-                    </span>
-                    <span className="pr">{Pano.eur(s.price)}</span>
-                  </button>
-                );
-              })}
+            <div className="col" style={{ gap: 8 }} role="radiogroup" aria-label="Posto nella Posta">
+              {day.places.map((p) => (
+                <button key={p.pos} type="button" role="radio" aria-checked={pos === p.pos} className={cx('slot-row', pos === p.pos && 'on')} disabled={p.sold} onClick={() => setPos(p.pos)}>
+                  <span className="pos">{p.pos}</span>
+                  <span className="col" style={{ gap: 1, textAlign: 'left' }}><b>{p.sold ? `Preso · ${p.cat}` : 'Libero'}</b><span className="t-small">{Pano.cap(Pano.POS_LBL[p.pos - 1])}</span></span>
+                  <span className="pr">{Pano.eur(p.price)}</span>
+                </button>
+              ))}
             </div>
-            {!mineList && !closed && (
-              <div className="field">
-                <span className="lbl">A chi va il tuo posto</span>
-                <Chips value={aud} onChange={setAud} options={[{ id: 'vicini', label: 'Vicini', icon: 'pin' }, { id: 'clienti', label: 'Già clienti', icon: 'repeat' }, { id: 'nuovi', label: 'Nuovi', icon: 'userPlus' }, { id: 'gusti', label: 'Per gusti', icon: 'heart' }]} />
-                <span className="hint">La lista è per tutta la zona; il tuo posto pesa di più per questo gruppo. Non vedrai mai chi sono.</span>
-              </div>
-            )}
+            <div className="field">
+              <label className="lbl" htmlFor="pq-msg">Il messaggio <span className="hint num">{msg.length}/120</span></label>
+              <textarea id="pq-msg" className="textarea" rows={3} maxLength={120} value={msg} onChange={(e) => setMsg(e.target.value)} />
+              <Chips value={(POSTA_MSG.find((m) => m.text === msg) || {}).id} onChange={(id) => setMsg(POSTA_MSG.find((m) => m.id === id).text)} options={POSTA_MSG.map((m) => ({ id: m.id, label: m.label }))} />
+              <span className="hint">Al massimo due righe. Piatti e prezzi si controllano sul menù di Fresh, come per le altre creatività.</span>
+            </div>
+            <div className="field">
+              <span className="lbl">Quando arriva</span>
+              <Chips value={when} onChange={setWhen} options={DATA.POSTA_ORE.map((o) => ({ id: o.id, label: `${o.time} · ${o.label.toLowerCase()}`, icon: o.icon }))} />
+            </div>
+            <div className="field">
+              <span className="lbl">A chi arriva</span>
+              <Chips value={aud} onChange={setAud} options={AUD_POSTA.map((x) => ({ id: x.id, label: x.label, icon: x.icon }))} />
+              <span className="hint">≈ {Pano.n(reach)} persone{A.prof ? ', solo tra chi ha acceso anche la profilazione' : ''}. Non vedrai mai chi sono.</span>
+            </div>
           </>
         )}
-        <Seg value={view} onChange={setView} options={[{ id: 'push', label: 'La notifica', icon: 'bell' }, { id: 'digest', label: 'Dentro l’app', icon: 'phone' }]} />
-        {view === 'push'
-          ? <Pano.PhoneCrop key="push" screen="push" from={430} h={414} fade="top" label="La notifica di zona sullo schermo bloccato, da vicino" />
-          : <Pano.PhoneCrop key="digest" screen="digest" from={-11} h={560} fade="bottom" label="La lista del digest dentro l’app, da vicino" />}
-        <Note icon="info">Tu non mandi notifiche: le manda byup, una per zona e per fascia. Le notifiche editoriali di byup sono a parte e non si comprano.</Note>
-        {tab === 'lista' && !mineList && !closed && slot && !slot.sold && (
+        <Pano.PhoneCrop screen="posta" creative={{ text }} from={52} h={400} fade="bottom" label="La Posta dell’app con il tuo messaggio, da vicino" />
+        <Note icon="info">Non suona e non va sullo schermo bloccato: la legge chi apre l’app. Per arrivare sul telefono c’è la <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('push')}>push</button>, all’asta.</Note>
+        {!mine && place && !place.sold && (
           <div style={{ position: 'sticky', bottom: -22, margin: '0 -22px -22px', padding: '14px 22px', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="col" style={{ gap: 0 }}><span className="t-small">{chosen}° posto in app · bloccato fino all'invio</span><b className="num" style={{ fontSize: 18 }}>{Pano.eur(slot.price)}</b></span>
+            <span className="col" style={{ gap: 0 }}><span className="t-small">{pos}° posto · alle {O.time} · bloccato fino all’invio</span><b className="num" style={{ fontSize: 18 }}>{Pano.eur(place.price)}</b></span>
             <span className="spacer" />
-            <Btn kind="primary" size="lg" icon="check" onClick={book}>Prenota il {chosen}° posto</Btn>
+            <Btn kind="primary" size="lg" icon="check" disabled={!canPay || !msg.trim()} onClick={book}>Prenota il {pos}° posto</Btn>
           </div>
         )}
-        {tab === 'lista' && mineList && !closed && <div className="row" style={{ justifyContent: 'flex-end' }}><Btn kind="danger" icon="x" onClick={() => { act.unbookSlot(cell.id, mineList.pos); Pano.toast('Prenotazione annullata · importo sbloccato'); }}>Annulla la prenotazione</Btn></div>}
+        {mine && <div className="row" style={{ justifyContent: 'flex-end' }}><Btn kind="danger" icon="x" onClick={() => { act.unbookPosta(day.id, mine.pos); Pano.toast('Prenotazione annullata · importo sbloccato'); }}>Annulla la prenotazione</Btn></div>}
       </Drawer>
     );
   }
@@ -902,6 +940,7 @@
     if (o.kind === 'ricarica') return <Recharge {...p} />;
     if (o.kind === 'campagna') return <CampaignDrawer {...p} />;
     if (o.kind === 'slot') return <SlotDrawer {...p} />;
+    if (o.kind === 'posta') return <PostaDrawer {...p} />;
     if (o.kind === 'onboarding') return <Onboarding {...p} />;
     return null;
   }

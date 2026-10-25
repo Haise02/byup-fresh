@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
-// Panorama · sezioni condivise: Campagne, Notifiche, Pubblico, Risultati,
-// Wallet, Accesso. Le tre varianti le vestono con il proprio stile.
+// Panorama · sezioni condivise: Campagne, Notifiche push, Notifiche in app,
+// Pubblico, Risultati, Wallet. L'accesso si chiede da Fresh, non da qui.
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
   const Pano = window.Pano;
@@ -134,44 +134,82 @@
     );
   }
 
-  // ─── Notifiche (digest di zona) ─────────────────────────────────────────
-  // Dal 25 ottobre: i tre posti scritti nella push si vincono all'asta (busta chiusa,
-  // secondo prezzo, chiusura 15 minuti prima); il 4° e il 5° stanno nella lista in app,
-  // a prezzo fisso. Lo stato di una casella, per la griglia, il cassetto e l'elenco.
+  // ─── Notifiche: due schermate (Nilo, 25 ottobre) ────────────────────────
+  // La push arriva sul telefono di chi è in zona, anche ad app chiusa: la manda byup
+  // per zona e fascia con tre locali dentro, e i tre posti si vincono all'asta (busta
+  // chiusa, secondo prezzo, chiusura 15 minuti prima dell'invio). La notifica in app
+  // sta dentro l'app, nella Posta («Promo per te»): non suona, la legge chi apre l'app
+  // e si prenota a prezzo fisso. Due prodotti diversi, due schermate.
+
+  // Lo stato di una casella della push, per la griglia, il cassetto e l'elenco
   function cellState(c, all) {
     const a = c.auction;
     const closed = a.status === 'chiusa';
     const res = closed ? Object.assign({ offers: a.rivals.length + (a.my ? 1 : 0), need: a.reserve, rivalTrattoria: false }, a.result) : Pano.settleAuction(a, a.my && a.my.max);
     const me = res.me;
-    const myList = c.slots.find((x) => x.mine);
     let st, tone, sub;
-    if (closed) { st = me ? `Inviato · eri ${me.pos}°` : myList ? `Inviato · in app ${myList.pos}°` : 'Inviato'; tone = 'muted'; sub = me ? `pagati ${Pano.eur(me.paid, true)}` : `${Pano.n(c.reach)} raggiunti`; }
+    if (closed) { st = me ? `Inviata · eri ${me.pos}°` : 'Inviata'; tone = 'muted'; sub = me ? `pagati ${Pano.eur(me.paid, true)}` : `${Pano.n(c.reach)} raggiunti`; }
     else if (a.my) { st = me ? `Tua offerta · ${me.pos}°` : 'Tua offerta · fuori'; tone = me ? 'mine' : 'warn'; sub = `max ${Pano.eur(a.my.max)} · chiude ${a.closeAt}`; }
-    else if (myList) { st = `In app · ${myList.pos}° posto`; tone = 'mine'; sub = `${Pano.eur(myList.price)} · bloccati`; }
     else if (all && Pano.pushWeek && Pano.pushWeek(all, c).length >= DATA.TETTO_PUSH) { st = 'Tetto raggiunto'; tone = 'muted'; sub = 'già 2 push questa settimana'; }
     else if (res.rivalTrattoria) { st = 'C’è un’altra trattoria'; tone = 'warn'; sub = `servono ${Pano.eur(res.need)}`; }
     else { st = 'Asta aperta'; tone = 'free'; sub = `${res.offers} offerte · da ${Pano.eur(a.reserve)}`; }
-    return { closed, res, me, myList, st, tone, sub };
+    return { closed, res, me, st, tone, sub };
   }
   Pano.cellState = cellState;
 
-  function Notifiche() {
+  // Pezzi comuni: come funziona, in tre punti, e il rimando all'altra notifica
+  function HowCard({ items, other }) {
+    return (
+      <Card className="c-7 c-md-12 nt-how" title="Come funziona" icon="info">
+        <ol className="nt-steps">
+          {items.map(([ic, t, d]) => (
+            <li key={t}><span className="nt-ico"><Icon n={ic} /></span><span className="col" style={{ gap: 3 }}><b>{t}</b><span className="t-small">{d}</span></span></li>
+          ))}
+        </ol>
+        {other}
+      </Card>
+    );
+  }
+  function OtherLink({ to, icon, t, d }) {
+    return (
+      <button type="button" className="nt-other" onClick={() => act.go(to)}>
+        <span className="nt-ico"><Icon n={icon} /></span>
+        <span className="col" style={{ gap: 2, textAlign: 'left', flex: 1, minWidth: 0 }}><b>{t}</b><span className="t-small">{d}</span></span>
+        <Icon n="arrowR" />
+      </button>
+    );
+  }
+
+  // ─── Notifiche push (all'asta) ──────────────────────────────────────────
+  function NotifichePush() {
     const cells = Pano.useStore((s) => s.digest);
     const sel = Pano.useStore((s) => (s.overlay && s.overlay.kind === 'slot' ? s.overlay.props.cellId : null));
+    const [view, setView] = useState('push');
     const days = Array.from({ length: 7 }, (_, i) => Pano.addDays(Pano.TODAY, i));
     const offerte = cells.filter((c) => c.auction.my && c.auction.status !== 'chiusa');
-    const inApp = cells.filter((c) => !c.past && c.slots.some((x) => x.mine));
+    // questa settimana (sabato e domenica): le push vinte o in gara contano per il tetto
+    const week = cells.filter((c) => c.day <= 1 && (c.auction.status === 'chiusa' ? !!(c.auction.result && c.auction.result.me) : !!c.auction.my));
     return (
       <div className="p-page">
-        <PageHead title="Notifiche" sub="Le notifiche le manda solo byup, una per zona e fascia. I tre posti scritti nella push si vincono all’asta, fino a 15 minuti prima dell’invio; il 4° e il 5° stanno nella lista in app, a prezzo fisso."
-          actions={<><Pill icon="pin" tone="ink">Trastevere · 1,2 km</Pill><Btn kind="secondary" icon="history" onClick={() => document.getElementById('pn-prenotazioni') && document.getElementById('pn-prenotazioni').scrollIntoView({ behavior: 'smooth' })}>Le tue offerte</Btn></>} />
+        <PageHead title="Notifiche push" sub="La notifica che arriva sul telefono di chi è in zona, anche con l’app chiusa. La manda byup tre volte al giorno, con tre locali dentro: i tre posti si vincono all’asta."
+          actions={<Pill icon="pin" tone="ink">Trastevere · 1,2 km</Pill>} />
         <div className="grid">
-          {[['bell', 'La push si vince all’asta', 'Busta chiusa: offri il massimo che spenderesti e paghi solo quanto basta per superare chi ti segue.'], ['phone', 'La lista in app a prezzo fisso', 'Il 4° e il 5° posto, nella lista che si apre dalla push. Si prenotano come sempre, da € 5.'], ['shield', 'Uno per categoria, poche a testa', 'Una trattoria per push. Al massimo 2 push sponsorizzate a settimana a persona, e 2 vinte a locale.']].map(([ic, t, d]) => (
-            <div key={t} className="card tight c-4"><div className="row top" style={{ gap: 12 }}><span className="card-head" style={{ margin: 0 }}><span className="ico"><Icon n={ic} /></span></span><div className="col" style={{ gap: 2 }}><b>{t}</b><span className="t-small">{d}</span></div></div></div>
-          ))}
+          <Card className="c-5 c-md-12 nt-prev" title="Sul telefono" icon="push" sub={view === 'push' ? 'Sullo schermo bloccato, con il suono' : 'Toccandola si apre la lista dei tre'}
+            actions={<Seg value={view} onChange={setView} options={[{ id: 'push', label: 'La notifica' }, { id: 'lista', label: 'Aperta' }]} label="Anteprima della push" />}>
+            {view === 'push'
+              ? <Pano.PhoneCrop key="push" screen="push" from={430} h={400} fade="top" label="La push sullo schermo bloccato, da vicino" />
+              : <Pano.PhoneCrop key="lista" screen="lista" from={-11} h={400} fade="bottom" label="La lista che si apre dalla push, da vicino" />}
+          </Card>
+          <HowCard
+            items={[
+              ['push', 'Arriva sul telefono, anche ad app chiusa', 'La manda byup a chi è in zona alle 12:15, alle 18:30 e alle 20:00, con il nome di tre locali. Il testo lo scrive byup.'],
+              ['euro', 'I tre posti si vincono all’asta', 'Offri il massimo che spenderesti, a busta chiusa, fino a 15 minuti prima dell’invio. Conta offerta × qualità del locale, e paghi solo quanto basta per superare chi ti segue.'],
+              ['shield', 'Poche e varie', `Prezzo minimo ${Pano.eur(DATA.PER_MILLE, true)} ogni 1.000 persone raggiunte. Una trattoria per push, ${DATA.TETTO_PUSH} vinte a settimana per locale, al massimo 2 sponsorizzate a settimana per persona.`],
+            ]}
+            other={<OtherLink to="inapp" icon="inbox" t="Vuoi farti leggere senza suonare?" d="La notifica in app sta nella Posta dell’app, a prezzo fisso." />} />
         </div>
-        <Card title="I prossimi 7 giorni" icon="calendar" sub="Tocca una casella: l’asta della push e la lista in app."
-          actions={<div className="legend"><span><i className="lg-auc" />Push all’asta</span><span><i style={{ background: 'var(--iride-dot)' }} />Tuo</span><span><i style={{ background: 'var(--line-3)' }} />Preso</span><span><i style={{ background: 'var(--paper-2)', boxShadow: 'inset 0 0 0 1px var(--line-2)' }} />Libero in app</span></div>}>
+        <Card title="I prossimi 7 giorni" icon="calendar" sub="Tocca una casella per fare un’offerta. I tre trattini sono i tre posti della push."
+          actions={<div className="legend"><span><i style={{ background: 'var(--iride-dot)' }} />Tu</span><span><i style={{ background: 'var(--line-3)' }} />Altri locali</span><span><i className="lg-auc" />Ancora in gara</span></div>}>
           <div style={{ overflowX: 'auto', margin: '0 -22px', padding: '0 22px 4px' }}>
             <div className="dg">
               <span />
@@ -183,14 +221,12 @@
                     const c = cells.find((x) => x.id === `${i}-${F.id}`);
                     const x = cellState(c, cells);
                     return (
-                      <button key={i} type="button" className={cx('dg-cell', x.tone === 'mine' && 'mine', sel === c.id && 'sel')} onClick={() => act.open('slot', { cellId: c.id })} aria-label={`${F.label} ${Pano.fmtDayLong(d)}: ${x.st}, ${x.sub}`}>
+                      <button key={i} type="button" className={cx('dg-cell', x.tone === 'mine' && 'mine', sel === c.id && 'sel')} onClick={() => act.open('slot', { cellId: c.id })} aria-label={`Push ${F.label} ${Pano.fmtDayLong(d)}: ${x.st}, ${x.sub}`}>
                         <span className="slots" aria-hidden="true">
                           {[1, 2, 3].map((k) => { const w = x.res.win.find((y) => y.pos === k); return <i key={k} className={cx('auc', w && w.me && 'mine', x.closed && w && !w.me && 'sold')} />; })}
-                          <em />
-                          {c.slots.map((sl) => <i key={sl.pos} className={sl.mine ? 'mine' : sl.sold ? 'sold' : ''} />)}
                         </span>
                         <span className="dg-st" style={{ color: x.tone === 'warn' ? 'var(--warn-ink)' : x.tone === 'muted' ? 'var(--muted)' : 'var(--ink)' }}>
-                          {x.tone === 'mine' && <Icon n="checkCircle" />}{x.tone === 'warn' && <Icon n="alert" />}{x.tone === 'free' && <Icon n="bell" />}{x.st}
+                          {x.tone === 'mine' && <Icon n="checkCircle" />}{x.tone === 'warn' && <Icon n="alert" />}{x.tone === 'free' && <Icon n="push" />}{x.st}
                         </span>
                         <span className="dg-pr">{x.sub}</span>
                       </button>
@@ -202,7 +238,7 @@
           </div>
         </Card>
         <div className="grid">
-          <Card className="c-8" title="Le tue offerte e prenotazioni" icon="history" id="pn-prenotazioni">
+          <Card className="c-8 c-md-12" title="Le tue offerte" icon="history" sub="Le aste aperte e le push già partite, con quello che hanno portato.">
             <div className="list">
               {offerte.map((c) => { const x = cellState(c); const F = DATA.FASCE.find((f) => f.id === c.fascia); return (
                 <div key={c.id} className="list-row click" onClick={() => act.open('slot', { cellId: c.id })} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && act.open('slot', { cellId: c.id })}>
@@ -211,31 +247,122 @@
                   <Pill tone={x.me ? 'info' : 'warn'} size="sm" icon="clock">Chiude alle {c.auction.closeAt}</Pill>
                 </div>
               ); })}
-              {inApp.map((c) => { const sl = c.slots.find((y) => y.mine); const F = DATA.FASCE.find((f) => f.id === c.fascia); return (
-                <div key={c.id + 'l'} className="list-row click" onClick={() => act.open('slot', { cellId: c.id, tab: 'lista' })} role="button" tabIndex={0}>
-                  <span className="pill" style={{ width: 40, height: 40, padding: 0, justifyContent: 'center', fontSize: 14 }}>{sl.pos}°</span>
-                  <div className="col" style={{ gap: 2, flex: 1 }}><b>Lista in app · {F.label} · {Pano.fmtDay(c.d)} · {c.time}</b><span className="t-small">≈ {Pano.n(c.reach)} persone · {Pano.eur(sl.price)} bloccati fino all'invio</span></div>
-                  <Pill tone="info" size="sm" icon="clock">In arrivo</Pill>
-                </div>
-              ); })}
-              {DATA.BOOKINGS_PAST.map((bk) => { const F = DATA.FASCE.find((f) => f.id === bk.fascia); return (
+              {DATA.PUSH_PAST.map((bk) => { const F = DATA.FASCE.find((f) => f.id === bk.fascia); return (
                 <div key={bk.id} className="list-row">
                   <span className="pill" style={{ width: 40, height: 40, padding: 0, justifyContent: 'center', fontSize: 14 }}>{bk.pos}°</span>
-                  <div className="col" style={{ gap: 2, flex: 1 }}><b>Digest {F.label} · {Pano.fmtDay(bk.d)}{bk.today ? ' · oggi' : ''}</b><span className="t-small">{Pano.n(bk.reach)} raggiunti · {bk.taps} tocchi · {bk.bookings} prenotazioni · {bk.covers} coperti</span></div>
+                  <div className="col" style={{ gap: 2, flex: 1 }}><b>Push {F.label} · {Pano.fmtDay(bk.d)}{bk.today ? ' · oggi' : ''}</b><span className="t-small">{Pano.n(bk.reach)} raggiunti · {bk.taps} tocchi · {bk.bookings} prenotazioni · {bk.covers} coperti</span></div>
                   <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}><b className="num">{Pano.eur(bk.revenue)}</b><span className="t-small">spesi {Pano.eur(bk.price, true)} · ROAS {Pano.roas(bk.revenue / bk.price)}</span></div>
                 </div>
               ); })}
             </div>
           </Card>
-          <div className="col c-4" style={{ gap: 16 }}>
+          <div className="col c-4 c-md-12 nt-side">
             <section className="card ink" style={{ padding: 22, overflow: 'hidden' }}>
               <div style={{ position: 'absolute', inset: 'auto -40px -60px auto', width: 220, height: 220, borderRadius: 999, background: 'radial-gradient(circle, rgba(252,187,248,.45), transparent 65%)' }} />
-              <div className="row between" style={{ position: 'relative' }}><span className="t-micro" style={{ color: 'rgba(255,255,255,.7)' }}>Formato raro</span><span className="row" style={{ gap: 6 }}><Pill size="sm" style={{}} tone="iride">Su approvazione</Pill><Phase f="f2" /></span></div>
-              <h3 className="t-title" style={{ color: '#fff', marginTop: 12, position: 'relative' }}>Una notifica solo tua</h3>
+              <div className="row between" style={{ position: 'relative' }}><span className="t-micro" style={{ color: 'rgba(255,255,255,.7)' }}>Formato raro</span><span className="row" style={{ gap: 6 }}><Pill size="sm" tone="iride">Su approvazione</Pill><Phase f="f2" /></span></div>
+              <h3 className="t-title" style={{ color: '#fff', marginTop: 12, position: 'relative' }}>Una push solo tua</h3>
               <p className="t-small" style={{ color: 'rgba(255,255,255,.75)', marginTop: 6, position: 'relative' }}>Pochissime a settimana per città, decide byup. Per serate speciali: un concerto, un menù unico. Da € 120.</p>
-              <Btn kind="light" size="sm" icon="bell" style={{ marginTop: 14, position: 'relative' }} onClick={() => Pano.toast('Ti avvisiamo quando la notifica dedicata è disponibile')}>Avvisami quando arriva</Btn>
+              <Btn kind="light" size="sm" icon="bell" style={{ marginTop: 14, position: 'relative' }} onClick={() => Pano.toast('Ti avvisiamo quando la push dedicata è disponibile')}>Avvisami quando arriva</Btn>
             </section>
-            <Card title="Riporta i tuoi clienti" icon="repeat" sub="Raggiungi solo chi è già passato da te, in modo anonimo.">
+            <Card className="nt-fill" title="Il tetto della settimana" icon="shield" sub={`Ogni locale vince al massimo ${DATA.TETTO_PUSH} push a settimana, così restano varie.`}>
+              <div className="col" style={{ gap: 12 }}>
+                <div className="row between" style={{ alignItems: 'baseline' }}><span className="t-small">Questa settimana</span><b className="num" style={{ fontSize: 20 }}>{week.length} di {DATA.TETTO_PUSH}</b></div>
+                <Meter v={week.length / DATA.TETTO_PUSH} label="Push di questa settimana" />
+                <div className="col" style={{ gap: 6 }}>
+                  {week.map((c) => { const x = cellState(c); const F = DATA.FASCE.find((f) => f.id === c.fascia); return (
+                    <div key={c.id} className="row" style={{ gap: 8 }}><Icon n={x.closed ? 'checkCircle' : 'clock'} size={15} style={{ color: 'var(--muted)', flexShrink: 0 }} /><span className="t-small" style={{ color: 'var(--ink)' }}><b>{F.label} · {c.day === 0 ? 'oggi' : Pano.fmtDay(c.d)}</b> · {x.closed ? (x.me ? `vinta, ${x.me.pos}°` : 'inviata') : x.me ? `in gara, ${x.me.pos}°` : 'in gara, fuori'}</span></div>
+                  ); })}
+                </div>
+                <span className="t-small">{week.length >= DATA.TETTO_PUSH ? 'Per le altre aste di questa settimana non puoi offrire: da lunedì si riparte.' : 'Puoi ancora offrire per un’altra push questa settimana.'}</span>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Notifiche in app (nella Posta, a prezzo fisso) ─────────────────────
+  const POS_LBL = ['in cima alla Posta', 'subito sotto', 'a metà lista', 'in fondo'];
+  Pano.POS_LBL = POS_LBL;
+  function NotificheInApp() {
+    const days = Pano.useStore((s) => s.posta);
+    const sel = Pano.useStore((s) => (s.overlay && s.overlay.kind === 'posta' ? s.overlay.props : null));
+    const mine = days.reduce((a, d) => a.concat(d.places.filter((p) => p.mine).map((p) => ({ d, p }))), []);
+    const ora = (w) => (DATA.POSTA_ORE.find((o) => o.id === w) || DATA.POSTA_ORE[0]).time;
+    return (
+      <div className="p-page">
+        <PageHead title="Notifiche in app" sub="Il tuo messaggio dentro l’app byup, nella Posta di chi è in zona, tra le «Promo per te». Non suona e non va sullo schermo bloccato: lo legge chi apre l’app. Quattro posti al giorno, a prezzo fisso."
+          actions={<Pill icon="pin" tone="ink">Trastevere · 1,2 km</Pill>} />
+        <div className="grid">
+          <Card className="c-5 c-md-12 nt-prev" title="Nella Posta dell’app" icon="inbox" sub="Si apre dalla campanella, in alto nella home">
+            <Pano.PhoneCrop screen="posta" from={52} h={400} fade="bottom" label="La Posta dell’app con il tuo messaggio, da vicino" />
+          </Card>
+          <HowCard
+            items={[
+              ['inbox', 'Sta nella Posta, non sullo schermo', 'Nella home di byup la campanella si accende; nella Posta, linguetta «Promo per te», il tuo messaggio compare con l’etichetta «Sponsorizzato». Niente suono.'],
+              ['tag', 'Prezzo fisso, si prenota', 'Quattro posti al giorno per zona, il primo in cima. Scegli il giorno, il posto e se arriva alle 11:00 o alle 17:00. L’importo resta bloccato nel wallet fino all’invio; annulli fino al giorno prima.'],
+              ['shield', 'Solo a chi ha acceso le promo', 'La vede solo chi in zona ha acceso le promo nell’app. «Già clienti» e «Per gusti» arrivano solo a chi ha acceso anche la profilazione.'],
+            ]}
+            other={<OtherLink to="push" icon="push" t="Vuoi arrivare sul telefono, anche ad app chiusa?" d="La push si vince all’asta, tre posti per volta." />} />
+        </div>
+        <Card title="I prossimi 7 giorni" icon="calendar" sub="Tocca un posto libero per prenotarlo. Si prenota fino al giorno prima."
+          actions={<div className="legend"><span><i style={{ background: 'var(--iride-dot)' }} />Tuo</span><span><i style={{ background: 'var(--line-3)' }} />Preso</span><span><i className="lg-auc" />Libero</span></div>}>
+          <div style={{ overflowX: 'auto', margin: '0 -22px', padding: '0 22px 4px' }}>
+            <div className="dg pg">
+              <span />
+              {days.map((x) => <div key={x.id} className="dg-head"><span>{x.day === 1 ? 'domani' : Pano.GG[x.d.getDay()]}</span><b>{x.d.getDate()} {Pano.MM[x.d.getMonth()]}</b></div>)}
+              {[1, 2, 3, 4].map((pos) => (
+                <React.Fragment key={pos}>
+                  <div className="dg-row-lbl"><b>{pos}° posto</b><small>{POS_LBL[pos - 1]}</small></div>
+                  {days.map((x) => {
+                    const p = x.places[pos - 1];
+                    const taken = p.sold && !p.mine;
+                    const on = sel && sel.dayId === x.id && sel.pos === pos;
+                    return (
+                      <button key={x.id} type="button" className={cx('pg-cell', p.mine && 'mine', taken && 'sold', on && 'sel')} disabled={taken} onClick={() => act.open('posta', { dayId: x.id, pos })}
+                        aria-label={`Notifica in app ${Pano.fmtDayLong(x.d)}, ${pos}° posto: ${p.mine ? 'tuo' : taken ? 'preso' : 'libero'}, ${Pano.eur(p.price)}`}>
+                        <span className="pg-st">{p.mine ? <><Icon n="checkCircle" />Tuo · {ora(p.when)}</> : taken ? `Preso · ${p.cat}` : 'Libero'}</span>
+                        <b className="pg-pr num">{Pano.eur(p.price)}</b>
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </Card>
+        <div className="grid">
+          <Card className="c-8 c-md-12" title="Le tue notifiche in app" icon="history" sub="Quelle prenotate e quelle già arrivate, con quello che hanno portato.">
+            <div className="list">
+              {mine.map(({ d, p }) => (
+                <div key={d.id} className="list-row click" onClick={() => act.open('posta', { dayId: d.id, pos: p.pos })} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && act.open('posta', { dayId: d.id, pos: p.pos })}>
+                  <span className="pill iride" style={{ width: 40, height: 40, padding: 0, justifyContent: 'center', fontSize: 14 }}>{p.pos}°</span>
+                  <div className="col" style={{ gap: 2, flex: 1, minWidth: 0 }}><b>In app · {Pano.fmtDay(d.d)} · alle {ora(p.when)}</b><span className="t-small nt-msg">«{p.msg}»</span></div>
+                  <Pill tone="info" size="sm" icon="clock">{Pano.eur(p.price)} bloccati</Pill>
+                </div>
+              ))}
+              {DATA.POSTA_PAST.map((q) => (
+                <div key={q.id} className="list-row">
+                  <span className="pill" style={{ width: 40, height: 40, padding: 0, justifyContent: 'center', fontSize: 14 }}>{q.pos}°</span>
+                  <div className="col" style={{ gap: 2, flex: 1 }}><b>In app · {Pano.fmtDay(q.d)} · alle {String(q.d.getHours()).padStart(2, '0')}:00</b><span className="t-small">letta da {Pano.n(q.reads)} · {q.taps} tocchi · {q.bookings} prenotazioni · {q.covers} coperti</span></div>
+                  <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}><b className="num">{Pano.eur(q.revenue)}</b><span className="t-small">spesi {Pano.eur(q.price, true)} · ROAS {Pano.roas(q.revenue / q.price)}</span></div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <div className="col c-4 c-md-12 nt-side">
+            <Card title="Chi la vede" icon="users" sub="Solo chi in zona ha acceso le promo nell’app.">
+              <div className="col" style={{ gap: 10 }}>
+                <div className="row between" style={{ alignItems: 'flex-end' }}>
+                  <div className="col" style={{ gap: 2 }}><BigNum v={4300} size="sm" /><span className="t-small">ogni giorno, in zona</span></div>
+                  <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}><b className="num" style={{ fontSize: 18 }}>1 su 3</b><span className="t-small">la apre</span></div>
+                </div>
+                <Meter v={0.35} label="Quanti aprono la Posta" />
+                <span className="t-small">«Già clienti» e «Per gusti» arrivano solo a chi ha acceso anche la profilazione: circa 2.600 persone.</span>
+              </div>
+            </Card>
+            <Card className="nt-fill" title="Riporta i tuoi clienti" icon="repeat" sub="Con «Già clienti» il messaggio arriva solo a chi è già passato da te, in modo anonimo.">
               <div className="row between"><div className="col" style={{ gap: 2 }}><BigNum v={420} size="sm" /><span className="t-small">non tornano da 60 giorni</span></div><Btn kind="secondary" size="sm" iconRight="arrowR" onClick={() => act.go('pubblico')}>Pubblico</Btn></div>
             </Card>
           </div>
@@ -312,7 +439,7 @@
     const spent = sum('spent'), revenue = sum('revenue'), covers = sum('covers'), reach = sum('reach'), taps = sum('taps'), bookings = sum('bookings');
     const roas = revenue / Math.max(1, spent);
     const camps = Pano.useStore((s) => s.campaigns).filter((c) => c.spent > 0);
-    const byType = ['ricerca', 'digest', 'offerta', 'evento'].map((t) => { const cs = camps.filter((c) => c.type === t); const sp = cs.reduce((a, c) => a + c.spent, 0), rv = cs.reduce((a, c) => a + c.revenue, 0); return { t, sp, rv }; }).filter((x) => x.sp > 0);
+    const byType = ['ricerca', 'push', 'inapp', 'offerta', 'evento'].map((t) => { const cs = camps.filter((c) => c.type === t); const sp = cs.reduce((a, c) => a + c.spent, 0), rv = cs.reduce((a, c) => a + c.revenue, 0); return { t, sp, rv }; }).filter((x) => x.sp > 0);
     const hm = [[3.2, 4.1, 6.8], [2.9, 3.6, 7.4], [3.4, 4.4, 8.1], [3.8, 5.2, 10.6], [4.1, 6.9, 11.4], [4.6, 7.8, 12.2], [6.2, 4.9, 8.8]];
     return (
       <div className="p-page">
@@ -456,132 +583,5 @@
     );
   }
 
-  // ─── Accesso: gli stati, da Fresh a Panorama ────────────────────────────
-  const STATI_ACC = [
-    { id: 'non-richiesto', label: 'Non richiesto' }, { id: 'richiesto', label: 'Richiesto' }, { id: 'revisione', label: 'In revisione' }, { id: 'approvato', label: 'Approvato' },
-    { id: 'attesa', label: 'Lista d’attesa' }, { id: 'rifiutato', label: 'Rifiutato' }, { id: 'sospeso', label: 'Sospeso' },
-  ];
-  function FreshCard({ s }) {
-    const cta = { 'non-richiesto': ['Richiedi accesso', 'send'], richiesto: ['Richiesta inviata', 'check'], revisione: ['In valutazione', 'hourglass'], approvato: ['Apri Panorama', 'external'], attesa: ['Sei in lista d’attesa', 'clock'], rifiutato: ['Riprova dal 24 novembre', 'clock'], sospeso: ['Accesso sospeso', 'ban'] }[s];
-    const text = {
-      'non-richiesto': 'Metti Cacio e Pepe in cima all’app byup, quando ti serve. Accesso su richiesta.',
-      richiesto: 'Abbiamo ricevuto la richiesta. Ti rispondiamo entro 48 ore, qui e via email.',
-      revisione: 'Stiamo guardando come usi Fresh e come va il locale in app.',
-      approvato: 'Il tuo accesso è pronto. Si apre in una nuova scheda, con lo stesso account.',
-      attesa: 'Trastevere ha già molti locali attivi. Appena si libera posto, sei tra i primi.',
-      rifiutato: 'Per ora no: completa il profilo e torna a richiederlo tra un mese.',
-      sospeso: 'Le campagne sono in pausa. Il saldo del wallet resta tuo.',
-    }[s];
-    return (
-      <div style={{ borderRadius: 24, background: '#FFFFFF', color: '#1A1A1A', padding: 18, boxShadow: '0 1px 2px rgba(0,0,0,.05), 0 16px 34px -18px rgba(255,31,90,.35), inset 0 0 0 1px rgba(0,0,0,.06)', fontFamily: 'var(--font)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: -30, top: -30, width: 140, height: 140, borderRadius: 999, background: 'radial-gradient(circle, rgba(252,187,248,.6), transparent 70%)' }} />
-        <div className="row between" style={{ position: 'relative' }}>
-          <img src={Pano.IMG.logoInk} alt="Panorama" style={{ height: 22 }} />
-          <span style={{ fontSize: 11, fontWeight: 800, color: '#FF1F5A', background: 'rgba(255,31,90,.1)', padding: '4px 8px', borderRadius: 99 }}>{s === 'approvato' ? 'NUOVO' : 'SU RICHIESTA'}</span>
-        </div>
-        <p style={{ margin: '12px 0 14px', fontSize: 14, fontWeight: 600, lineHeight: 1.45, position: 'relative', color: '#3A3A44' }}>{text}</p>
-        <button type="button" disabled={s !== 'non-richiesto' && s !== 'approvato'} onClick={() => { if (s === 'non-richiesto') Pano.store.set({ access: 'richiesto' }); if (s === 'approvato') act.open('onboarding'); }}
-          style={{ height: 40, padding: '0 16px', borderRadius: 99, background: s === 'non-richiesto' || s === 'approvato' ? '#FF1F5A' : 'rgba(0,0,0,.06)', color: s === 'non-richiesto' || s === 'approvato' ? '#fff' : '#3A3A44', fontWeight: 700, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-          <Icon n={cta[1]} size={16} />{cta[0]}
-        </button>
-      </div>
-    );
-  }
-  function Accesso() {
-    const s = Pano.useStore((st) => st.access);
-    const set = (v) => Pano.store.set({ access: v });
-    return (
-      <div className="p-page">
-        <PageHead eyebrow="Prototipo · stati dell'accesso" title="Accesso a Panorama" sub="Panorama è solo su invito o approvazione: nessun nuovo account, basta Fresh. Scegli uno stato per vedere cosa vede il locale, in Fresh e qui."
-          actions={<Btn kind="secondary" icon="sparkle" onClick={() => act.open('onboarding')}>Prova il primo accesso</Btn>} />
-        <Seg value={s} onChange={set} options={STATI_ACC} label="Stato dell'accesso" />
-        <div className="grid">
-          <div className="c-5 col" style={{ gap: 16 }}>
-            <span className="t-micro">In Fresh · card nella dashboard</span>
-            <FreshCard s={s} />
-            <span className="t-micro" style={{ marginTop: 6 }}>In Fresh · scorciatoie</span>
-            <div style={{ borderRadius: 22, background: '#fff', color: '#1A1A1A', padding: 14, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.06)' }}>
-              <div className="row" style={{ gap: 12 }}>
-                <Thumb img={Pano.IMG.lasagna} bg={Pano.BG.notte} />
-                <div className="col" style={{ gap: 1, flex: 1 }}><b style={{ fontSize: 14 }}>Halloween in trattoria</b><span style={{ fontSize: 12, color: '#6B6B75', fontWeight: 600 }}>Evento · sab 31 ott · 20:00</span></div>
-                <button type="button" disabled={s !== 'approvato'} onClick={() => act.open('promuovi', { kind: 'evento', pickId: 'e2' })} style={{ height: 34, padding: '0 12px', borderRadius: 99, background: s === 'approvato' ? '#131316' : 'rgba(0,0,0,.06)', color: s === 'approvato' ? '#fff' : '#8C8B99', fontWeight: 700, fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon n="sparkle" size={14} />Promuovi</button>
-              </div>
-              <div style={{ marginTop: 12, padding: 12, borderRadius: 16, background: 'linear-gradient(100deg,#EEF5FE,#FDEBFB,#EEEEFD)', display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Pano.ByuppinoFace size={36} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#2D2D35', lineHeight: 1.4 }}><b>Suggerimento:</b> Halloween è tra una settimana. {s === 'approvato' ? 'Un tocco e va in cima alla tua vetrina.' : 'Con Panorama lo metti in cima alla tua vetrina.'}</span>
-              </div>
-            </div>
-          </div>
-          <div className="c-7 col" style={{ gap: 16 }}>
-            <span className="t-micro">In Panorama</span>
-            {(s === 'non-richiesto' || s === 'richiesto' || s === 'revisione') && (
-              <Card title={s === 'non-richiesto' ? 'Cosa guardiamo per darti l’accesso' : s === 'richiesto' ? 'Richiesta ricevuta' : 'Stiamo valutando'} icon={s === 'revisione' ? 'hourglass' : 'checkCircle'}>
-                {s !== 'non-richiesto' && (
-                  <div className="row wrap" style={{ gap: 18, marginBottom: 16 }}>
-                    {[['Richiesta', true], ['Valutazione', s === 'revisione' ? 'now' : false], ['Risposta', false]].map(([t, st]) => <span key={t} className="row" style={{ gap: 6, fontSize: 13, fontWeight: 700, opacity: st ? 1 : 0.5 }}><Icon n={st === true ? 'checkCircle' : st === 'now' ? 'hourglass' : 'clock'} size={16} />{t}</span>)}
-                  </div>
-                )}
-                <div className="col" style={{ gap: 10 }}>
-                  {DATA.IDONEITA.map((r) => <div key={r.t} className={cx('check-row', r.ok ? 'ok' : 'ko')}><Icon n={r.ok ? 'checkCircle' : 'alertCircle'} /><span style={{ flex: 1 }}><b>{r.t}</b> · <span className="t-muted">{r.v}</span></span></div>)}
-                </div>
-                <Note tone="info" style={{ marginTop: 14 }}>Non ci sono soglie segrete da indovinare: più usi Fresh e più il locale va bene in app, prima entri. Il profilo completo aiuta.</Note>
-                {s === 'non-richiesto' && <p className="t-small" style={{ marginTop: 12 }}>Si parte dalla card di Panorama nella dashboard di Fresh: tocca «Richiedi accesso».</p>}
-                {s !== 'non-richiesto' && (
-                  <div className="row wrap" style={{ gap: 10, marginTop: 14 }}>
-                    <Btn kind="primary" size="sm" iconRight="arrowR" onClick={() => set(s === 'richiesto' ? 'revisione' : 'approvato')}>{s === 'richiesto' ? 'Avanti: la valuta byup' : 'Avanti: accesso approvato'}</Btn>
-                    <span className="t-small">Nel prototipo salti l'attesa di 48 ore.</span>
-                  </div>
-                )}
-              </Card>
-            )}
-            {s === 'approvato' && (
-              <section className="card iride-soft" style={{ padding: 26 }}>
-                <div className="row wrap" style={{ gap: 20, alignItems: 'center' }}>
-                  <img src={Pano.IMG.byuppino} alt="" style={{ width: 150, filter: 'drop-shadow(0 18px 26px rgba(90,60,160,.3))' }} />
-                  <div className="col" style={{ gap: 10, flex: 1, minWidth: 220 }}>
-                    <h2 className="t-title">Accesso approvato</h2>
-                    <p className="t-body" style={{ color: 'var(--muted)' }}>Tre passi brevi: benvenuto, regole dei contenuti, primo caricamento del wallet.</p>
-                    <div><Btn kind="primary" icon="arrowR" onClick={() => act.open('onboarding')}>Inizia</Btn></div>
-                  </div>
-                </div>
-              </section>
-            )}
-            {s === 'attesa' && (
-              <Card title="Sei in lista d'attesa" icon="clock">
-                <div className="row wrap" style={{ gap: 24 }}>
-                  <div className="col" style={{ gap: 2 }}><span className="t-small">Posizione a Trastevere</span><BigNum v={7} size="lg" suffix="°" /></div>
-                  <div className="col" style={{ gap: 6, flex: 1, minWidth: 220 }}>
-                    <p className="t-body">Teniamo pochi locali per zona, così gli annunci restano pochi e utili. Quando si libera posto ti avvisiamo in Fresh.</p>
-                    <Meter v={0.7} tone="iride" label="Avanzamento in lista" />
-                  </div>
-                </div>
-              </Card>
-            )}
-            {s === 'rifiutato' && (
-              <Card title="Per ora non possiamo attivarlo" icon="alertCircle">
-                <div className="col" style={{ gap: 10 }}>
-                  {[['Profilo al 92%', 'Manca il menù delle bevande in Fresh.'], ['Poche prenotazioni da byup negli ultimi 30 giorni', 'Ne servono di più per misurare i risultati.']].map(([t, d]) => <div key={t} className="check-row ko"><Icon n="alertCircle" /><span><b>{t}</b> · <span className="t-muted">{d}</span></span></div>)}
-                </div>
-                <Note tone="info" style={{ marginTop: 14 }}>Puoi richiederlo di nuovo dal <b>24 novembre</b>. Nel frattempo il locale resta visibile in app come sempre.</Note>
-              </Card>
-            )}
-            {s === 'sospeso' && (
-              <Card title="Accesso sospeso" icon="ban">
-                <Note tone="bad"><b>Motivo:</b> più segnalazioni sull'offerta «Aperitivo 2x1»: il prezzo in app non corrispondeva a quello al tavolo.</Note>
-                <div className="col" style={{ gap: 8, marginTop: 14 }}>
-                  <KV k="Campagne" v="tutte in pausa" />
-                  <KV k="Saldo del wallet" v={Pano.eur(184.2, true) + ' · resta tuo'} />
-                  <KV k="Prenotazioni nel digest" v="annullate e rimborsate" />
-                </div>
-                <div className="row" style={{ marginTop: 16, gap: 10 }}><Btn kind="primary" icon="help">Scrivi all'assistenza byup</Btn></div>
-              </Card>
-            )}
-            <Note icon="info">Le richieste arrivano in <b>Desk</b> con i dati del locale già compilati e un punteggio di idoneità; il team approva, rifiuta o mette in lista d'attesa, e può invitare un locale a mano.</Note>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  Object.assign(Pano, { Campagne, Notifiche, Pubblico, Risultati, Wallet, Accesso });
+  Object.assign(Pano, { Campagne, NotifichePush, NotificheInApp, Pubblico, Risultati, Wallet });
 })();

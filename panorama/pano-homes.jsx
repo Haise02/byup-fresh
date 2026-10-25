@@ -1,9 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════
-// Panorama · le home (la B «Notte» è stata tolta il 24 ottobre)
-//   A · Atlante  — prima fila: il mondo della A al 70% (con il contatore e la
-//                  zona) + Byuppino AI al 30%; sotto widget chiari che
-//                  riempiono il riquadro, ognuno dice di cosa parla
-//   C · Diorama  — bento chiaro e giocoso, l'isola pastello + Byuppino
+// Panorama · la home della A (Atlante; la B tolta il 24 ottobre, la C il 25):
+// prima fila il mondo al 70% (con il contatore e la zona) + Byuppino AI al 30%;
+// sotto widget chiari che riempiono il riquadro, ognuno dice di cosa parla
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
   const Pano = window.Pano;
@@ -21,28 +19,6 @@
   Pano.weekTotals = weekTotals;
 
   // ─── pezzi condivisi delle home ─────────────────────────────────────────
-  function Suggestions({ dark, compact }) {
-    return (
-      <div className="col" style={{ gap: 10 }}>
-        {DATA.SUGGERIMENTI.map((s) => (
-          <div key={s.id} className={cx('sugg', dark && 'dark')}>
-            <div className="row top" style={{ gap: 12 }}>
-              <span className="sugg-ico"><Icon n={s.icon} /></span>
-              <div className="col" style={{ gap: 4, minWidth: 0, flex: 1 }}>
-                <b className="sugg-t">{s.title}</b>
-                {!compact && <span className="sugg-d">{Pano.suggText(s)}</span>}
-                <div className="row" style={{ gap: 8, marginTop: 6 }}>
-                  <Btn kind={dark ? 'light' : 'primary'} size="xs" icon={s.action.kind === 'promuovi' ? 'sparkle' : 'arrowR'} onClick={() => (s.action.kind === 'wizard' ? act.open('wizard', { goal: s.action.goal, budget: s.action.budget }) : s.action.kind === 'promuovi' ? act.open('promuovi', s.action) : act.open('campagna', { id: s.action.id }))}>{s.cta}</Btn>
-                  <Btn kind={dark ? 'glass' : 'ghost'} size="xs" onClick={() => Pano.toast('Te lo ricordo domani')}>Più tardi</Btn>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  Pano.Suggestions = Suggestions;
 
   // Campagne accese adesso, con l'interruttore sempre a portata
   function ActiveCampaigns({ limit = 5 }) {
@@ -73,7 +49,7 @@
   Pano.ActiveCampaigns = ActiveCampaigns;
 
   function CalendarList({ days }) {
-    const KI = { digest: 'push', ricerca: 'search', evento: 'ticket', offerta: 'zap' };
+    const KI = { push: 'push', inapp: 'inbox', ricerca: 'search', evento: 'ticket', offerta: 'zap' };
     return (
       <div className="col" style={{ gap: 4 }}>
         {(days ? DATA.CALENDARIO.slice(0, days) : DATA.CALENDARIO).map((g) => {
@@ -268,19 +244,6 @@
   }
   Pano.PayStack = PayStack;
 
-  function WalletTile() {
-    const w = Pano.useStore((s) => s.wallet);
-    const use = w.spentMonth / w.limits.month;
-    return (
-      <div className="stat">
-        <span className="lbl"><Icon n="wallet" />Wallet</span>
-        <Money v={w.balance} size="md" dec />
-        <Pano.Meter v={use} tone={use >= w.alertAt ? 'warn' : ''} ticks={[w.alertAt]} thin label="Limite mensile usato" />
-        <div className="foot" style={{ justifyContent: 'space-between' }}><span>{Pano.pct(use * 100)} del limite di ottobre</span><Btn kind="secondary" size="xs" icon="plus" onClick={() => act.open('ricarica')}>Ricarica</Btn></div>
-      </div>
-    );
-  }
-  Pano.WalletTile = WalletTile;
 
   function CoversTile({ compact }) {
     const w = weekTotals();
@@ -343,16 +306,16 @@
   }
 
   // ─── Cosa puoi comprare (spostato dalle Campagne a Panorama il 25 ottobre)
-  // Nove spazi in una griglia piena 3 × 3: le campagne, poi push all'asta, lista in
-  // app e vetrina, poi la Fase 2. Ogni spazio ha il suo scorcio vero dell'app, così
+  // Nove spazi in una griglia piena 3 × 3: le campagne, poi push all'asta, notifica
+  // in app e vetrina, poi la Fase 2. Ogni spazio ha il suo scorcio vero dell'app, così
   // si distinguono a colpo d'occhio; quelli della Fase 2 si vedono ma non si comprano
   // ancora. I fornitori di Hubble non stanno qui: non li compra il locale.
   const SHOP = [
     { k: 'ricerca', screen: 'ricerca', from: 236, tint: 'lilla', cta: 'Crea', go: () => act.open('wizard', { placement: 'ricerca' }) },
     { k: 'evento', screen: 'eventi', from: 44, tint: 'notte', cta: 'Crea', go: () => act.open('wizard', { placement: 'evento', goal: 'evento' }) },
     { k: 'offerta', screen: 'offerta', from: 44, tint: 'pesca', cta: 'Crea', go: () => act.open('wizard', { placement: 'offerta', goal: 'offerta' }) },
-    { k: 'push', screen: 'push', from: 520, tint: 'rosa', cta: 'Fai un’offerta', go: () => act.go('notifiche') },
-    { k: 'digest', screen: 'digest', from: 150, tint: 'lilla', cta: 'Prenota', go: () => act.go('notifiche') },
+    { k: 'push', screen: 'push', from: 520, tint: 'rosa', cta: 'Fai un’offerta', go: () => act.go('push') },
+    { k: 'inapp', screen: 'posta', from: 52, tint: 'lilla', cta: 'Prenota', go: () => act.go('inapp') },
     { k: 'vetrina', screen: 'vetrina', from: 250, tint: 'crema', cta: 'In un tap', go: () => act.open('promuovi') },
     { k: 'perte', screen: 'perte', from: 236, tint: 'menta' },
     { k: 'mappa', screen: 'mappa', from: 300, tint: 'ghiaccio' },
@@ -422,7 +385,7 @@
           <Card className="c-8 c-md-12" title="Campagne in corso" icon="megaphone" sub="Quello che hai acceso nell'app byup · l'interruttore la mette in pausa o la riaccende" actions={<Btn kind="ghost" size="sm" iconRight="arrowR" onClick={() => act.go('campagne')}>Tutte</Btn>}>
             <ActiveCampaigns limit={6} />
           </Card>
-          <Card className="c-4 c-md-12 a-cal" title="In calendario" icon="calendar" sub="Cosa parte nei prossimi giorni" actions={<Btn kind="ghost" size="sm" iconRight="arrowR" onClick={() => act.go('notifiche')}>Digest</Btn>}>
+          <Card className="c-4 c-md-12 a-cal" title="In calendario" icon="calendar" sub="Cosa parte nei prossimi giorni" actions={<Btn kind="ghost" size="sm" iconRight="arrowR" onClick={() => act.go('push')}>Push</Btn>}>
             <div className="a-cal-scroll"><CalendarList /></div>
           </Card>
         </div>
@@ -435,44 +398,7 @@
     );
   }
 
-  // ─── C · Diorama ────────────────────────────────────────────────────────
-  function HomeDiorama() {
-    return (
-      <div className="p-page">
-        <div className="bento">
-          <div className="bn-world">
-            <Pano.WorldView variant="diorama" mode="card" labelSet="mini">
-              <div className="dio-wtop">
-                <span className="dio-chip"><span className="live-dot" />Trastevere in miniatura · {Pano.hhmm()}</span>
-                <DioCount />
-              </div>
-              <div className="w-controls"><Pano.TimeSeg compact /><Pano.DigestButton label="Simula il digest" /></div>
-              <Pano.DigestDone />
-            </Pano.WorldView>
-          </div>
-          <aside className="bn-byup">
-            <div className="byup-hero">
-              <img src={Pano.IMG.byuppino} alt="Byuppino" />
-            </div>
-            <div className="bubble">Ciao Mario! Ho letto i dati di Fresh di stamattina. <b>Tre idee</b> per riempire meglio la settimana:</div>
-            <Suggestions />
-            <div className="row between" style={{ padding: '6px 4px 0' }}>
-              <div className="col" style={{ gap: 1 }}><b style={{ fontSize: 13.5 }}>Autopilota</b><span className="t-small">decide Byuppino, con un tetto al mese</span></div>
-              <span className="row" style={{ gap: 8 }}><Phase f="f2" /><Switch on={false} disabled label="Autopilota" /></span>
-            </div>
-          </aside>
-          <section className="card bn-tile tile-pink"><SpendTile compact /></section>
-          <section className="card bn-tile tile-lav"><WalletTile /></section>
-          <section className="card bn-tile tile-ice"><CoversTile compact /></section>
-          <Card className="bn-chart" title="Questa settimana contro la scorsa" icon="chart" actions={<div className="legend"><span><i style={{ background: 'var(--s1)' }} />Questa</span><span><i style={{ background: 'var(--s0)' }} />Scorsa</span><span><i className="hatch" />Stima</span></div>}>
-            <Pano.WeekChart cur={DATA.WEEK.cur} prev={DATA.WEEK.prev} height={210} />
-          </Card>
-          <Card className="bn-cal" title="In calendario" icon="calendar"><CalendarList /></Card>
-          <Card className="bn-camps" title="Campagne in corso" icon="megaphone" actions={<Btn kind="ghost" size="sm" iconRight="arrowR" onClick={() => act.go('campagne')}>Tutte</Btn>}><ActiveCampaigns /></Card>
-        </div>
-      </div>
-    );
-  }
+  // Il contatore «Persone raggiunte oggi» sopra il mondo
   function DioCount() {
     const n = Pano.useLiveNumbers();
     return (
@@ -484,5 +410,5 @@
     );
   }
 
-  Object.assign(Pano, { HomeAtlante, HomeDiorama, greeting });
+  Object.assign(Pano, { HomeAtlante, greeting });
 })();

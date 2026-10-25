@@ -30,9 +30,12 @@
   const TIPI = {
     ricerca: { label: 'Ricerca in cima', short: 'Ricerca', icon: 'search', phase: 'mvp', price: 'da € 0,30 a tocco', desc: 'Primo risultato quando cercano un piatto o un locale come il tuo. Etichetta «Sponsorizzato».', quality: null },
     evento: { label: 'Eventi in evidenza', short: 'Evento', icon: 'ticket', phase: 'mvp', price: 'da € 0,40 a tocco', desc: 'La tua serata nel carosello degli eventi e delle serate a tema.', quality: null },
-    offerta: { label: 'Offerta flash', short: 'Offerta', icon: 'zap', phase: 'mvp', price: 'da € 0,35 a tocco', desc: 'Promo a tempo con conto alla rovescia. Chi ti ha salvato la ritrova nel digest di zona.', quality: null },
-    push: { label: 'Push di zona all’asta', short: 'Push', icon: 'bell', phase: 'mvp', price: 'all’asta · da € 5', desc: 'Il tuo locale scritto nella notifica di zona, tra i primi tre. Si vince all’asta, fino a 15 minuti prima dell’invio.', quality: null },
-    digest: { label: 'Lista in app', short: 'Lista in app', icon: 'push', phase: 'mvp', price: 'da € 5 a invio', desc: 'Un posto nella lista che si apre dalla push di zona, dentro l’app. Prezzo fisso, si prenota.', quality: null },
+    offerta: { label: 'Offerta flash', short: 'Offerta', icon: 'zap', phase: 'mvp', price: 'da € 0,35 a tocco', desc: 'Promo a tempo con conto alla rovescia. Chi ti ha salvato la ritrova nella Posta dell’app.', quality: null },
+    // Le notifiche sono due prodotti diversi, con due schermate (Nilo, 25 ottobre):
+    // la push suona sul telefono e si vince all'asta; quella in app sta nella Posta
+    // dell'app e si prenota a prezzo fisso.
+    push: { label: 'Notifica push all’asta', short: 'Push', icon: 'push', phase: 'mvp', price: 'all’asta · da € 5', desc: 'Il tuo locale scritto nella push che arriva sul telefono di chi è in zona, tra i primi tre. Si vince all’asta, fino a 15 minuti prima dell’invio.', quality: null },
+    inapp: { label: 'Notifica in app', short: 'In app', icon: 'inbox', phase: 'mvp', price: 'da € 5 al giorno', desc: 'Il tuo messaggio nella Posta dell’app, tra le «Promo per te» di chi è in zona. Non suona: lo legge chi apre l’app. Prezzo fisso, si prenota.', quality: null },
     perte: { label: 'Consigliati «Per te»', short: 'Per te', icon: 'heart', phase: 'f2', price: 'da € 0,45 a tocco', desc: 'Uno slot nelle liste della home, a chi ha gusti simili ai tuoi clienti.', quality: 'Voto ≥ 4,2 e almeno 8 foto' },
     mappa: { label: 'Mappa e categorie', short: 'Mappa', icon: 'map', phase: 'f2', price: 'da € 3 al giorno', desc: 'Pin evidenziato sulla mappa e banner nella categoria «Trattorie».', quality: 'Profilo completo al 100%' },
     piatto: { label: 'Piatto in evidenza', short: 'Piatto', icon: 'cutlery', phase: 'f2', price: 'da € 0,35 a tocco', desc: 'Spingi un piatto del menù, non solo il locale: foto, prezzo, «Ordina» o «Prenota».', quality: 'Foto del piatto approvata' },
@@ -44,7 +47,7 @@
 
   const OBIETTIVI = [
     { id: 'prenotazioni', label: 'Più prenotazioni', icon: 'calendar', desc: 'Tavoli prenotati con byup nei prossimi giorni.', phase: 'mvp', yieldPerEur: 0.38, reachPerEur: 70 },
-    { id: 'riempi', label: 'Riempi la sala stasera', icon: 'cutlery', desc: 'Per le sere con tanti posti liberi: digest di zona più ricerca.', phase: 'mvp', yieldPerEur: 0.72, reachPerEur: 230 },
+    { id: 'riempi', label: 'Riempi la sala stasera', icon: 'cutlery', desc: 'Per le sere con tanti posti liberi: push di zona più ricerca.', phase: 'mvp', yieldPerEur: 0.72, reachPerEur: 230 },
     { id: 'pranzi', label: 'Più pranzi', icon: 'sun', desc: 'Coperti a pranzo nei giorni feriali.', phase: 'mvp', yieldPerEur: 0.42, reachPerEur: 80 },
     { id: 'evento', label: 'Far conoscere un evento', icon: 'ticket', desc: 'Una serata, una partita, una degustazione.', phase: 'mvp', yieldPerEur: 0.3, reachPerEur: 110 },
     { id: 'offerta', label: 'Spingere un’offerta', icon: 'zap', desc: 'Una promo a tempo, con conto alla rovescia.', phase: 'mvp', yieldPerEur: 0.45, reachPerEur: 95 },
@@ -110,7 +113,7 @@
       reach: 14760, taps: 702, bookings: 31, covers: 74, revenue: 1990, audience: ['vicini', 'nuovi'], radiusKm: 1.2,
       creative: { title: 'Cacio e Pepe', text: 'Cacio e pepe e carbonara come a casa, a 200 m da te.', img: I.carbonara, bg: BG.pesca, cta: 'Prenota', photo: I.app.trattoria },
       next: 'stasera 20:00 · all’asta sei 2°',
-      log: [{ at: D(10, 3, 11, 0), t: 'Primo posto prenotato nel digest Cena' }],
+      log: [{ at: D(10, 3, 11, 0), t: 'Primo posto nella push della Cena' }],
     },
     {
       id: 'c3', name: 'Derby Roma–Lazio sul maxischermo', type: 'evento', status: 'revisione', goal: 'evento',
@@ -246,30 +249,22 @@
     { v: 500, bonus: 75 },
   ];
 
-  // ─── Digest di zona ─────────────────────────────────────────────────────
+  // ─── Push di zona ───────────────────────────────────────────────────────
   const FASCE = [
     { id: 'pranzo', label: 'Pranzo', time: '12:15', icon: 'sun' },
     { id: 'aperitivo', label: 'Aperitivo', time: '18:30', icon: 'sunset' },
     { id: 'cena', label: 'Cena', time: '20:00', icon: 'moon' },
   ];
   const CATEGORIE = ['Pizzeria', 'Sushi', 'Vineria', 'Burger', 'Bistrot', 'Trattoria', 'Pub', 'Gelateria', 'Cocktail bar'];
-  // Listino fisso per posizione. Dal 25 ottobre vale solo per la lista dentro l'app
-  // (4° e 5° posto): i primi tre, quelli scritti nella push, vanno all'asta (sotto).
-  function prezzi(fascia, d) {
-    const weekendSera = (d.getDay() === 5 || d.getDay() === 6) && fascia !== 'pranzo';
-    if (fascia === 'pranzo') return [12, 9, 7, 6, 5];
-    if (fascia === 'aperitivo') return weekendSera ? [16, 13, 10, 8, 7] : [14, 11, 9, 7, 6];
-    return weekendSera ? [24, 19, 15, 12, 10] : [18, 14, 11, 9, 8];
-  }
 
-  // ─── Asta della push di zona (proposta di Nilo, 25 ottobre) ─────────────
-  // byup crea gli slot (zona × giorno × fascia). I primi 3 posti, quelli scritti nella
-  // notifica, si vincono all'asta a busta chiusa fino a 15 minuti prima dell'invio:
-  // conta offerta × qualità del locale, uno per categoria, e chi vince paga solo quanto
-  // serve per superare chi lo segue (secondo prezzo), mai più della sua offerta. Il
-  // prezzo minimo dipende dalle persone raggiunte (2,50 € ogni 1.000). Ogni locale vince
-  // al massimo 2 push a settimana. Il 4° e il 5° posto stanno nella lista in app, a
-  // prezzo fisso, e si prenotano come prima.
+  // ─── Asta della push (proposta di Nilo, 25 ottobre) ─────────────────────
+  // La push arriva sul telefono di chi è in zona, anche ad app chiusa. byup crea gli
+  // slot (zona × giorno × fascia) e dentro ogni push ci sono 3 locali, uno per
+  // categoria: i 3 posti si vincono all'asta a busta chiusa fino a 15 minuti prima
+  // dell'invio. Conta offerta × qualità del locale e chi vince paga solo quanto serve
+  // per superare chi lo segue (secondo prezzo), mai più della sua offerta. Il prezzo
+  // minimo dipende dalle persone raggiunte (2,50 € ogni 1.000). Ogni locale vince al
+  // massimo 2 push a settimana. La notifica in app è un'altra cosa (sotto, POSTA).
   const PUSH_POSTI = 3, TETTO_PUSH = 2, PER_MILLE = 2.5;
   const QUALITA = 1.15; // Cacio e Pepe: voto 4,6, foto approvate, tocchi sopra la media
   const RIVALI = [
@@ -308,18 +303,14 @@
     for (let i = 0; i < 7; i++) {
       const d = Pano.addDays(T, i);
       FASCE.forEach((f) => {
-        const pr = prezzi(f.id, d);
         const reach = Math.round((f.id === 'cena' ? 3400 : f.id === 'aperitivo' ? 2600 : 2100) * (0.9 + r() * 0.25));
         const reserve = minimoPer(reach);
         const n = f.id === 'cena' ? 4 + Math.floor(r() * 3) : 2 + Math.floor(r() * 3);
         const pool = RIVALI.slice().sort(() => r() - 0.5).slice(0, n);
         const rivals = pool.map((x) => ({ name: x.name, cat: x.cat, bid: mezzo(reserve * (1.05 + r() * 1.9)), q: Math.round((0.9 + r() * 0.25) * 20) / 20 }));
-        const busy = f.id === 'cena' ? 0.55 : 0.35;
-        const free = CATEGORIE.filter((c) => c !== 'Trattoria' && !pool.some((x) => x.cat === c));
-        const slots = [3, 4].map((k, j) => { const sold = r() < busy; return { pos: k + 1, price: pr[k], sold, cat: sold ? free[(i * 3 + j) % free.length] : null }; });
         const past = i === 0 && f.id === 'pranzo';
         const top = mezzo(Math.max(...rivals.map((x) => x.bid)));
-        cells.push({ id: `${i}-${f.id}`, day: i, d, fascia: f.id, time: f.time, slots, past, reach,
+        cells.push({ id: `${i}-${f.id}`, day: i, d, fascia: f.id, time: f.time, past, reach,
           auction: { reserve, closeAt: chiusura(f.time), rivals, my: null, status: 'aperta', result: null, range: [mezzo(reserve * 1.6), Math.max(top, mezzo(reserve * 2.6))] } });
       });
     }
@@ -337,11 +328,9 @@
     tonight.auction.rivals = [{ name: 'Pizzeria La Fiamma', cat: 'Pizzeria', bid: 24, q: 1.05 }, { name: 'Sushi Hanami', cat: 'Sushi', bid: 15, q: 1.1 }, { name: 'Vineria Il Moro', cat: 'Vineria', bid: 13, q: 1 }, { name: 'Burger Lab', cat: 'Burger', bid: 11, q: 0.95 }, { name: 'The Drunken Pub', cat: 'Pub', bid: 9, q: 1 }];
     tonight.auction.range = [18, 25];
     tonight.auction.my = { max: 20 };
-    tonight.slots = [{ pos: 4, price: 12, sold: true, cat: 'Vineria', name: 'Vineria Il Moro' }, { pos: 5, price: 10, sold: false }];
-    // aperitivo di oggi: asta aperta con tre offerte, la lista in app è libera
+    // aperitivo di oggi: asta aperta con tre offerte
     const aper = cell('0-aperitivo');
     aper.auction.rivals = [{ name: 'Lounge 22', cat: 'Cocktail bar', bid: 12, q: 1 }, { name: 'Vineria Il Moro', cat: 'Vineria', bid: 10, q: 1.05 }, { name: 'Pizzeria La Fiamma', cat: 'Pizzeria', bid: 9, q: 1 }];
-    aper.slots = aper.slots.map((x) => Object.assign({}, x, { sold: false, cat: null }));
     // venerdì sera hai già offerto 26 €; martedì sera gareggia anche un'altra trattoria
     cell('6-cena').auction.my = { max: 26 };
     const tue = cell('3-cena');
@@ -349,11 +338,45 @@
     return cells;
   }
   const DIGEST = buildDigest();
-  const BOOKINGS_PAST = [
+  // Push già partite: i risultati, contati sui conti di Fresh
+  const PUSH_PAST = [
+    { id: 'b4', d: D(10, 24, 12, 15), fascia: 'pranzo', pos: 3, price: 6.99, reach: 2040, taps: 64, bookings: 3, covers: 6, revenue: 141, today: true },
     { id: 'b1', d: D(10, 22, 20, 0), fascia: 'cena', pos: 3, price: 11, reach: 3180, taps: 141, bookings: 6, covers: 15, revenue: 402 },
     { id: 'b2', d: D(10, 21, 18, 30), fascia: 'aperitivo', pos: 2, price: 11, reach: 2460, taps: 98, bookings: 3, covers: 7, revenue: 118 },
     { id: 'b3', d: D(10, 18, 20, 0), fascia: 'cena', pos: 1, price: 19, reach: 3610, taps: 212, bookings: 9, covers: 24, revenue: 640 },
-    { id: 'b4', d: D(10, 24, 12, 15), fascia: 'pranzo', pos: 3, price: 6.99, reach: 2040, taps: 64, bookings: 3, covers: 6, revenue: 141, today: true },
+  ];
+
+  // ─── Notifiche in app (dal 25 ottobre, schermata a parte) ──────────────
+  // Stanno dentro l'app, nella Posta (la campanella in alto nella home), linguetta
+  // «Promo per te», con l'etichetta «Sponsorizzato». Non suonano e non vanno sullo
+  // schermo bloccato: le legge chi apre l'app. Le vede solo chi ha acceso le promo
+  // (P-163 · D-113); «già clienti» e «per gusti» solo con la profilazione accesa.
+  // Quattro posti al giorno per zona a prezzo fisso (segnaposto del prototipo), si
+  // prenotano fino al giorno prima; il messaggio arriva alle 11:00 o alle 17:00.
+  const POSTA_POSTI = 4;
+  const POSTA_ORE = [{ id: 'pranzo', label: 'Per il pranzo', time: '11:00', icon: 'sun' }, { id: 'sera', label: 'Per la sera', time: '17:00', icon: 'moon' }];
+  const prezziPosta = (d) => (d.getDay() === 5 || d.getDay() === 6 ? [12, 9, 7, 6] : [9, 7, 6, 5]);
+  function buildPosta() {
+    const r = Pano.rng(7);
+    const out = [];
+    for (let i = 1; i <= 7; i++) { // da domani: si prenota fino al giorno prima
+      const d = Pano.addDays(T, i);
+      const we = d.getDay() === 5 || d.getDay() === 6;
+      const reach = Math.round((we ? 5100 : 4300) * (0.92 + r() * 0.16));
+      const cats = CATEGORIE.filter((c) => c !== 'Trattoria').sort(() => r() - 0.5);
+      const places = prezziPosta(d).map((price, k) => { const sold = r() < (we ? 0.62 : 0.38); return { pos: k + 1, price, sold, cat: sold ? cats[k] : null }; });
+      out.push({ id: 'p' + i, day: i, d, reach, places });
+    }
+    // martedì a pranzo, dove sei sotto del 30%: il 1° posto è già tuo
+    const tue = out.find((x) => x.day === 3);
+    tue.places[0] = { pos: 1, price: tue.places[0].price, sold: true, mine: true, cat: 'Trattoria', when: 'pranzo', aud: 'vicini', msg: 'Martedì a pranzo: cacio e pepe e acqua a 12 €, a 350 m da te. Prenota in due tocchi.' };
+    return out;
+  }
+  const POSTA = buildPosta();
+  const POSTA_PAST = [
+    { id: 'q1', d: D(10, 23, 17, 0), pos: 2, price: 9, reads: 1520, taps: 96, bookings: 5, covers: 11, revenue: 238 },
+    { id: 'q2', d: D(10, 20, 11, 0), pos: 1, price: 9, reads: 1380, taps: 112, bookings: 4, covers: 8, revenue: 152 },
+    { id: 'q3', d: D(10, 17, 17, 0), pos: 1, price: 12, reads: 1810, taps: 121, bookings: 7, covers: 16, revenue: 388 },
   ];
 
   // ─── Pubblico anonimo ───────────────────────────────────────────────────
@@ -370,7 +393,7 @@
 
   // ─── Suggerimenti di Byuppino (dai dati di Fresh) ──────────────────────
   const SUGGERIMENTI = [
-    { id: 's1', icon: 'cutlery', title: 'Stasera alle 21:00 hai 14 posti liberi', text: (f) => `Sei già 2° nel digest delle 20:00. Con 10 € in più sulla ricerca di stasera prevedo da ${f.coversLo} a ${f.coversHi} coperti in più.`, cta: 'Prepara la campagna', action: { kind: 'wizard', goal: 'riempi', budget: 10 }, tone: 'hot' },
+    { id: 's1', icon: 'cutlery', title: 'Stasera alle 21:00 hai 14 posti liberi', text: (f) => `All’asta della push delle 20:00 sei già 2°. Con 10 € in più sulla ricerca di stasera prevedo da ${f.coversLo} a ${f.coversHi} coperti in più.`, cta: 'Prepara la campagna', action: { kind: 'wizard', goal: 'riempi', budget: 10 }, tone: 'hot' },
     { id: 's2', icon: 'sun', title: 'Martedì a pranzo sei sotto del 30%', text: (f) => `Una ricerca a pranzo da 25 € tra martedì e mercoledì: prevedo da ${f.coversLo} a ${f.coversHi} coperti in più.`, cta: 'Prepara la campagna', action: { kind: 'wizard', goal: 'pranzi', budget: 25 } },
     { id: 's3', icon: 'ticket', title: 'Il derby di domenica fa cercare', text: () => 'In zona 1.800 persone hanno cercato «partita» questa settimana. Il tuo evento è in revisione: appena approvato va in evidenza.', cta: 'Vedi evento', action: { kind: 'campagna', id: 'c3' } },
   ];
@@ -385,13 +408,13 @@
 
   // Calendario promozioni (prossimi 7 giorni)
   const CALENDARIO = [
-    { d: 0, items: [{ t: 'Push Cena 20:00', s: 'asta · sei 2°', kind: 'digest' }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
+    { d: 0, items: [{ t: 'Push Cena 20:00', s: 'asta · sei 2°', kind: 'push' }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
     { d: 1, items: [{ t: 'Derby sul maxischermo', s: 'in revisione', kind: 'evento', warn: true }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
     { d: 2, items: [{ t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
-    { d: 3, items: [{ t: 'Halloween in evidenza', s: 'parte oggi', kind: 'evento' }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
+    { d: 3, items: [{ t: 'Notifica in app', s: '1° posto · 11:00', kind: 'inapp' }, { t: 'Halloween in evidenza', s: 'parte oggi', kind: 'evento' }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
     { d: 4, items: [{ t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
     { d: 5, items: [{ t: 'Aperitivo 2x1', s: 'da correggere', kind: 'offerta', bad: true }, { t: 'Ricerca in cima', s: 'tutto il giorno', kind: 'ricerca' }] },
-    { d: 6, items: [{ t: 'Push Cena 20:00', s: 'tua offerta · 26 €', kind: 'digest' }, { t: 'Halloween in evidenza', s: 'sab 31', kind: 'evento' }] },
+    { d: 6, items: [{ t: 'Push Cena 20:00', s: 'tua offerta · 26 €', kind: 'push' }, { t: 'Halloween in evidenza', s: 'sab 31', kind: 'evento' }] },
   ];
 
   // Avvisi (campanella)
@@ -399,19 +422,19 @@
     { id: 'n1', icon: 'alertCircle', tone: 'bad', t: '«Aperitivo 2x1» va corretto', s: '3 punti da sistemare prima di andare online', at: 'ieri 16:40', go: { kind: 'campagna', id: 'c4' } },
     { id: 'n2', icon: 'hourglass', tone: 'warn', t: '«Derby Roma–Lazio» è in revisione', s: 'byup risponde di solito entro 4 ore', at: '10:13', go: { kind: 'campagna', id: 'c3' } },
     { id: 'n3', icon: 'wallet', tone: 'warn', t: 'Hai usato l’82% del limite mensile', s: 'Restano € 155,40 fino al 31 ottobre', at: '09:00', go: { kind: 'route', id: 'wallet' } },
-    { id: 'n4', icon: 'checkCircle', tone: 'good', t: 'Il digest delle 12:15 è partito', s: 'Eri 3° · 2.040 persone raggiunte', at: '12:16', go: { kind: 'route', id: 'notifiche' } },
+    { id: 'n4', icon: 'checkCircle', tone: 'good', t: 'La push delle 12:15 è partita', s: 'Eri 3° · 2.040 persone raggiunte', at: '12:16', go: { kind: 'route', id: 'push' } },
   ];
 
   // Feed «adesso» del mondo (anonimo)
   const FEED = [
-    { icon: 'calendar', t: 'Prenotazione per 2 alle 20:30', s: 'dal digest' },
+    { icon: 'calendar', t: 'Prenotazione per 2 alle 20:30', s: 'dalla push' },
     { icon: 'bookmark', t: 'Salvato tra i preferiti', s: 'dopo la ricerca «carbonara»' },
     { icon: 'tap', t: 'Tocco sul tuo annuncio', s: 'a 350 m da te' },
     { icon: 'calendar', t: 'Prenotazione per 4 alle 21:00', s: 'ricerca in cima' },
-    { icon: 'euro', t: 'Conto da 86 € attribuito', s: 'digest di ieri' },
+    { icon: 'euro', t: 'Conto da 86 € attribuito', s: 'notifica in app di ieri' },
     { icon: 'tap', t: 'Tocco sul tuo annuncio', s: 'ricerca «trattoria»' },
     { icon: 'bookmark', t: 'Carbonara salvata', s: 'piatti vicino a te' },
-    { icon: 'calendar', t: 'Prenotazione per 3 alle 20:00', s: 'digest Cena' },
+    { icon: 'calendar', t: 'Prenotazione per 3 alle 20:00', s: 'push della cena' },
   ];
 
   // Regole dei contenuti (accettate all'onboarding)
@@ -433,7 +456,7 @@
     { t: 'Ordini e prenotazioni da byup', v: '148 nell’ultimo mese', ok: true },
   ];
 
-  Pano.DATA = { user, venues, TIPI, VETRINA, VETRINA_DAY, PUSH_POSTI, TETTO_PUSH, PER_MILLE, QUALITA, OBIETTIVI, TEMPLATE, MENU, EVENTI, OFFERTE, FASCE, RICARICHE, DIGEST, BOOKINGS_PAST, AUDIENCES, MIN_AUDIENCE, SUGGERIMENTI, CALENDARIO, AVVISI, FEED, REGOLE, IDONEITA, S30, WEEK, CATEGORIE, prezzi };
+  Pano.DATA = { user, venues, TIPI, VETRINA, VETRINA_DAY, PUSH_POSTI, TETTO_PUSH, PER_MILLE, QUALITA, POSTA_POSTI, POSTA_ORE, OBIETTIVI, TEMPLATE, MENU, EVENTI, OFFERTE, FASCE, RICARICHE, DIGEST, PUSH_PAST, POSTA, POSTA_PAST, AUDIENCES, MIN_AUDIENCE, SUGGERIMENTI, CALENDARIO, AVVISI, FEED, REGOLE, IDONEITA, S30, WEEK, CATEGORIE };
 
   // ─── Stato iniziale del prototipo ───────────────────────────────────────
   Pano.store.set({
@@ -445,6 +468,7 @@
     campaigns,
     wallet,
     digest: DIGEST,
+    posta: POSTA,
     overlay: null,
     toasts: [],
     preset: null,
@@ -477,27 +501,30 @@
         ],
       }));
     },
-    bookSlot(cellId, pos, aud) {
+    // Notifica in app: un posto nella Posta a prezzo fisso, bloccato nel wallet fino all'invio
+    bookPosta(dayId, pos, opts) {
       let price = 0;
       S.set((s) => ({
-        digest: s.digest.map((c) => {
-          if (c.id !== cellId) return c;
-          return Object.assign({}, c, { slots: c.slots.map((x) => { if (x.pos === pos) { price = x.price; return Object.assign({}, x, { sold: true, mine: true, cat: 'Trattoria', aud }); } return x; }) });
-        }),
+        posta: s.posta.map((x) => (x.id !== dayId ? x : Object.assign({}, x, { places: x.places.map((p) => { if (p.pos !== pos) return p; price = p.price; return Object.assign({}, p, { sold: true, mine: true, cat: 'Trattoria' }, opts); }) }))),
       }));
-      const cell = S.get().digest.find((c) => c.id === cellId);
+      const day = S.get().posta.find((x) => x.id === dayId);
       Pano.act.wallet((w) => ({
         balance: w.balance - price,
-        movements: [{ id: 'd' + Date.now(), at: new Date(Pano.TODAY.getTime() + 60000), t: `Digest ${Pano.cap(cell.fascia)} ${cell.time} · ${pos}° posto (bloccato fino all’invio)`, kind: 'blocco', v: -price }, ...w.movements],
+        movements: [{ id: 'q' + Date.now(), at: new Date(Pano.TODAY.getTime() + 60000), t: `Notifica in app · ${Pano.fmtDay(day.d)} · ${pos}° posto (bloccato fino all’invio)`, kind: 'blocco', v: -price }, ...w.movements],
       }));
       return price;
     },
-    unbookSlot(cellId, pos) {
+    // annullare: l'importo si sblocca (con «undo» sparisce anche il movimento appena fatto)
+    unbookPosta(dayId, pos, undo) {
       let price = 0;
+      const day = S.get().posta.find((x) => x.id === dayId);
       S.set((s) => ({
-        digest: s.digest.map((c) => (c.id !== cellId ? c : Object.assign({}, c, { slots: c.slots.map((x) => { if (x.pos === pos && x.mine) { price = x.price; return { pos: x.pos, price: x.price, sold: false }; } return x; }) }))),
+        posta: s.posta.map((x) => (x.id !== dayId ? x : Object.assign({}, x, { places: x.places.map((p) => { if (p.pos !== pos || !p.mine) return p; price = p.price; return { pos: p.pos, price: p.price, sold: false, cat: null }; }) }))),
       }));
-      Pano.act.wallet((w) => ({ balance: w.balance + price, movements: w.movements.slice(1) }));
+      Pano.act.wallet((w) => ({
+        balance: w.balance + price,
+        movements: undo ? w.movements.slice(1) : [{ id: 'q' + Date.now(), at: new Date(Pano.TODAY.getTime() + 60000), t: `Notifica in app · ${Pano.fmtDay(day.d)} · prenotazione annullata`, kind: 'sblocco', v: price }, ...w.movements],
+      }));
     },
     // Asta della push: l'offerta massima resta bloccata nel wallet fino alla chiusura
     placeBid(cellId, max) {

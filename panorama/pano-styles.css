@@ -1432,25 +1432,16 @@ a { color: inherit; }
 .cal-item svg { flex-shrink: 0; color: var(--muted); }
 .cal-item .cal-t { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-item .cal-s { margin-left: auto; color: var(--muted); font-weight: 600; white-space: nowrap; font-size: 11.5px; }
-.cal-item.digest { background: var(--iride-tint); }
-.cal-item.digest svg { color: var(--s1); }
+.cal-item.push { background: var(--iride-tint); }
+.cal-item.push svg { color: var(--s1); }
+.cal-item.inapp { background: color-mix(in srgb, var(--s2) 10%, var(--card)); }
+.cal-item.inapp svg { color: var(--s2); }
 .cal-item.warn { background: var(--warn-bg); box-shadow: none; }
 .cal-item.warn .cal-s, .cal-item.warn svg { color: var(--warn-ink); }
 .cal-item.bad { background: var(--bad-bg); box-shadow: none; }
 .cal-item.bad .cal-s, .cal-item.bad svg { color: var(--bad-ink); }
 
 /* Selettore delle varianti */
-.vswitch { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 70; display: flex; flex-direction: column-reverse; gap: 8px; align-items: flex-start; }
-.vs-toggle { height: 40px; padding: 0 14px 0 12px; border-radius: 999px; background: #131316; color: #fff; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5); }
-.vs-toggle b { width: 22px; height: 22px; border-radius: 99px; background: var(--card); color: #2B2340; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
-.vs-list { background: var(--card); border-radius: 20px; padding: 6px; box-shadow: var(--shadow-pop), inset 0 0 0 1px var(--line); width: 300px; animation: popIn 0.22s var(--spring) both; transform-origin: bottom left; }
-.vs-item { width: 100%; display: flex; gap: 12px; align-items: center; padding: 9px 10px; border-radius: 14px; color: var(--ink); }
-.vs-item:hover { background: var(--card-2); }
-.vs-item.on { background: var(--card-3); }
-.vs-item small { font-size: 11.5px; color: var(--muted); font-weight: 600; }
-.vs-k { width: 30px; height: 30px; border-radius: 10px; background: var(--paper-2); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
-.vs-item.on .vs-k { background: var(--card); color: #2B2340; }
-@media (max-width: 860px) { .vswitch { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } .vs-toggle span { display: none; } }
 
 /* ════════════════════════════════════════════════════════════════════════
    C · DIORAMA — bento chiaro, barra laterale, isola pastello (solo chiaro)
@@ -1547,8 +1538,6 @@ body.body-diorama::before { height: 640px; background: radial-gradient(700px 360
 .world-atlante.is-day .wl.place .tag { color: rgba(30, 26, 60, 0.6); text-shadow: 0 1px 6px rgba(255, 255, 255, 0.6); }
 
 .w-digest-btn .lbl { white-space: nowrap; }
-.body-diorama .vswitch { left: auto; right: max(16px, env(safe-area-inset-right, 0px)); align-items: flex-end; }
-.body-diorama .vs-list { transform-origin: bottom right; }
 
 .drawer:focus, .modal:focus, .drawer:focus-visible, .modal:focus-visible { outline: none; }
 
@@ -1556,10 +1545,6 @@ body.body-diorama::before { height: 640px; background: radial-gradient(700px 360
   .w-right .w-bars { display: none; }
   .w-right .w-split b { font-size: 18px; }
   .w-scrim { width: 100%; height: 45%; }
-  .vswitch { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 74px); left: auto; right: max(12px, env(safe-area-inset-right, 0px)); align-items: flex-end; flex-direction: column; }
-  .vs-toggle { height: 34px; padding: 0 8px 0 10px; }
-  .vs-list { width: min(300px, calc(100vw - 32px)); }
-  .body-diorama .vswitch { right: max(12px, env(safe-area-inset-right, 0px)); }
 }
 :root[data-theme="dark"] .dg-cell .slots i { background: rgba(255, 255, 255, 0.1); }
 :root[data-theme="dark"] .dg-cell .slots i.sold { background: rgba(255, 255, 255, 0.42); }
@@ -2086,10 +2071,6 @@ body.body-diorama::before { height: 640px; background: radial-gradient(700px 360
 .a-cal-scroll:hover::-webkit-scrollbar-thumb, .wl-mov-scroll:hover::-webkit-scrollbar-thumb, .byai-feed:hover::-webkit-scrollbar-thumb { background: var(--line-3); }
 .a-cal-scroll::-webkit-scrollbar-button, .wl-mov-scroll::-webkit-scrollbar-button, .byai-feed::-webkit-scrollbar-button { display: none; }
 
-/* Su Vercel c'è il pulsante «Home byup» in basso a sinistra, come nelle altre app
-   del monorepo: il selettore della variante gli si mette accanto */
-body:has(#byup-hub-btn) .vswitch { left: calc(max(16px, env(safe-area-inset-left, 0px)) + 134px); }
-@media (max-width: 860px) { body:has(#byup-hub-btn) .vswitch { left: calc(max(16px, env(safe-area-inset-left, 0px)) + 52px); } }
 
 /* ─── Asta della push (25 ottobre) ───────────────────────────────────────── */
 .dg-cell .slots em { width: 6px; flex: none; }
@@ -2120,3 +2101,62 @@ body:has(#byup-hub-btn) .vswitch { left: calc(max(16px, env(safe-area-inset-left
 .slot-row.static { cursor: default; }
 .slot-row.static.me { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--s1) 55%, transparent); background: var(--iride-tint); }
 @media (max-width: 560px) { .auc-how { grid-template-columns: 1fr; } }
+
+/* ─── Notifiche: due schermate, push all'asta e in app (25 ottobre) ───────── */
+.nt-how { display: flex; flex-direction: column; }
+.nt-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-evenly; gap: 14px; flex: 1; }
+.nt-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.nt-steps b { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+.nt-steps .t-small { line-height: 1.5; }
+.nt-ico { width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--iride-tint); color: var(--ink-2); }
+.nt-ico svg { width: 18px; height: 18px; }
+.nt-other { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 12px 14px; border-radius: 16px; background: var(--card-2); box-shadow: inset 0 0 0 1px var(--line); width: 100%; text-align: left; transition: box-shadow 0.15s, transform 0.15s var(--spring); }
+.nt-other:hover { box-shadow: inset 0 0 0 1px var(--line-3), var(--shadow-1); transform: translateY(-1px); }
+.nt-other b { font-size: 14px; font-weight: 800; }
+.nt-other > svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+.nt-other .nt-ico { width: 34px; height: 34px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.nt-prev { display: flex; flex-direction: column; }
+.nt-prev .phone-crop { margin-top: auto; }
+.nt-side { gap: 16px; min-width: 0; }
+.nt-side > .nt-fill { flex: 1; }
+.nt-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* la griglia della notifica in app: 7 giorni × 4 posti */
+.pg-cell {
+  min-height: 66px; border-radius: 16px; padding: 10px 11px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 6px; text-align: left; min-width: 0;
+  transition: box-shadow 0.15s, transform 0.15s var(--spring), background 0.15s;
+}
+.pg-cell:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--line-3), var(--shadow-1); transform: translateY(-1px); }
+.pg-cell .pg-st { font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-cell .pg-st svg { width: 14px; height: 14px; flex-shrink: 0; }
+.pg-cell .pg-pr { font-size: 14px; font-weight: 800; }
+.pg-cell.sold { background: var(--card-2); box-shadow: none; cursor: default; }
+.pg-cell.sold .pg-st, .pg-cell.sold .pg-pr { color: var(--muted); font-weight: 600; }
+.pg-cell.mine { background: var(--iride-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--s1) 45%, transparent); }
+.pg-cell.sel { box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-1); }
+:root[data-theme="dark"] .pg-cell.sel { box-shadow: inset 0 0 0 2px var(--s1), var(--shadow-1); }
+/* la Posta dell'app, linguetta «Promo per te» (come app/map.jsx · PostaScreen) */
+.ap-posta { background: #fff; }
+.ap-po-head { padding: 60px 20px 0; display: flex; flex-direction: column; align-items: flex-start; }
+.ap-po-back { width: 36px; height: 36px; border-radius: 999px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; }
+.ap-po-t { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-top: 14px; color: #1c0f15; }
+.ap-po-s { font-size: 13px; color: #6d5a61; margin-top: 2px; }
+.ap-po-tabs { margin: 14px 20px 4px; background: #f6f6f6; border-radius: 12px; padding: 4px; display: flex; gap: 4px; }
+.ap-po-tabs span { flex: 1; padding: 9px 10px; border-radius: 9px; font-size: 13.5px; font-weight: 700; color: #6d5a61; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ap-po-tabs span i { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: #f6f6f6; color: #6d5a61; }
+.ap-po-tabs span.on { background: #fff; color: #1c0f15; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.ap-po-tabs span.on i { background: #FF6B35; color: #fff; }
+.ap-po-list { padding: 12px 16px 120px; display: flex; flex-direction: column; gap: 10px; }
+.ap-po-card { background: #fff; border: 1px solid #eddfda; border-radius: 14px; padding: 14px 16px; }
+.ap-po-card .r1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.ap-po-card .r1 b { font-size: 14.5px; font-weight: 800; letter-spacing: -0.2px; color: #1c0f15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-po-card .r1 small { margin-left: auto; font-size: 11.5px; color: #6d5a61; flex-shrink: 0; }
+.ap-po-card p { margin: 4px 0 0; font-size: 13.5px; color: #6d5a61; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ap-po-card.me { border-color: rgba(227, 36, 89, 0.45); box-shadow: 0 0 0 3px rgba(227, 36, 89, 0.12), 0 12px 26px -16px rgba(227, 36, 89, 0.5); }
+
+/* Barra in alto con Push e In app (25 ottobre): tutte le voci restano visibili fino
+   al telefono. Si stringono, «Promuovi» resta solo icona e sotto i 960 px del logo
+   resta il segno. */
+@media (max-width: 1220px) { .p-nav-item { padding: 0 10px; } .btn.iride .lbl-long { display: none; } }
+@media (max-width: 1060px) { .p-nav-item { padding: 0 8px; font-size: 12.5px; } }
+@media (max-width: 960px) { .p-brand { max-width: 31px; overflow: hidden; } .p-brand img { max-width: none; } .p-nav-item { padding: 0 7px; font-size: 12px; } }

@@ -5,8 +5,9 @@
 //   perte    → «Stasera per te» (Fase 2)
 //   offerta  → home, sezione «In evidenza» (la card vino con la pillola lime)
 //   eventi   → home, sezione «Da scoprire» (la card in primo piano)
-//   digest   → la lista che si apre dalla notifica di zona
-//   push     → la notifica sullo schermo bloccato
+//   push     → la push sullo schermo bloccato
+//   lista    → la lista che si apre toccando la push (i tre della notifica)
+//   posta    → la Posta dell'app, linguetta «Promo per te»: la notifica in app
 //   mappa    → la mappa con il pin e la card in basso (Fase 2)
 //   piatto   → una categoria con il piatto in evidenza (Fase 2)
 //   vetrina  → la vetrina del locale con un piatto o un evento in evidenza
@@ -148,7 +149,7 @@
     );
   }
 
-  // Testata rosa di «Disponibili adesso» (e del digest)
+  // Testata rosa di «Disponibili adesso» (e della lista della push)
   function Hero({ eyebrow, title, sub, n, map = true }) {
     return (
       <div className="ap-hero">
@@ -313,13 +314,13 @@
     );
   }
 
-  // ─── Digest: la lista che si apre dalla notifica ────────────────────────
-  function Digest({ me }) {
-    const rows = [V.fiamma, Object.assign({}, me, { me: true }), V.hanami, V.moro];
+  // ─── La lista che si apre toccando la push: i tre della notifica ────────
+  function Lista({ me }) {
+    const rows = [V.fiamma, Object.assign({}, me, { me: true }), V.hanami];
     return (
       <div className="ap ap-flat">
         <div className="ap-col">
-          <Hero eyebrow="Digest di zona · 20:00" title="Stasera a Trastevere" sub="uno per cucina · sponsorizzati" n={4} map={false} />
+          <Hero eyebrow="Push di zona · 20:00" title="Stasera a Trastevere" sub="uno per cucina · sponsorizzati" n={3} map={false} />
           <div className="ap-list ap-dgl">
             {rows.map((v, i) => (
               <div key={v.name} className={cx('ap-dg', v.me && 'me', 'ap-in')} style={{ animationDelay: 0.12 + i * 0.1 + 's' }}>
@@ -343,7 +344,41 @@
     );
   }
 
-  // ─── Schermo bloccato con la notifica di zona ───────────────────────────
+  // ─── Posta dell'app, «Promo per te»: la notifica in app ─────────────────
+  // Stessa schermata dell'app (app/map.jsx · PostaScreen): titolo, linguette
+  // «Novità» e «Promo per te», le promo in cartoncini bianchi. Il tuo messaggio
+  // è il primo, con «Sponsorizzato». Si apre dalla campanella della home.
+  const PROMO = [
+    { venue: 'Ristorante YX', text: 'Hai un nuovo ristorante vicino a te. Provalo con il 20% di sconto entro venerdì.', ago: 'Un’ora fa' },
+    { venue: 'Lounge 22', text: 'Aperitivo 2x1 stasera dalle 18 alle 21. Mostra questa promo al bancone.', ago: '5 ore fa' },
+    { venue: 'Caffè Centrale', text: 'Da lunedì colazione a 3,50€ con cornetto e cappuccino. Solo per gli iscritti byup.', ago: '2 giorni fa' },
+  ];
+  function Posta({ me }) {
+    const text = me.text || 'Stasera carbonara tirata a mano e un tavolo per te alle 21. Prenota in due tocchi.';
+    return (
+      <div className="ap ap-posta">
+        <div className="ap-po-head">
+          <span className="ap-po-back"><Ic.back s={16} /></span>
+          <b className="ap-po-t">Posta</b>
+          <span className="ap-po-s">Offerte dai tuoi locali preferiti</span>
+        </div>
+        <div className="ap-po-tabs"><span>Novità<i>4</i></span><span className="on">Promo per te<i>{PROMO.length + 1}</i></span></div>
+        <div className="ap-po-list">
+          <div className="ap-po-card me ap-in" style={{ animationDelay: '.25s' }}>
+            <div className="r1"><b>{me.name}</b><span className="ap-spons-sm">Sponsorizzato</span><small>adesso</small></div>
+            <p>{text}</p>
+          </div>
+          {PROMO.map((p) => (
+            <div key={p.venue} className="ap-po-card"><div className="r1"><b>{p.venue}</b><small>{p.ago}</small></div><p>{p.text}</p></div>
+          ))}
+        </div>
+        <Status />
+        <TabBar />
+      </div>
+    );
+  }
+
+  // ─── Schermo bloccato con la push di zona ───────────────────────────────
   function Lock({ me }) {
     return (
       <div className="ap ap-lock">
@@ -354,7 +389,7 @@
           <div className="col">
             <div className="h"><b>byup</b><span>adesso</span></div>
             <b className="t">Stasera a Trastevere</b>
-            <span className="b">Cena? 3 posti scelti per te: La Fiamma, <b>{me.name}</b>, Sushi Hanami. E altri nell’app.</span>
+            <span className="b">Cena? 3 posti scelti per te: La Fiamma, <b>{me.name}</b>, Sushi Hanami.</span>
           </div>
         </div>
         <div className="ap-lock-bot"><span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 2h8l-1 6H9z" /><path d="M9 8v12a3 3 0 0 0 6 0V8" /></svg></span><span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg></span></div>
@@ -484,14 +519,15 @@
     if (screen === 'push') return <Lock me={me} />;
     if (screen === 'ricerca') return <Dispo me={me} kind="ricerca" />;
     if (screen === 'perte') return <Dispo me={me} kind="perte" />;
-    if (screen === 'digest') return <Digest me={me} />;
+    if (screen === 'lista' || screen === 'digest') return <Lista me={me} />;
+    if (screen === 'posta') return <Posta me={me} />;
     if (screen === 'mappa') return <Mappa me={me} />;
     if (screen === 'piatto') return <Piatto me={me} />;
     if (screen === 'vetrina') return <Vetrina me={me} pick={c && c.pick} />;
     return <Home me={me} focus={screen === 'offerta' ? 'evidenza' : 'scoprire'} />;
   }
 
-  const LABELS = { ricerca: '«Disponibili adesso», primo della lista', perte: '«Stasera per te»', offerta: 'home, sezione «In evidenza»', eventi: 'home, sezione «Da scoprire»', digest: 'la lista del digest di zona', push: 'la notifica di zona', mappa: 'la mappa', piatto: 'la categoria con il piatto in evidenza', vetrina: 'la tua vetrina, con quello che metti in evidenza' };
+  const LABELS = { ricerca: '«Disponibili adesso», primo della lista', perte: '«Stasera per te»', offerta: 'home, sezione «In evidenza»', eventi: 'home, sezione «Da scoprire»', lista: 'la lista che si apre toccando la push', push: 'la push sullo schermo bloccato', posta: 'la Posta dell’app, «Promo per te»', mappa: 'la mappa', piatto: 'la categoria con il piatto in evidenza', vetrina: 'la tua vetrina, con quello che metti in evidenza' };
   function Phone({ screen = 'ricerca', creative, size, venue, label }) {
     return (
       <div className={cx('phone', size)} role="img" aria-label={label || `Anteprima nell’app byup: ${LABELS[screen] || ''}`}>
@@ -503,7 +539,7 @@
     );
   }
   // quale schermata per quale posizionamento
-  Pano.screenFor = (type) => ({ ricerca: 'ricerca', evento: 'eventi', offerta: 'offerta', push: 'push', digest: 'digest', perte: 'perte', mappa: 'mappa', piatto: 'piatto', vetrina: 'vetrina' }[type] || 'ricerca');
+  Pano.screenFor = (type) => ({ ricerca: 'ricerca', evento: 'eventi', offerta: 'offerta', push: 'push', inapp: 'posta', perte: 'perte', mappa: 'mappa', piatto: 'piatto', vetrina: 'vetrina' }[type] || 'ricerca');
   Pano.Phone = Phone;
 
   // Il telefono da vicino: lo schermo a grandezza vera (390 punti), tagliato

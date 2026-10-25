@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
 // Panorama · il mondo in React: etichette ancorate al 3D, contatori vivi,
-// feed anonimo, simulazione del digest e comandi. Il motore sta in
+// feed anonimo, simulazione della push e comandi. Il motore sta in
 // pano-world.js; qui c'è tutto quello che si legge e si tocca.
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
@@ -111,7 +111,7 @@
       const c = (Pano.store.get().digest || []).find((x) => x.id === '0-cena');
       if (!c) return [];
       const st = Pano.settleAuction(c.auction, c.auction.my && c.auction.my.max);
-      return st.win.filter((w) => !w.me).map((w) => ({ pos: w.pos, name: w.who, cat: w.cat })).concat(c.slots.filter((s) => s.sold && !s.mine).map((s) => ({ pos: s.pos, name: s.name || s.cat, cat: s.cat })));
+      return st.win.filter((w) => !w.me).map((w) => ({ pos: w.pos, name: w.who, cat: w.cat }));
     }, []);
     const showRivals = layers.rivals || !!digest;
 
@@ -130,7 +130,7 @@
                   <span className="mk"><img src={Pano.IMG.markInk} alt="" /></span>
                   <span className="col" style={{ gap: 0, lineHeight: 1.15 }}>
                     <span>Cacio e Pepe</span>
-                    <small>{FASCE_INFO[preset].mine ? `Digest ${FASCE_INFO[preset].time} · ${FASCE_INFO[preset].digestShort}` : 'Ricerca in cima · attiva'}</small>
+                    <small>{FASCE_INFO[preset].mine ? `Push ${FASCE_INFO[preset].time} · ${FASCE_INFO[preset].digestShort}` : 'Ricerca in cima · attiva'}</small>
                   </span>
                   <span className="live"><i />LIVE</span>
                 </span>
@@ -142,7 +142,7 @@
                   <span className="tag" style={{ opacity: showRivals ? 1 : 0, transition: 'opacity .4s' }}><span className="pos">{r.pos}</span>{r.name}<small>{r.cat}</small></span>
                 </div>
               ))}
-              {labelSet === 'full' && layers.zone && <div className="wl zone" ref={reg('zone')}><span className="tag"><Icon n="push" size={14} />Zona del digest · Trastevere</span></div>}
+              {labelSet === 'full' && layers.zone && <div className="wl zone" ref={reg('zone')}><span className="tag"><Icon n="push" size={14} />Zona della push · Trastevere</span></div>}
               <div className="wl place" ref={reg('tevere')}><span className="tag">Tevere</span></div>
               {variant !== 'diorama' && <div className="wl place" ref={reg('gianicolo')}><span className="tag">Gianicolo</span></div>}
               {pops.map((p) => (
@@ -156,8 +156,8 @@
             <div className="w-push" role="status">
               <div className="app"><Pano.ByupGlyph size={18} /></div>
               <div style={{ minWidth: 0 }}>
-                <div className="hd"><span>BYUP · digest di zona</span><span>adesso</span></div>
-                <div className="bd"><b>Stasera a Trastevere</b> · 3 posti scelti per te: La Fiamma, <b>Cacio e Pepe</b>, Sushi Hanami. E altri nell’app.</div>
+                <div className="hd"><span>BYUP · push di zona</span><span>adesso</span></div>
+                <div className="bd"><b>Stasera a Trastevere</b> · 3 posti scelti per te: La Fiamma, <b>Cacio e Pepe</b>, Sushi Hanami.</div>
               </div>
             </div>
           )}
@@ -185,16 +185,16 @@
     const w = Pano.useWorld();
     const info = FASCE_INFO[w.preset];
     return (
-      <button type="button" className="w-digest-btn" onClick={w.runDigest} disabled={w.digest === 'live'} aria-label={`Simula il digest delle ${info.time}`}>
+      <button type="button" className="w-digest-btn" onClick={w.runDigest} disabled={w.digest === 'live'} aria-label={`Simula la push delle ${info.time}`}>
         <span className="ic"><Icon n="push" /></span>
-        <span className="lbl">{w.digest === 'live' ? 'Digest in consegna…' : (label || `Simula il digest delle ${info.time}`)}</span>
+        <span className="lbl">{w.digest === 'live' ? 'Push in consegna…' : (label || `Simula la push delle ${info.time}`)}</span>
       </button>
     );
   }
   function Tools() {
     const w = Pano.useWorld();
     const [open, setOpen] = useState(false);
-    const L = [['people', 'Persone con l’app', 'users'], ['rings', 'Onde di reach', 'target'], ['zone', 'Zona del digest', 'push'], ['rivals', 'Gli altri nel digest', 'store']];
+    const L = [['people', 'Persone con l’app', 'users'], ['rings', 'Onde di reach', 'target'], ['zone', 'Zona della push', 'push'], ['rivals', 'Gli altri nella push', 'store']];
     return (
       <>
         <div className="w-tools">
@@ -242,7 +242,7 @@
         )}
         {withWhere && (
           <div className="w-bars" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,.12)' }}>
-            {[['Ricerca', 0.61], ['Digest', 0.27], ['Eventi', 0.12]].map(([k, v]) => (
+            {[['Ricerca', 0.61], ['Notifiche', 0.27], ['Eventi', 0.12]].map(([k, v]) => (
               <div className="w-bar" key={k}><span>{k}</span><span className="trk"><i style={{ width: v * 100 + '%' }} /></span><span>{Pano.pct(v * 100)}</span></div>
             ))}
           </div>
@@ -255,7 +255,7 @@
       <div className="wpanel w-bars-panel">
         <span className="t-micro">Dove ti vedono oggi</span>
         <div className="w-bars" style={{ marginTop: 10 }}>
-          {[['Ricerca', 0.61], ['Digest', 0.27], ['Eventi', 0.12]].map(([k, v]) => (
+          {[['Ricerca', 0.61], ['Notifiche', 0.27], ['Eventi', 0.12]].map(([k, v]) => (
             <div className="w-bar" key={k}><span>{k}</span><span className="trk"><i style={{ width: v * 100 + '%' }} /></span><span>{Pano.pct(v * 100)}</span></div>
           ))}
         </div>
@@ -290,9 +290,9 @@
           <span className="pill sm" style={{ background: 'rgba(255,255,255,.14)', color: '#fff', boxShadow: 'none' }}><Icon n="pin" />Trastevere</span>
         </div>
         <dl>
-          <dt>Raggio del digest</dt><dd>1,2 km</dd>
-          <dt>In app adesso</dt><dd>{Pano.n(info.inApp)}</dd>
-          <dt>Digest delle {info.time}</dt><dd>{mini ? info.digestShort : info.digest}</dd>
+          <dt>Raggio della push</dt><dd>1,2 km</dd>
+          <dt>Con l’app aperta</dt><dd>{Pano.n(info.inApp)}</dd>
+          <dt>Push delle {info.time}</dt><dd>{mini ? info.digestShort : info.digest}</dd>
           <dt>Locali attivi in zona</dt><dd>38</dd>
         </dl>
       </div>
@@ -305,8 +305,8 @@
       <div className="w-push" role="status" style={{ background: 'rgba(255,255,255,.94)' }}>
         <div className="app av-ring"><Icon n="checkCircle" style={{ color: '#2B2340' }} /></div>
         <div>
-          <div className="hd"><span>Digest consegnato</span><span>simulazione</span></div>
-          <div className="bd"><b>{Pano.n(Math.max(2600, w.digest.reached * 9))} persone</b> l'hanno ricevuto. Eri 2° dei 3 nella push, uno per categoria.</div>
+          <div className="hd"><span>Push consegnata</span><span>simulazione</span></div>
+          <div className="bd"><b>{Pano.n(Math.max(2600, w.digest.reached * 9))} persone</b> l'hanno ricevuta. Eri 2° dei 3 nella push, uno per categoria.</div>
         </div>
       </div>
     );

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// Panorama · UI — mattoncini condivisi dalle tre varianti
+// Panorama · UI — mattoncini condivisi
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
   const Pano = window.Pano;

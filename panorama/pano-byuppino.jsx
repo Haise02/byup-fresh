@@ -4,7 +4,7 @@
 // prenotazioni e conti e propone una cosa alla volta. Regola (25 ottobre):
 // in un tocco fa solo ciò che non tocca gli spazi a contesa dell'app —
 // mettere un piatto o un evento in vetrina, pausa e riattiva, ricarica.
-// Le campagne sugli spazi dell'app (ricerca, eventi, digest…) le prepara
+// Le campagne sugli spazi dell'app (ricerca, eventi, notifiche…) le prepara
 // nella procedura completa: le controlli e le invii tu.
 //   «Proposte» — una scheda chiara per volta (cosa, perché, il dato, bottone)
 //   «Conversazione» — quando gli scrivi; si torna alle proposte con un tocco
@@ -29,7 +29,8 @@
     if (has('pranz', 'martedi', 'mercoledi')) return 'pranzi';
     if (has('riempi', 'sala', 'posti liberi', 'tavoli liberi', 'stasera', 'promuov', 'campagna')) return 'riempi';
     if (has('ricaric', 'saldo', 'wallet', 'credito')) return 'ricarica';
-    if (has('digest', 'notifica', 'push', 'posto nel')) return 'digest';
+    if (has('in app', 'nella posta', 'la posta', 'promo per te')) return 'inapp';
+    if (has('digest', 'notifica', 'push', 'posto nel', 'asta')) return 'digest';
     if (has('derby', 'partita', 'evento')) return 'evento';
     if (has('settimana', 'come va', 'come sta', 'speso', 'incass', 'roas', 'andamento', 'risultat', 'numeri', 'coperti')) return 'settimana';
     if (has('grazie', 'perfetto', 'ottimo', 'grande')) return 'grazie';
@@ -150,22 +151,36 @@
     }
     if (intent === 'digest') {
       const cell = s.digest.find((c) => c.id === '0-aperitivo');
-      if (!cell || cell.auction.status === 'chiusa') return { text: 'Per oggi le aste delle push sono chiuse. Domani a cena c’è ancora tempo: guardale in Notifiche.', actions: [{ label: 'Apri Notifiche', run: () => { act.go('notifiche'); return 'Eccoti in Notifiche.'; } }] };
+      if (!cell || cell.auction.status === 'chiusa') return { text: 'Per oggi le aste delle push sono chiuse. Domani a cena c’è ancora tempo: guardale in Push, nella barra in alto.', actions: [{ label: 'Apri Push', run: () => { act.go('push'); return 'Eccoti nelle push.'; } }] };
       const st = Pano.settleAuction(cell.auction, null);
       const week = Pano.pushWeek ? Pano.pushWeek(s.digest, cell) : [];
       if (week.length >= DATA.TETTO_PUSH) {
-        const lib = cell.slots.filter((x) => !x.sold);
+        const dom = (s.posta || []).find((x) => x.day === 1);
+        const lib = dom ? dom.places.filter((x) => !x.sold) : [];
         return {
-          text: <>Questa settimana hai già <b>{week.length} push</b> (il pranzo di oggi vinto e la cena in gara): ogni locale ne vince al massimo {DATA.TETTO_PUSH}, quindi all’asta dell’aperitivo non puoi entrare. {lib.length ? <>Nella <b>lista in app</b> delle 18:30 invece c’è posto, a prezzo fisso da {Pano.eur(Math.min(...lib.map((x) => x.price)))}.</> : 'Da lunedì puoi offrire di nuovo.'}</>,
-          actions: lib.length ? [{ label: 'Apri la lista delle 18:30', icon: 'phone', primary: true, run: () => { act.open('slot', { cellId: cell.id, tab: 'lista' }); return 'Ti ho aperto la lista in app delle 18:30.'; } }] : [{ label: 'Apri Notifiche', run: () => { act.go('notifiche'); return 'Eccoti in Notifiche.'; } }],
+          text: <>Questa settimana hai già <b>{week.length} push</b> (il pranzo di oggi vinto e la cena in gara): ogni locale ne vince al massimo {DATA.TETTO_PUSH}, quindi all’asta dell’aperitivo non puoi entrare. {lib.length ? <>Nella <b>Posta dell’app</b> di domani invece c’è posto: una notifica in app non suona, ma costa poco, a prezzo fisso da {Pano.eur(Math.min(...lib.map((x) => x.price)))}.</> : 'Da lunedì puoi offrire di nuovo.'}</>,
+          actions: lib.length ? [{ label: 'Apri la Posta di domani', icon: 'inbox', primary: true, run: () => { act.open('posta', { dayId: dom.id, pos: lib[0].pos }); return 'Ti ho aperto la notifica in app di domani.'; } }] : [{ label: 'Apri Push', run: () => { act.go('push'); return 'Eccoti nelle push.'; } }],
         };
       }
       return {
         text: <>Per la <b>push dell’aperitivo</b> di oggi (18:30) l’asta è aperta fino alle <b>{cell.auction.closeAt}</b>: {st.offers} offerte, minimo {Pano.eur(cell.auction.reserve)}. Per entrare tra i tre della notifica oggi servono circa <b>{Pano.eur(st.need)}</b>. Te la apro: l’offerta massima la scegli tu.</>,
         actions: [
           { label: 'Apri l’asta delle 18:30', icon: 'push', primary: true, run: () => { act.open('slot', { cellId: cell.id }); return 'Ti ho aperto l’asta delle 18:30.'; } },
-          { label: 'Vedi la griglia', run: () => { act.go('notifiche'); return 'Eccoti in Notifiche.'; } },
+          { label: 'Vedi la griglia', run: () => { act.go('push'); return 'Eccoti nelle push.'; } },
         ],
+      };
+    }
+    if (intent === 'inapp') {
+      const days = s.posta || [];
+      const mine = days.find((x) => x.places.some((p) => p.mine));
+      const next = days.find((x) => !x.places.some((p) => p.mine) && x.places.some((p) => !p.sold));
+      const free = next ? next.places.filter((p) => !p.sold) : [];
+      return {
+        text: <>La <b>notifica in app</b> sta nella Posta di chi è in zona, tra le «Promo per te»: non suona, la legge chi apre l’app, e si prenota a prezzo fisso. {mine ? <>Hai già il {mine.places.find((p) => p.mine).pos}° posto {Pano.fmtDay(mine.d)}. </> : null}{next ? <>{Pano.cap(Pano.fmtDay(next.d))} ci sono {free.length} posti liberi, da {Pano.eur(Math.min(...free.map((p) => p.price)))}.</> : 'Questa settimana è tutto preso.'}</>,
+        actions: next ? [
+          { label: `Prenota ${Pano.fmtDay(next.d)}`, icon: 'inbox', primary: true, run: () => { act.open('posta', { dayId: next.id, pos: free[0].pos }); return `Ti ho aperto la Posta di ${Pano.fmtDay(next.d)}.`; } },
+          { label: 'Vedi i 7 giorni', run: () => { act.go('inapp'); return 'Eccoti nelle notifiche in app.'; } },
+        ] : [{ label: 'Vedi i 7 giorni', run: () => { act.go('inapp'); return 'Eccoti nelle notifiche in app.'; } }],
       };
     }
     if (intent === 'evento') {
