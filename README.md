@@ -40,6 +40,7 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 | `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [README](staff/README.md) |
 | `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   | — |
 | `desk/`          | Desk (ex Hubble, ex byup Spot) | `byup-desk.html`     | Interno        | [README](desk/README.md) |
+| `panorama/`    | Panorama (business manager di advertising) | `byup-panorama.html` | Ristoratore, su invito | [README](panorama/README.md) |
 | `backend/`     | API (NestJS)      | servizio Node separato      | —              | [BACKEND.md](backend/BACKEND.md) |
 
 ## Stato della documentazione
@@ -75,7 +76,7 @@ fare il prodotto*, vince il documento.
 - `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
 - `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
   schermata "Salda conto".
-- **Il cache-buster `?v=N`** lo usano `desk/byup-desk.html`, `staff/index.html` e
+- **Il cache-buster `?v=N`** lo usano `desk/byup-desk.html`, `staff/index.html`, `panorama/byup-panorama.html` e
   quattro pagine del gestionale (`byup Impostazioni.html`, `byup Statistiche.html`,
   `byup Contabilita.html`, `byup Cucina KDS v2.html`), su alcuni `.jsx` e non su
   tutti. Va incrementato a mano quando si modifica uno di quei file: senza, il

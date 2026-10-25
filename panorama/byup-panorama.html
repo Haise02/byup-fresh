@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Panorama · byup</title>
+<link rel="icon" type="image/png" href="img/panorama-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fredoka:wght@500;600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="pano-styles.css?v=4"/>
+</head>
+<body>
+<!-- Torna alla home dell'ecosistema (come nelle altre app del monorepo) -->
+<a id="byup-hub-btn" href="/" aria-label="Torna alla home byup">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF1F5A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/></svg>
+  <span>Home byup</span>
+</a>
+<style>
+#byup-hub-btn{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2147483000;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px 0 11px;font:600 13px/1 'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;color:#fff;text-decoration:none;background:rgba(20,20,24,.72);border:1px solid rgba(255,255,255,.16);border-radius:999px;backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);box-shadow:0 8px 24px -8px rgba(0,0,0,.5);transition:transform .18s ease,background .18s ease}
+#byup-hub-btn:hover{background:rgba(20,20,24,.92);transform:translateY(-2px)}
+#byup-hub-btn svg{flex:none}
+@media (max-width:860px){#byup-hub-btn{bottom:calc(92px + env(safe-area-inset-bottom,0px));width:40px;padding:0;justify-content:center}#byup-hub-btn span{display:none}}
+@media print{#byup-hub-btn{display:none}}
+</style>
+<div id="root"></div>
+
+<!-- Librerie: React 18 (UMD), three.js r128 per il mondo 3D, Babel per i .jsx senza build (come Desk) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+
+<!-- Ordine di caricamento: core → ui → grafici → dati → mondo → telefono → flussi → sezioni → Byuppino AI → home → app -->
+<script type="text/babel" src="pano-core.jsx?v=4"></script>
+<script type="text/babel" src="pano-ui.jsx?v=4"></script>
+<script type="text/babel" src="pano-charts.jsx?v=4"></script>
+<script type="text/babel" src="pano-data.jsx?v=4"></script>
+<script src="pano-world.js?v=4"></script>
+<script type="text/babel" src="pano-world-ui.jsx?v=4"></script>
+<script type="text/babel" src="pano-phone.jsx?v=4"></script>
+<script type="text/babel" src="pano-flows.jsx?v=4"></script>
+<script type="text/babel" src="pano-pages.jsx?v=4"></script>
+<script type="text/babel" src="pano-byuppino.jsx?v=4"></script>
+<script type="text/babel" src="pano-homes.jsx?v=4"></script>
+<script type="text/babel" src="pano-app.jsx?v=4"></script>
+</body>
+</html>
