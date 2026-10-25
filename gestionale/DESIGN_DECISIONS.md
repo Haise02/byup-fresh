@@ -1169,3 +1169,26 @@ La conseguenza da non dimenticare sta in `A11Y-AUDIT.md` §10.2: finché quel
 comando non c'è, la conformità a **WCAG 2.2.2 (livello A)** poggia sul fatto
 che un'impostazione del sistema operativo conti come «meccanismo» — cosa
 largamente accettata, ma è un'interpretazione, non un fatto.
+
+## Panorama si chiede dalla barra laterale — 25 ottobre 2026
+
+Panorama, il business manager di advertising di byup, non ha un login suo: si
+entra con l'account di Fresh, e la porta sta qui. Il **bannerino** vive nella
+barra laterale, sotto le sezioni e sopra il piano: fondo nero, il marchio di
+Panorama **a colori** (il file ufficiale, mai ridisegnato né deformato) e un
+bottone bianco. È l'unica superficie di Fresh con il marchio di un altro
+prodotto, e lo vede solo il **titolare**: Panorama è per chi decide le spese.
+
+- **Tre stati, una frase ciascuno**: «Candidati»; «In valutazione · entro 48
+  ore» con un pallino ambra che respira; «Accesso attivo» con il pallino verde e
+  «Apri Panorama ↗».
+- **La candidatura è una schermata di Fresh**: si apre sopra la pagina, a destra
+  della barra, con i token `PN` e le carte bianche; solo la testata è di
+  Panorama (scura, marchio a colori). Dentro: cosa guardiamo, letto dai dati di
+  Fresh (nessun documento da mandare), il modulo, i tre passi.
+- **Ad accesso attivo non si apre più niente qui**: il bannerino apre Panorama in
+  un'altra scheda, con lo stesso account.
+- **Da menù stretto** è un quadrato nero col segno di Panorama e il pallino dello
+  stato; nel cassetto è il bannerino intero, e aprire la schermata chiude il
+  cassetto.
+

@@ -257,6 +257,12 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
   React.useEffect(() => { if (!stretta && cassetto) setCassetto(false); }, [stretta]);
   const cassettoRef = React.useRef(null);
   const chiudiCassetto = React.useCallback(() => setCassetto(false), []);
+  // Chi apre una schermata sopra la pagina dal menù (la candidatura a Panorama)
+  // chiude il cassetto: la schermata va vista, non il menù.
+  React.useEffect(() => {
+    window.addEventListener('pn-cassetto-chiudi', chiudiCassetto);
+    return () => window.removeEventListener('pn-cassetto-chiudi', chiudiCassetto);
+  }, []);
   const apriRef = window.useTrappolaFocus
     ? window.useTrappolaFocus(cassettoRef, cassetto, chiudiCassetto)
     : React.useRef(null);
@@ -379,6 +385,7 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     <aside
       ref={cassetto ? cassettoRef : null}
       id={cassetto ? 'pn-sidebar-cassetto' : undefined}
+      data-pn-sidebar={cassetto ? undefined : ''}
       role={cassetto ? 'dialog' : undefined}
       aria-modal={cassetto ? 'true' : undefined}
       aria-label={cassetto ? 'Menu di navigazione' : undefined}
@@ -470,6 +477,11 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
             badge={badges && badges[it.id] ? badges[it.id] : undefined}
             collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
         ))}
+        {/* Panorama, il business manager di byup (25 ottobre): si chiede da qui.
+            Il bannerino e la schermata della candidatura stanno in
+            panorama-candidatura.jsx; a candidatura approvata apre Panorama in
+            un'altra scheda. */}
+        {window.PnPanoramaBanner && <window.PnPanoramaBanner collapsed={collapsed}/>}
       </div>
 
       {/* Stato connessione — event-driven, sopra la plan card: quando compare
@@ -586,7 +598,7 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
   // e non fluttuante sopra la testata perché le undici pagine hanno undici
   // testate diverse, e un pulsante appoggiato sopra ne coprirebbe qualcuna.
   const striscia = (
-    <div style={{
+    <div data-pn-sidebar="" style={{
       width: 44, flexShrink: 0, ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       padding: '14px 0', height: '100%', position: 'relative', zIndex: 60,
@@ -637,7 +649,7 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
   );
   return (
     <React.Fragment>
-      <div aria-hidden="true" style={{width: barrettaImposta ? 68 : 44, flexShrink: 0}}/>
+      <div aria-hidden="true" data-pn-sidebar="" style={{width: barrettaImposta ? 68 : 44, flexShrink: 0}}/>
       {frame ? ReactDOM.createPortal(sopra, frame) : sopra}
     </React.Fragment>
   );
