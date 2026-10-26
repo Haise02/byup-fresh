@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 // Panorama · il mondo in React: etichette ancorate al 3D, contatori vivi,
 // feed anonimo, simulazione della push e comandi. Il motore sta in
-// pano-world.js; qui c'è tutto quello che si legge e si tocca.
+// pano-byuplandia.js (Byuplandia, compilato); qui c'è tutto quello che si legge e si tocca.
 // ═══════════════════════════════════════════════════════════════════════
 (function () {
   const Pano = window.Pano;
