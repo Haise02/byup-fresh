@@ -180,6 +180,29 @@
     );
   }
 
+  // Il podio della casella: tre gradini (2 · 1 · 3), i tre posti della push.
+  // Sopra ogni gradino chi lo tiene adesso: tu (il tuo anello), un altro locale in
+  // gara (una busta, l'offerta non si vede), un locale già inviato, o il posto libero.
+  function PodEnv() {
+    return <svg viewBox="0 0 15 11" aria-hidden="true"><rect x=".7" y=".7" width="13.6" height="9.6" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="M1.2 1.4 7.5 6l6.3-4.6" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>;
+  }
+  function PodioMini({ win, closed }) {
+    return (
+      <span className="dg-pod" aria-hidden="true">
+        {[2, 1, 3].map((k) => {
+          const w = (win || []).find((y) => y.pos === k);
+          const kind = !w ? 'free' : w.me ? 'av-ring me' : closed ? 'sold' : 'env';
+          return (
+            <span key={k} className={cx('st', 'p' + k)}>
+              <i className={cx('pt', kind)}>{w && w.me ? 'CP' : kind === 'env' ? <PodEnv /> : null}</i>
+              <em>{k}</em>
+            </span>
+          );
+        })}
+      </span>
+    );
+  }
+
   // ─── Notifiche push (all'asta) ──────────────────────────────────────────
   function NotifichePush() {
     const cells = Pano.useStore((s) => s.digest);
@@ -208,8 +231,8 @@
             ]}
             other={<OtherLink to="inapp" icon="inbox" t="Vuoi farti leggere senza suonare?" d="La notifica in app sta nella Posta dell’app, a prezzo fisso." />} />
         </div>
-        <Card title="I prossimi 7 giorni" icon="calendar" sub="Tocca una casella per fare un’offerta. I tre trattini sono i tre posti della push."
-          actions={<div className="legend"><span><i style={{ background: 'var(--iride-dot)' }} />Tu</span><span><i style={{ background: 'var(--line-3)' }} />Altri locali</span><span><i className="lg-auc" />Ancora in gara</span></div>}>
+        <Card title="I prossimi 7 giorni" icon="calendar" sub="Tocca una casella per fare un’offerta. I tre gradini del podio sono i tre posti della push."
+          actions={<div className="legend"><span><i className="lg-tok av-ring" />Tu</span><span><i className="lg-tok env"><PodEnv /></i>In gara, a busta chiusa</span><span><i className="lg-tok sold" />Altri locali</span><span><i className="lg-tok free" />Posto libero</span></div>}>
           <div style={{ overflowX: 'auto', margin: '0 -22px', padding: '0 22px 4px' }}>
             <div className="dg">
               <span />
@@ -222,9 +245,7 @@
                     const x = cellState(c, cells);
                     return (
                       <button key={i} type="button" className={cx('dg-cell', x.tone === 'mine' && 'mine', sel === c.id && 'sel')} onClick={() => act.open('slot', { cellId: c.id })} aria-label={`Push ${F.label} ${Pano.fmtDayLong(d)}: ${x.st}, ${x.sub}`}>
-                        <span className="slots" aria-hidden="true">
-                          {[1, 2, 3].map((k) => { const w = x.res.win.find((y) => y.pos === k); return <i key={k} className={cx('auc', w && w.me && 'mine', x.closed && w && !w.me && 'sold')} />; })}
-                        </span>
+                        <PodioMini win={x.res.win} closed={x.closed} />
                         <span className="dg-st" style={{ color: x.tone === 'warn' ? 'var(--warn-ink)' : x.tone === 'muted' ? 'var(--muted)' : 'var(--ink)' }}>
                           {x.tone === 'mine' && <Icon n="checkCircle" />}{x.tone === 'warn' && <Icon n="alert" />}{x.tone === 'free' && <Icon n="push" />}{x.st}
                         </span>

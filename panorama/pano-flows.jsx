@@ -641,14 +641,123 @@
   const weekOf = (c) => (c.day <= 1 ? 0 : 1); // oggi è sabato: sabato e domenica sono questa settimana
   // le push della stessa settimana già vinte o in gara (il tetto è 2 a locale)
   Pano.pushWeek = (all, cell) => all.filter((c) => c.id !== cell.id && weekOf(c) === weekOf(cell) && (c.auction.status === 'chiusa' ? !!(c.auction.result && c.auction.result.me) : !!c.auction.my));
+  // ─── Asta della push, come un gioco ─────────────────────────────────────
+  // Non si ragiona in euro ma in posti. Il podio sono i tre posti della push:
+  // tocchi il gradino che vuoi e Panorama ti dice quanto serve per salirci (la
+  // soglia: il minimo per stare davanti a chi c'è adesso). Poi scegli lo scudo,
+  // cioè quanto metti in più sopra la soglia per non farti scavalcare: col
+  // secondo prezzo lo usi solo se qualcuno alza, altrimenti paghi la soglia.
+  // In gara: vedi il tuo posto, la forza dello scudo e sali di un gradino in un tocco.
+  const SCUDI = [
+    { id: 'leggero', label: 'Leggero', add: 0.5 },
+    { id: 'medio', label: 'Medio', add: 1.5 },
+    { id: 'forte', label: 'Forte', add: 4 },
+  ];
+  const scudoDi = (m) => (m >= 4 ? { lv: 3, t: 'forte' } : m >= 1.5 ? { lv: 2, t: 'medio' } : m >= 0.5 ? { lv: 1, t: 'leggero' } : { lv: 0, t: 'senza scudo' });
+  const AVVISI_ASTA = new Set(['0-cena', '6-cena']); // «avvisami se mi scavalcano», per asta
+  const shortWho = (w) => (w.me ? 'Tu' : w.who.replace(/^(Pizzeria|Sushi|Vineria|Gelateria|Trattoria) /, ''));
+  function PodEnvIco() {
+    return <svg viewBox="0 0 15 11" aria-hidden="true"><rect x=".7" y=".7" width="13.6" height="9.6" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" /><path d="M1.2 1.4 7.5 6l6.3-4.6" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>;
+  }
+  // le soglie dei tre gradini: l'offerta minima per arrivare al posto k (o meglio)
+  function useSoglie(a) {
+    return useMemo(() => {
+      const out = { 1: null, 2: null, 3: null };
+      [3, 2, 1].forEach((k) => {
+        for (let b = a.reserve; b <= 250; b += 0.5) { const r = Pano.settleAuction(a, b); if (r.me && r.me.pos <= k) { out[k] = b; break; } }
+      });
+      return out;
+    }, [a]);
+  }
+  function quandoChiude(cell) {
+    const [h, m] = cell.auction.closeAt.split(':').map(Number);
+    const t = new Date(cell.d); t.setHours(h, m, 0, 0);
+    const min = Math.round((t - Pano.TODAY) / 60000);
+    if (min <= 0) return 'chiusa';
+    if (min < 60) return `tra ${min} min`;
+    const ore = Math.floor(min / 60);
+    if (ore < 24) return `tra ${ore} h ${min % 60} min`;
+    return `tra ${Math.floor(ore / 24)} g ${ore % 24} h`;
+  }
+  // il podio grande: tre gradini (2 · 1 · 3) e la panchina
+  function AucPodio({ win, soglie, pos, closed, onPick, offers, meOut, hop }) {
+    const list = win || [];
+    const others = Math.max(0, (offers || 0) - list.length - (meOut ? 1 : 0));
+    return (
+      <div className="auc-podwrap">
+        <div className="auc-pod" role={onPick ? 'group' : undefined} aria-label="I tre posti della push">
+          {[2, 1, 3].map((k) => {
+            const w = list.find((y) => y.pos === k);
+            const kind = !w ? 'free' : w.me ? 'av-ring me' : closed ? 'sold' : 'env';
+            const s = soglie && soglie[k];
+            const Tag = onPick ? 'button' : 'div';
+            return (
+              <Tag key={k} type={onPick ? 'button' : undefined} className={cx('st', 'p' + k, pos === k && 'on')} disabled={onPick ? s == null : undefined}
+                onClick={onPick ? () => onPick(k) : undefined} aria-label={onPick ? `${k}° posto${s != null ? `, da ${Pano.eur(s)}` : ''}` : undefined}>
+                <i key={w && w.me ? 'me' + hop : 'x'} className={cx('tk', kind)}>{w && w.me ? 'CP' : kind === 'env' ? <PodEnvIco /> : null}</i>
+                <b>{k}°</b>
+                {closed ? <small>{w ? shortWho(w) : 'libero'}</small> : <small>{s != null ? `da ${Pano.eur(s)}` : 'fuori portata'}</small>}
+              </Tag>
+            );
+          })}
+        </div>
+        <div className="auc-bench">
+          {meOut && <i className="tk av-ring me" key={'b' + hop}>CP</i>}
+          <span>{meOut ? 'Sei in panchina' : 'In panchina'}{others ? ` · ${others} ${others === 1 ? 'locale' : 'locali'}` : meOut ? '' : ': nessuno'}</span>
+          {Array.from({ length: Math.min(others, 6) }, (_, i) => <i key={i} className={cx('tk', closed ? 'sold' : 'env')}>{closed ? null : <PodEnvIco />}</i>)}
+        </div>
+      </div>
+    );
+  }
+  function AucTimeline({ cell }) {
+    const a = cell.auction;
+    return (
+      <div className="card soft auc-tlbox">
+        <b className="auc-tl-t">Come va l’asta</b>
+        <ol className="auc-tl">
+          <li className="now"><i /><div><b>Adesso · offri a busta chiusa</b><span>Nessuno vede le offerte degli altri, e tu non vedi le loro: vedi solo quanto serve per ogni gradino. Puoi cambiare o ritirare l’offerta fino alle {a.closeAt}.</span></div><em>chiude {quandoChiude(cell)}</em></li>
+          <li><i /><div><b>{a.closeAt} · si aprono le buste</b><span>Sale più in alto chi ha offerta × qualità più alta: la qualità del tuo locale vale ×{Pano.n2(DATA.QUALITA)} (voto 4,6, foto, tocchi). Una trattoria per push.</span></div></li>
+          <li><i /><div><b>{cell.time} · parte la notifica</b><span>byup la manda a chi è in zona, con i tre locali del podio. Paghi solo se ci sei, e solo quanto basta per stare davanti a chi ti segue.</span></div></li>
+        </ol>
+      </div>
+    );
+  }
+  function AucBuy({ cell, F, closed }) {
+    const past = DATA.PUSH_PAST.find((p) => (closed ? p.today && p.fascia === cell.fascia : p.fascia === cell.fascia)) || (closed ? null : DATA.PUSH_PAST[0]);
+    return (
+      <div className="card soft auc-buy">
+        <div className="auc-buy-h">
+          <span className="auc-ico"><Icon n="push" /></span>
+          <div className="col" style={{ gap: 3, minWidth: 0 }}>
+            <b>{closed ? 'Com’è andata la push' : 'Cosa compri: il tuo nome nella notifica'}</b>
+            <span className="t-small">{closed ? `Arrivata a ≈ ${Pano.n(cell.reach)} persone in zona, alle ${cell.time}.` : `Arriva a ≈ ${Pano.n(cell.reach)} persone a Trastevere, ${Pano.fmtDayLong(cell.d)} alle ${cell.time}, anche ad app chiusa. Dentro ci sono tre locali, uno per categoria: i tre gradini del podio.`}</span>
+          </div>
+        </div>
+        {past && (
+          <div className="auc-kpis">
+            <div className="lead"><b>{past.pos}° · {Pano.eur(past.price, true)}</b><span>{closed ? 'il tuo posto e quanto hai pagato' : `la tua ultima push a ${F.label.toLowerCase()}, ${Pano.fmtDay(past.d)}`}</span></div>
+            <div><b>{Pano.n(past.taps)}</b><span>tocchi</span></div>
+            <div><b>{Pano.n(past.covers)}</b><span>coperti</span></div>
+            <div><b>{Pano.eur(past.revenue)}</b><span>incasso</span></div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function SlotDrawer({ cellId }) {
     const cell = Pano.useStore((s) => s.digest.find((c) => c.id === cellId));
     const all = Pano.useStore((s) => s.digest);
     const wallet = Pano.useStore((s) => s.wallet);
     const [view, setView] = useState('push');
     const [bid, setBid] = useState(null);
+    const [shield, setShield] = useState('medio');
+    const [target, setTarget] = useState(3);
+    const [alertOn, setAlertOn] = useState(() => !cell || !cell.auction.my || AVVISI_ASTA.has(cellId));
+    const [hop, setHop] = useState(0);
+    const a = cell ? cell.auction : null;
+    const soglie = useSoglie(a || { reserve: 0, rivals: [] });
     if (!cell) return null;
-    const a = cell.auction;
     const F = DATA.FASCE.find((f) => f.id === cell.fascia);
     const x = Pano.cellState(cell);
     const closed = x.closed;
@@ -657,93 +766,130 @@
     const week = Pano.pushWeek(all, cell);
     const capped = !a.my && week.length >= DATA.TETTO_PUSH;
     const base = Pano.settleAuction(a, null);
-    const val = bid != null ? bid : a.my ? a.my.max : Math.max(base.need, a.reserve);
+    const addOf = (id) => (SCUDI.find((s) => s.id === id) || SCUDI[1]).add;
+    const defVal = soglie[3] != null ? soglie[3] + addOf('medio') : Math.max(base.need, a.reserve);
+    const editing = !a.my || bid != null;
+    const val = bid != null ? bid : a.my ? a.my.max : defVal;
     const est = Pano.settleAuction(a, val);
+    const pos = est.me ? est.me.pos : null;
+    // lo scudo difende il gradino scelto (con lo scudo puoi già stare più in alto)
+    const tgt = pos ? (shield && soglie[target] != null && target >= pos ? target : pos) : null;
+    const margin = tgt ? val - soglie[tgt] : 0;
+    const sc = scudoDi(margin);
     const canPay = val - (a.my ? a.my.max : 0) <= wallet.balance;
+    const bump = () => setHop((h) => h + 1);
+    const pick = (k) => { setTarget(k); const id = shield || 'medio'; setShield(id); setBid(soglie[k] + addOf(id)); bump(); };
+    const pickShield = (id) => { setShield(id); const k = soglie[target] != null ? target : 3; if (soglie[k] != null) setBid(soglie[k] + addOf(id)); bump(); };
+    const step = (d) => { setShield(null); setBid(Math.max(a.reserve, Math.round((val + d) * 2) / 2)); bump(); };
     const place = () => {
       const had = a.my && a.my.max;
+      if (alertOn) AVVISI_ASTA.add(cell.id); else AVVISI_ASTA.delete(cell.id);
       act.placeBid(cell.id, val);
       setBid(null);
-      Pano.toast(had ? `Offerta aggiornata · massimo ${Pano.eur(val)}` : `Offerta fatta · massimo ${Pano.eur(val)}, bloccati fino alle ${a.closeAt}`, { undo: () => (had ? act.placeBid(cell.id, had) : act.withdrawBid(cell.id)) });
+      Pano.toast(`${pos ? `Sei ${pos}° · ` : ''}offerta massima ${Pano.eur(val)}, bloccata fino alle ${a.closeAt}${alertOn ? ' · ti avvisiamo se ti scavalcano' : ''}`, { undo: () => (had ? act.placeBid(cell.id, had) : act.withdrawBid(cell.id)) });
+    };
+    // in gara: un tocco per salire di gradino (soglia del gradino + scudo medio)
+    const climbTo = (k) => soglie[k] != null ? soglie[k] + addOf('medio') : null;
+    const climb = (k) => {
+      const had = a.my.max, to = climbTo(k);
+      if (to == null || to - had > wallet.balance) { Pano.toast('Il saldo del wallet non basta per salire'); return; }
+      act.placeBid(cell.id, to); bump();
+      Pano.toast(`Sei salito al ${k}° · offerta massima ${Pano.eur(to)}`, { undo: () => act.placeBid(cell.id, had) });
     };
     const withdraw = () => { const had = a.my.max; act.withdrawBid(cell.id); setBid(null); Pano.toast('Offerta ritirata · importo sbloccato', { undo: () => act.placeBid(cell.id, had) }); };
     const simulate = () => { const r = act.closeAuction(cell.id); Pano.toast(r.me ? `Asta chiusa: ${r.me.pos}° posto, pagati ${Pano.eur(r.me.paid, true)}` : 'Asta chiusa: questa volta non sei entrato'); };
     const winners = closed && a.result ? a.result.win : null;
+    const curPos = x.me ? x.me.pos : null;
+    const curMargin = a.my && curPos ? a.my.max - (soglie[curPos] != null ? soglie[curPos] : a.my.max) : 0;
+    const curSc = scudoDi(curMargin);
+    const rivalT = editing ? est.rivalTrattoria : x.res.rivalTrattoria;
     return (
       <Drawer onClose={act.close} title={title} sub={`Trastevere · raggio 1,2 km · ≈ ${Pano.n(cell.reach)} persone · la manda byup`}>
         <div className={cx('auc-st', closed ? 'closed' : 'open')}>
           <i />
           <b>{closed ? `Asta chiusa · push inviata alle ${cell.time}` : `Asta aperta · chiude alle ${a.closeAt}`}</b>
-          <span>{a.rivals.length + (a.my ? 1 : 0)} offerte{closed ? '' : ' · 15 minuti prima dell’invio'}</span>
-        </div>
-        <div className="card soft" style={{ padding: 16 }}>
-          <div className="col" style={{ gap: 8 }}>
-            <KV k="Posti nella push" v="3, uno per categoria" />
-            <KV k="Prezzo minimo" v={`${Pano.eur(a.reserve)} · ${Pano.eur(DATA.PER_MILLE, true)} ogni 1.000 persone`} />
-            <KV k="Di solito il 1° posto" v={`${Pano.eur(a.range[0])}–${Pano.eur(a.range[1])}`} />
-            <KV k="La qualità del tuo locale" v={`×${Pano.n2(DATA.QUALITA)} · voto 4,6, foto, tocchi`} />
-          </div>
+          <span>{a.rivals.length + (a.my ? 1 : 0)} offerte in busta · base {Pano.eur(a.reserve)}</span>
         </div>
         {closed ? (
           <>
             {x.me
-              ? <Note tone="good" icon="checkCircle"><b>Vinto il {x.me.pos}° posto</b> · pagati {Pano.eur(x.me.paid, true)} con il secondo prezzo{a.my ? `; la tua offerta massima era ${Pano.eur(a.my.max)} e il resto è tornato nel wallet` : ''}.</Note>
-              : a.my ? <Note tone="warn" icon="alert"><b>Questa volta non sei entrato.</b> {a.result && a.result.cut ? `Il primo escluso aveva offerta × qualità più alta della tua.` : ''} L’offerta massima è tornata nel wallet.</Note>
+              ? <Note tone="good" icon="checkCircle"><b>Sei salito sul podio: {x.me.pos}° posto</b> · pagati {Pano.eur(x.me.paid, true)} con il secondo prezzo{a.my ? `; la tua offerta massima era ${Pano.eur(a.my.max)} e il resto è tornato nel wallet` : ''}.</Note>
+              : a.my ? <Note tone="warn" icon="alert"><b>Questa volta sei rimasto in panchina.</b> {a.result && a.result.cut ? 'Chi è salito aveva offerta × qualità più alta della tua.' : ''} L’offerta massima è tornata nel wallet.</Note>
                 : <Note icon="info">Asta chiusa senza la tua offerta.</Note>}
-            {winners && (
-              <div className="col" style={{ gap: 6 }} aria-label="Chi è nella push">
-                {winners.map((w) => (
-                  <div key={w.pos} className={cx('slot-row', 'static', w.me && 'me')}>
-                    <span className={cx('pos', w.me && 'av-ring')}>{w.pos}</span>
-                    <span className="col" style={{ gap: 1, textAlign: 'left' }}><b>{w.me ? 'Tu · Cacio e Pepe' : w.who}</b><span className="t-small">{w.cat} · nel testo della push</span></span>
-                    <span className="pr">{w.me ? Pano.eur(w.paid, true) : ''}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="auc-game">
+              <AucPodio win={winners} closed pos={curPos} offers={x.res.offers} meOut={!!a.my && !x.me} hop={hop} />
+            </div>
+            <AucBuy cell={cell} F={F} closed />
           </>
         ) : capped ? (
-          <Note tone="warn" icon="ban"><b>Tetto raggiunto.</b> Questa settimana hai già {week.length} push tra vinte e in gara: ogni locale ne vince al massimo {DATA.TETTO_PUSH}, così le push restano varie. Da lunedì puoi offrire di nuovo; intanto c’è la <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('inapp')}>notifica in app</button>, a prezzo fisso.</Note>
-        ) : a.my && bid == null ? (
-          <div className="auc-mine">
-            <div className="row between"><span className="t-small">La tua offerta massima</span><b className="num auc-big">{Pano.eur(a.my.max)}</b></div>
-            <div className={cx('auc-est', x.me ? 'ok' : 'ko')}>
-              {x.me ? <>Oggi saresti <b>{x.me.pos}°</b> e pagheresti <b>{Pano.eur(x.me.paid, true)}</b>: paghi solo quanto basta per superare chi ti segue.</>
-                : <>Oggi resteresti fuori: servono almeno <b>{Pano.eur(x.res.need)}</b>{x.res.rivalTrattoria ? ', perché gareggia anche un’altra trattoria' : ''}.</>}
-            </div>
-            <div className="row wrap" style={{ gap: 8 }}>
-              <Btn kind="secondary" size="sm" icon="edit" onClick={() => setBid(a.my.max)}>Cambia offerta</Btn>
-              <Btn kind="ghost" size="sm" icon="x" onClick={withdraw}>Ritira</Btn>
-              <span className="spacer" />
-              <Btn kind="ghost" size="sm" icon="clock" onClick={simulate}>Simula la chiusura</Btn>
-            </div>
-          </div>
+          <>
+            <Note tone="warn" icon="ban"><b>Tetto raggiunto.</b> Questa settimana hai già {week.length} push tra vinte e in gara: ogni locale ne vince al massimo {DATA.TETTO_PUSH}, così le push restano varie. Da lunedì puoi offrire di nuovo; intanto c’è la <button type="button" className="t-strong" style={{ textDecoration: 'underline' }} onClick={() => act.go('inapp')}>notifica in app</button>, a prezzo fisso.</Note>
+            <AucBuy cell={cell} F={F} />
+          </>
         ) : (
-          <div className="auc-edit">
-            <span className="lbl">La tua offerta massima</span>
-            <div className="auc-step">
-              <IconBtn icon="minus" label="Meno 50 centesimi" size="sm" onClick={() => setBid(Math.max(a.reserve, Math.round((val - 0.5) * 2) / 2))} />
-              <b className="num auc-big">{Pano.eur(val)}</b>
-              <IconBtn icon="plus" label="Più 50 centesimi" size="sm" onClick={() => setBid(Math.round((val + 0.5) * 2) / 2)} />
-            </div>
-            <Chips value={val} onChange={setBid} options={[...new Set([Math.max(base.need, a.reserve), 10, 15, 20, 25])].filter((v) => v >= a.reserve).sort((p, q) => p - q).slice(0, 5).map((v) => ({ id: v, label: v === Math.max(base.need, a.reserve) ? `${Pano.eur(v)} · per entrare` : Pano.eur(v) }))} />
-            <div className={cx('auc-est', est.me ? 'ok' : 'ko')}>
-              {est.me ? <>Stima di Byuppino: saresti <b>{est.me.pos}°</b> e pagheresti circa <b>{Pano.eur(est.me.paid, true)}</b>, mai più di {Pano.eur(val)}.</>
-                : <>Con {Pano.eur(val)} resteresti fuori: servono almeno <b>{Pano.eur(est.need)}</b>{est.rivalTrattoria ? ' (gareggia anche un’altra trattoria)' : ''}.</>}
-            </div>
-            <div className="row wrap" style={{ gap: 8 }}>
-              <Btn kind="primary" icon="push" disabled={!canPay} onClick={place}>{a.my ? `Aggiorna · massimo ${Pano.eur(val)}` : `Fai l’offerta · massimo ${Pano.eur(val)}`}</Btn>
-              {bid != null && a.my && <Btn kind="ghost" onClick={() => setBid(null)}>Annulla</Btn>}
-            </div>
-            <span className="t-small">{canPay ? `L’offerta massima resta bloccata nel wallet fino alle ${a.closeAt}; se non entri torna subito disponibile.` : 'Il saldo del wallet non basta per questa offerta.'}</span>
-          </div>
+          <>
+            <AucBuy cell={cell} F={F} />
+            {rivalT && <Note tone="warn" icon="store"><b>C’è un’altra trattoria in gara.</b> Nella push ne entra una sola: per salire sul podio devi starle davanti, per questo le soglie sono più alte.</Note>}
+            {editing ? (
+              <div className="auc-game">
+                <div className="auc-sec"><b><span className="auc-n">1</span>Scegli il tuo posto</b><span className="t-small">Tocca un gradino: sotto c’è quanto serve per salirci adesso.</span></div>
+                <AucPodio win={est.win} soglie={soglie} pos={pos} onPick={pick} offers={est.offers} meOut={!pos} hop={hop} />
+                <div className="auc-sec"><b><span className="auc-n">2</span>Metti lo scudo</b><span className="t-small">Quanto metti in più sopra la soglia per non farti scavalcare. Se nessuno alza non lo usi: paghi solo la soglia.</span></div>
+                <Seg className="auc-scudi" value={shield || 'mano'} onChange={pickShield} options={SCUDI.map((s) => ({ id: s.id, icon: 'shield', label: <span className="sc"><b>{s.label}</b><small>+{Pano.eur(s.add, true)}</small></span> }))} label="Lo scudo" />
+                <div className="auc-conto">
+                  <div><span>Offri al massimo</span>
+                    <div className="auc-step">
+                      <IconBtn icon="minus" label="Meno 50 centesimi" size="sm" onClick={() => step(-0.5)} />
+                      <b className="num">{Pano.eur(val)}</b>
+                      <IconBtn icon="plus" label="Più 50 centesimi" size="sm" onClick={() => step(0.5)} />
+                    </div>
+                  </div>
+                  <div className={cx(pos ? 'ok' : 'ko')}><span>{pos ? 'Paghi circa' : 'Per salire servono'}</span><b className="num">{pos ? Pano.eur(est.me.paid, true) : Pano.eur(est.need)}</b></div>
+                </div>
+                <div className={cx('auc-est', pos ? 'ok' : 'ko')}>
+                  {pos ? <>{sc.lv ? <>Punti al <b>{tgt}°</b> con <b>scudo {sc.t}</b> (+{Pano.eur(margin, true)} sopra la soglia)</> : <>Punti al <b>{tgt}°</b> <b>senza scudo</b>: basta poco per scavalcarti</>}{pos < tgt ? <>, e oggi saresti già <b>{pos}°</b></> : null}. Se nessuno alza paghi <b>{Pano.eur(est.me.paid, true)}</b>; se qualcuno prova a scavalcarti, resti su fino a {Pano.eur(val)}.</>
+                    : <>Con {Pano.eur(val)} resti in panchina: tocca il 3° gradino per salire, servono almeno <b>{Pano.eur(est.need)}</b>.</>}
+                </div>
+                <div className="auc-alert"><Icon n="bell" /><span>Avvisami se qualcuno mi scavalca</span><Switch on={alertOn} onChange={setAlertOn} label="Avvisami se qualcuno mi scavalca" /></div>
+                <div className="row wrap" style={{ gap: 8 }}>
+                  <Btn kind="primary" icon="push" disabled={!canPay} onClick={place}>{pos ? `${a.my ? 'Aggiorna' : 'Prendi il'} ${pos}° posto · massimo ${Pano.eur(val)}` : `Fai l’offerta · massimo ${Pano.eur(val)}`}</Btn>
+                  {bid != null && a.my && <Btn kind="ghost" onClick={() => { setBid(null); setShield('medio'); }}>Annulla</Btn>}
+                </div>
+                <span className="t-small">{canPay ? `Il massimo resta bloccato nel wallet fino alle ${a.closeAt}; se resti in panchina torna subito disponibile. Disponibile ${Pano.eur(wallet.balance, true)}.` : 'Il saldo del wallet non basta per questa offerta.'}</span>
+              </div>
+            ) : (
+              <div className="auc-game">
+                <div className="row between wrap" style={{ gap: 8 }}>
+                  <b className="auc-me">{curPos ? `Sei in gara: ${curPos}° posto` : 'Sei in panchina'}</b>
+                  <span className="t-small">offerta massima <b className="t-strong">{Pano.eur(a.my.max)}</b></span>
+                </div>
+                <AucPodio win={x.res.win} soglie={soglie} pos={curPos} onPick={(k) => (curPos && k >= curPos ? null : climb(k))} offers={x.res.offers} meOut={!curPos} hop={hop} />
+                {curPos ? (
+                  <div className="auc-shield"><Icon n="shield" /><span><b>Scudo {curSc.t}</b>{curMargin > 0 ? ` · +${Pano.eur(curMargin, true)} sopra la soglia del ${curPos}°` : ' · basta poco per scavalcarti'}</span><span className="bars" aria-hidden="true">{[1, 2, 3].map((l) => <i key={l} className={cx(l <= curSc.lv && 'on')} />)}</span></div>
+                ) : null}
+                <div className="auc-conto">
+                  <div><span>Offri al massimo</span><b className="num">{Pano.eur(a.my.max)}</b></div>
+                  <div className={cx(curPos ? 'ok' : 'ko')}><span>{curPos ? 'Oggi pagheresti' : 'Per salire servono'}</span><b className="num">{curPos ? Pano.eur(x.me.paid, true) : Pano.eur(x.res.need)}</b></div>
+                </div>
+                {(curPos !== 1) && (
+                  <div className="auc-climb">
+                    {[3, 2, 1].filter((k) => (curPos ? k < curPos : true) && climbTo(k) != null).map((k) => (
+                      <Btn key={k} kind={k === (curPos ? curPos - 1 : 3) ? 'primary' : 'secondary'} size="sm" icon="up" onClick={() => climb(k)}>{curPos ? `Sali al ${k}°` : k === 3 ? 'Sali sul podio' : `Vai al ${k}°`} · massimo {Pano.eur(climbTo(k))}</Btn>
+                    ))}
+                  </div>
+                )}
+                {AVVISI_ASTA.has(cell.id) && <span className="t-small auc-alerton"><Icon n="bell" size={14} />Avviso attivo: se qualcuno ti scavalca te lo diciamo, e puoi risalire in un tocco.</span>}
+                <div className="row wrap" style={{ gap: 8 }}>
+                  <Btn kind="secondary" size="sm" icon="edit" onClick={() => { setBid(a.my.max); setShield(null); setTarget(curPos || 3); }}>Cambia offerta</Btn>
+                  <Btn kind="ghost" size="sm" icon="x" onClick={withdraw}>Ritira</Btn>
+                  <span className="spacer" />
+                  <Btn kind="ghost" size="sm" icon="clock" onClick={simulate}>Simula la chiusura</Btn>
+                </div>
+              </div>
+            )}
+            <AucTimeline cell={cell} />
+          </>
         )}
-        <div className="auc-how">
-          <span><Icon n="lock" size={14} />Busta chiusa: nessuno vede le offerte degli altri</span>
-          <span><Icon n="sparkle" size={14} />Conta offerta × qualità del locale</span>
-          <span><Icon n="euro" size={14} />Paghi il secondo prezzo, mai più della tua offerta</span>
-          <span><Icon n="store" size={14} />Una trattoria per push · massimo {DATA.TETTO_PUSH} vinte a settimana</span>
-        </div>
         <Seg value={view} onChange={setView} options={[{ id: 'push', label: 'La notifica', icon: 'push' }, { id: 'lista', label: 'Aperta', icon: 'phone' }]} label="Anteprima della push" />
         {view === 'push'
           ? <Pano.PhoneCrop key="push" screen="push" from={430} h={414} fade="top" label="La push sullo schermo bloccato, da vicino" />
