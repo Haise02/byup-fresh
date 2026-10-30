@@ -361,8 +361,7 @@
             <Pano.WorldView variant="atlante" mode="card">
               <div className="w-title">
                 <span className="eyebrow"><span className="now"><i />Adesso · {Pano.hhmm()}</span>Il tuo panorama</span>
-                <h2>Trastevere,<br />in questo momento</h2>
-                <p>Chi vede Cacio e Pepe in app, chi tocca l'annuncio e chi sta arrivando. Trascina per girare la zona.</p>
+                <h2>Il tuo locale,<br />in questo momento</h2>
               </div>
               <div className="w-right a-wright">
                 <DioCount />
